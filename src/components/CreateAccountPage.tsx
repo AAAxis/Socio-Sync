@@ -100,7 +100,7 @@ export function CreateAccountPage() {
     <div className="app">
       <div className="container">
         <div className="login-card">
-          <button onClick={() => navigate('/')} className="back-to-login-btn" title="Back to main login">
+          <button onClick={() => navigate('/dashboard')} className="back-to-login-btn" title="Back to dashboard">
             ←
           </button>
           <div className="login-header">

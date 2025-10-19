@@ -395,6 +395,7 @@
   "users": {
     "title": "ניהול משתמשים",
     "searchPlaceholder": "חפש משתמשים...",
+    "allUsers": "כל המשתמשים",
     "statusActive": "פעיל",
     "statusBlocked": "בהמתנה",
     "statusRestricted": "מוגבל",

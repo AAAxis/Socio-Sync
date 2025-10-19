@@ -1,11 +1,9 @@
 // API Configuration
-const isProduction = window.location.hostname !== 'localhost';
-
+// Always use remote backend (production server)
 export const API_CONFIG = {
   // Fileserver URL (for patient data and file uploads)
-  FILESERVER_URL: isProduction 
-    ? 'https://intake.theholylabs.com' 
-    : 'http://localhost:3001',
+  // Using remote backend for both localhost and production
+  FILESERVER_URL: 'https://intake.theholylabs.com',
 };
 
 // Helper function to get full API URL

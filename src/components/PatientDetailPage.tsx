@@ -913,7 +913,7 @@ export function PatientDetailPage() {
                     className={`tab-button ${activeDetailTab === 'progress' ? 'active' : ''}`}
                     onClick={() => setActiveDetailTab('progress')}
                   >
-                    🎯 {t('patientDetail.progress')}
+                    {t('patientDetail.progress')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'activity' ? 'active' : ''}`}
@@ -1188,8 +1188,8 @@ export function PatientDetailPage() {
                               cursor: 'pointer'
                             }}
                           >
-                            <option value="active">Active</option>
-                            <option value="archived">Archived</option>
+                            <option value="active">{t('patientDetail.filterActive')}</option>
+                            <option value="archived">{t('patientDetail.filterArchived')}</option>
                           </select>
                         <button
                           onClick={openAddMeetingModal}
@@ -1335,8 +1335,8 @@ export function PatientDetailPage() {
                       ) : (
                         <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
                           <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
-                          <h4 style={{ color: '#000000', marginBottom: '8px' }}>No Meetings Yet</h4>
-                          <p>Click the "+ Add Meeting" button to create your first meeting record.</p>
+                          <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMeetingsYet')}</h4>
+                          <p>{t('patientDetail.addFirstMeeting')}</p>
                         </div>
                       )}
                     </div>
@@ -1685,7 +1685,7 @@ export function PatientDetailPage() {
                   {activeDetailTab === 'progress' && (
                     <div className="tab-panel">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>🎯 {t('patientDetail.progressMilestones')}</h3>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>{t('patientDetail.progressMilestones')}</h3>
                         <button
                           onClick={() => setShowAddMilestone(true)}
                           style={{
@@ -1924,8 +1924,8 @@ export function PatientDetailPage() {
                           color: '#6c757d'
                         }}>
                           <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-                          <h4 style={{ color: '#000000', marginBottom: '8px' }}>No Milestones Yet</h4>
-                          <p>Add your first milestone to start tracking progress!</p>
+                          <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesYet')}</h4>
+                          <p>{t('patientDetail.addFirstMilestone')}</p>
                         </div>
                       )}
                     </div>

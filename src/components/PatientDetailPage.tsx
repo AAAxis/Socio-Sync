@@ -1043,6 +1043,20 @@ export function PatientDetailPage() {
                                             height: '100%',
                                             objectFit: 'cover'
                                           }}
+                                          onError={(e) => {
+                                            // If image fails to load (CORS or 404), show fallback icon
+                                            e.currentTarget.style.display = 'none';
+                                            const parent = e.currentTarget.parentElement;
+                                            if (parent && !parent.querySelector('.fallback-icon')) {
+                                              const fallback = document.createElement('span');
+                                              fallback.className = 'fallback-icon';
+                                              fallback.textContent = '🖼️';
+                                              fallback.style.fontSize = '24px';
+                                              fallback.title = 'Image failed to load (CORS or network error)';
+                                              parent.appendChild(fallback);
+                                            }
+                                          }}
+                                          crossOrigin="anonymous"
                                         />
                                       ) : (
                                         <span style={{ fontSize: '24px' }}>📄</span>

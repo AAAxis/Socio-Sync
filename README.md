@@ -1,67 +1,49 @@
-# Google OAuth2 Login Application
+# Socio-Sync
 
-A modern, secure Google OAuth2 login application built with React, TypeScript, and deployed on Vercel.
+A comprehensive patient case management system built with React, TypeScript, Firebase, and deployed on Vercel.
 
 ## Features
 
-- 🔐 **Secure OAuth2 Authentication** - Google Sign-In integration
-- 🎨 **Modern UI/UX** - Clean, responsive design with smooth animations
-- 🔒 **Security Best Practices** - Environment variables for secrets management
+- 🔐 **Secure Authentication** - Firebase Auth with Google Sign-In and Email/Password
+- 📋 **Patient Management** - Complete patient case tracking system
+- 📅 **Calendar Integration** - Google Calendar sync for appointments
+- 👥 **User Management** - Multi-role system (Super Admin, Admin)
+- 📊 **Dashboard & Analytics** - Real-time statistics and activity logs
+- 🌐 **Multi-language Support** - i18n ready (English & Hebrew)
+- 🔒 **Security & Privacy** - PII data separation with PostgreSQL backend
 - 📱 **Mobile Responsive** - Works perfectly on all device sizes
-- ♿ **Accessibility** - WCAG compliant with proper focus management
 - 🚀 **Cloud Ready** - Optimized for Vercel deployment
-
-## Live Demo
-
-🚀 **[View Live Application](https://google-oauth-login-demo.vercel.app)**
 
 ## Quick Start
 
 ### Prerequisites
 
-- Node.js 16+ and npm
+- Node.js 18+ and npm
+- Firebase account
 - Google Cloud Console account
 - Git
 
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/google-oauth-login.git
-cd google-oauth-login
-```
-
-### 2. Install Dependencies
+### 1. Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 3. Set Up Google OAuth2
+### 2. Firebase Setup
 
-1. Go to [Google Cloud Console](https://console.cloud.google.com/)
-2. Create a new project or select an existing one
-3. Enable the Google+ API
-4. Navigate to **Credentials** → **Create Credentials** → **OAuth 2.0 Client IDs**
-5. Set Application type to **"Web application"**
-6. Add your domains to **Authorized JavaScript origins**:
-   - `http://localhost:3000` (for development)
-   - `https://yourdomain.vercel.app` (for production)
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions on:
+- Creating a Firebase project
+- Enabling Authentication
+- Setting up Firestore
+- Configuring security rules
 
-### 4. Configure Environment Variables
+### 3. Google Calendar Setup
 
-Copy the example environment file:
+See [GOOGLE_SETUP.md](GOOGLE_SETUP.md) for instructions on:
+- Setting up Google Calendar API
+- Configuring OAuth2 credentials
 
-```bash
-cp env.example .env.local
-```
-
-Edit `.env.local` and add your Google Client ID:
-
-```env
-REACT_APP_GOOGLE_CLIENT_ID=your_google_client_id_here
-```
-
-### 5. Run the Application
+### 4. Run the Application
 
 ```bash
 npm start
@@ -69,68 +51,77 @@ npm start
 
 The application will open at `http://localhost:3000`
 
+### 5. Build for Production
+
+```bash
+npm run build
+```
+
 ## Deployment
 
 ### Deploy to Vercel (Recommended)
 
-1. **Install Vercel CLI**:
+See [VERCEL_DEPLOYMENT.md](VERCEL_DEPLOYMENT.md) for complete deployment instructions.
+
+**Quick Deploy:**
+
+1. Push code to GitHub:
    ```bash
-   npm i -g vercel
+   git add .
+   git commit -m "Ready for deployment"
+   git push origin main
    ```
 
-2. **Deploy**:
-   ```bash
-   vercel
-   ```
+2. Import project in Vercel:
+   - Go to [vercel.com](https://vercel.com)
+   - Click "Add New Project"
+   - Import your repository
+   - Configure with default settings (Create React App)
+   - Deploy!
 
-3. **Set Environment Variables**:
-   ```bash
-   vercel env add REACT_APP_GOOGLE_CLIENT_ID
-   ```
+3. Update Firebase & Google Cloud authorized domains with your Vercel URL
 
-4. **Redeploy**:
-   ```bash
-   vercel --prod
-   ```
+### Alternative: Deploy via CLI
 
-### Alternative Deployment Options
-
-#### Netlify
-1. Connect your GitHub repository to Netlify
-2. Set build command: `npm run build`
-3. Set publish directory: `build`
-4. Add environment variable: `REACT_APP_GOOGLE_CLIENT_ID`
-
-#### AWS Amplify
-1. Connect your GitHub repository to AWS Amplify
-2. Set build command: `npm run build`
-3. Set base directory: `/`
-4. Add environment variable: `REACT_APP_GOOGLE_CLIENT_ID`
+```bash
+npm install -g vercel
+vercel
+```
 
 ## Project Structure
 
 ```
-google-oauth-app/
-├── public/
-│   ├── index.html
-│   └── manifest.json
+Socio-Sync/
+├── public/              # Static assets
 ├── src/
-│   ├── App.tsx          # Main application component
-│   ├── App.css          # Styling and responsive design
-│   ├── index.tsx        # Application entry point
-│   └── index.css        # Global styles
+│   ├── components/      # React components
+│   │   ├── LoginPage.tsx
+│   │   ├── Patients.tsx
+│   │   ├── CreatePatientPage.tsx
+│   │   ├── Users.tsx
+│   │   └── ...
+│   ├── locales/         # i18n translations
+│   ├── App.tsx          # Main application
+│   ├── firebase.ts      # Firebase configuration
+│   ├── config.ts        # API configuration
+│   ├── types.ts         # TypeScript types
+│   └── utils.ts         # Utility functions
+├── build/               # Production build (auto-generated)
 ├── package.json         # Dependencies and scripts
 ├── tsconfig.json        # TypeScript configuration
-├── vercel.json          # Vercel deployment configuration
-└── env.example          # Environment variables template
+├── vercel.json          # Vercel deployment config
+├── firestore.rules      # Firestore security rules
+└── .gitignore           # Git ignore patterns
 ```
 
 ## Security Features
 
-- ✅ **No Hardcoded Secrets** - All sensitive data stored in environment variables
-- ✅ **Secure Token Handling** - JWT tokens processed securely
+- ✅ **Firebase Authentication** - Secure user authentication
+- ✅ **Firestore Security Rules** - Database access control
+- ✅ **PII Data Separation** - Sensitive data stored in PostgreSQL
+- ✅ **Role-Based Access Control** - Super Admin and Admin roles
+- ✅ **2FA Support** - Two-factor authentication via email
 - ✅ **HTTPS Only** - Production deployment uses HTTPS
-- ✅ **CORS Protection** - Proper origin validation
 - ✅ **Input Validation** - All user inputs validated
 
 ## Browser Support

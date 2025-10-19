@@ -88,6 +88,16 @@ export default function Patients({
 
   const totalPages = Math.ceil(totalPatients / patientsPerPage);
 
+  const handleOpenCreateModal = () => {
+    setShowCreateModal(true);
+    setCreateError(null);
+    setNewPatient({
+      firstName: '',
+      lastName: '',
+      notes: ''
+    });
+  };
+
   const handleCreatePatient = async () => {
     if (!newPatient.firstName || !newPatient.lastName) {
       setCreateError('Please fill in first name and last name');
@@ -159,21 +169,19 @@ export default function Patients({
             <option value="inactive">{t('patients.statusArchive')}</option>
           </select>
           <button
-            onClick={handleCreatePatient}
-            disabled={isCreating}
+            onClick={handleOpenCreateModal}
             style={{
               padding: '10px 20px',
               backgroundColor: '#007acc',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: isCreating ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500',
-              opacity: isCreating ? 0.7 : 1
+              fontWeight: '500'
             }}
           >
-            {isCreating ? t('patients.creating') : `+ ${t('patients.createPatient')}`}
+            + {t('patients.createPatient')}
           </button>
         </div>
       </div>

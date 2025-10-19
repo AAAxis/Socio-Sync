@@ -69,6 +69,7 @@ export default function Users({
               onChange={(e) => handleUserStatusFilterChange(e.target.value)}
               className="user-status-filter"
             >
+              <option value="all">{t('users.allUsers')}</option>
               <option value="active">{t('users.statusActive')}</option>
               <option value="blocked">{t('users.statusBlocked')}</option>
               <option value="restricted">{t('users.statusRestricted')}</option>

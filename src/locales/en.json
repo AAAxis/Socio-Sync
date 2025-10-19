@@ -395,6 +395,7 @@
   "users": {
     "title": "User Management",
     "searchPlaceholder": "Search users...",
+    "allUsers": "All Users",
     "statusActive": "Active",
     "statusBlocked": "Blocked",
     "statusRestricted": "Restricted",

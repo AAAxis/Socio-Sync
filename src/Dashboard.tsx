@@ -54,7 +54,7 @@ export default function MainDashboard() {
   const [users, setUsers] = useState<UserManagementUser[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<UserManagementUser[]>([]);
   const [userSearchTerm, setUserSearchTerm] = useState('');
-  const [userStatusFilter, setUserStatusFilter] = useState('active');
+  const [userStatusFilter, setUserStatusFilter] = useState('all');
   const [showUserModal, setShowUserModal] = useState(false);
   const [showBlockedPopup, setShowBlockedPopup] = useState(false);
   const [calendarViewMode, setCalendarViewMode] = useState<'calendar' | 'list'>('calendar');
@@ -513,6 +513,7 @@ export default function MainDashboard() {
     } else if (userStatusFilter === 'restricted') {
       filtered = filtered.filter(u => u.restricted);
     }
+    // 'all' shows all users (no filtering)
     
     // Apply search term
     if (searchTerm) {
@@ -539,6 +540,7 @@ export default function MainDashboard() {
     } else if (filter === 'restricted') {
       filtered = filtered.filter(u => u.restricted);
     }
+    // 'all' shows all users (no filtering)
     
     // Apply search term
     if (userSearchTerm) {
@@ -687,6 +689,7 @@ export default function MainDashboard() {
       } else if (userStatusFilter === 'restricted') {
         filtered = filtered.filter(u => u.restricted);
       }
+      // 'all' shows all users (no filtering)
       
       if (userSearchTerm) {
         const searchLower = userSearchTerm.toLowerCase();

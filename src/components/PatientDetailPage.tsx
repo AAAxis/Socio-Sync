@@ -46,7 +46,6 @@ export function PatientDetailPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [patientPII, setPatientPII] = useState<any>(null);
   const [activities, setActivities] = useState<ActivityNote[]>([]);
-  const [error, setError] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
@@ -173,9 +172,9 @@ export function PatientDetailPage() {
           setUploadedFiles([]);
         }
       } else if (piiResponse.status === 404) {
-        setError('Patient PII data not found');
+        console.log('Patient PII data not found');
       } else {
-        setError('Failed to load patient PII data');
+        console.log('Failed to load patient PII data');
       }
 
       // Load non-PII data from Firebase
@@ -215,7 +214,7 @@ export function PatientDetailPage() {
       setActivities(filteredActivities);
     } catch (err: any) {
       console.error('Error loading patient data:', err);
-      setError('Failed to load patient data');
+        console.log('Failed to load patient data');
     }
   };
 
@@ -223,7 +222,7 @@ export function PatientDetailPage() {
     if (!caseId || !user) return;
     
     setIsDeleting(true);
-    setError(null);
+    // Clear any previous errors
     
     try {
       const result = await deletePatientCase(caseId, user.id);
@@ -232,10 +231,10 @@ export function PatientDetailPage() {
         // Navigate back to dashboard after successful deletion
         navigate('/dashboard?tab=projects');
       } else {
-        setError('Failed to delete patient case');
+        console.log('Failed to delete patient case');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to delete patient case');
+      console.log(err.message || 'Failed to delete patient case');
       console.error('Error deleting patient case:', err);
     } finally {
       setIsDeleting(false);
@@ -273,13 +272,13 @@ export function PatientDetailPage() {
         console.error('Failed to update database after file removal');
         // Revert the UI change if database update failed
         setUploadedFiles(uploadedFiles);
-        setError('Failed to remove file from database');
+        console.log('Failed to remove file from database');
       }
     } catch (error) {
       console.error('Error removing file:', error);
       // Revert the UI change if there was an error
       setUploadedFiles(uploadedFiles);
-      setError('Failed to remove file');
+      console.log('Failed to remove file');
     }
   };
 
@@ -334,7 +333,7 @@ export function PatientDetailPage() {
           console.log('Image URLs saved to PostgreSQL successfully');
         } else {
           console.error('Failed to save image URLs to PostgreSQL');
-          setError('Failed to save image URLs to database');
+          console.log('Failed to save image URLs to database');
         }
       } else {
         setUploadedFiles(prev => [...prev, ...newUploadedFiles]);
@@ -345,7 +344,7 @@ export function PatientDetailPage() {
         message: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined
       });
-      setError(`Failed to upload files: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`Failed to upload files: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
       setIsUploading(false);
       // Reset the input
@@ -421,7 +420,7 @@ export function PatientDetailPage() {
     } catch (error) {
       console.error('Error loading milestones:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to load milestones: ${errorMessage}`);
+      console.log(`Failed to load milestones: ${errorMessage}`);
     }
   };
 
@@ -466,7 +465,7 @@ export function PatientDetailPage() {
       console.log('Milestone updated successfully');
     } catch (error) {
       console.error('Error updating milestone:', error);
-      setError(`Failed to update milestone: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`Failed to update milestone: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -507,7 +506,7 @@ export function PatientDetailPage() {
       } catch (error) {
         console.error('Error adding milestone:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        setError(`Failed to add milestone: ${errorMessage}`);
+        console.log(`Failed to add milestone: ${errorMessage}`);
       }
     }
   };
@@ -539,7 +538,7 @@ export function PatientDetailPage() {
         milestone.id === id ? { ...milestone, progress: milestone.progress } : milestone
       ));
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      setError(`Failed to update milestone progress: ${errorMessage}`);
+      console.log(`Failed to update milestone progress: ${errorMessage}`);
     }
   };
 
@@ -560,18 +559,18 @@ export function PatientDetailPage() {
       console.error('Error deleting milestone:', error);
       // Revert local state on error
       setMilestones([...milestones]);
-      setError('Failed to delete milestone');
+      console.log('Failed to delete milestone');
     }
   };
 
   const handleAddMeeting = async () => {
     if (!newMeeting.description.trim() || !newMeeting.date.trim()) {
-      setError('Please fill in description and date');
+      console.log('Please fill in description and date');
       return;
     }
 
     if (!caseId || !user?.email) {
-      setError('Missing required information');
+      console.log('Missing required information');
       return;
     }
 
@@ -614,7 +613,7 @@ export function PatientDetailPage() {
       await loadPatientData();
     } catch (error) {
       console.error('Error saving meeting record:', error);
-      setError('Failed to save meeting record. Please try again.');
+      console.log('Failed to save meeting record. Please try again.');
     }
   };
 
@@ -667,11 +666,11 @@ export function PatientDetailPage() {
       } else {
         const errorText = await response.text();
         console.error('Failed to update patient data:', errorText);
-        setError('Failed to save patient data');
+        console.log('Failed to save patient data');
       }
     } catch (error) {
       console.error('Error saving patient data:', error);
-      setError('Failed to save patient data');
+      console.log('Failed to save patient data');
     }
   };
 
@@ -709,7 +708,7 @@ export function PatientDetailPage() {
       console.log('Patient notes updated successfully');
     } catch (error) {
       console.error('Error saving patient notes:', error);
-      setError('Failed to save patient notes');
+      console.log('Failed to save patient notes');
     }
   };
 
@@ -723,18 +722,14 @@ export function PatientDetailPage() {
   const handleDeleteActivityLog = async (logId: string) => {
     if (!user || user.role !== 'super_admin') return;
     
-    if (!window.confirm('Are you sure you want to delete this activity log? This action cannot be undone.')) {
-      return;
-    }
-
     try {
       await deleteActivityLog(logId);
       
       // Reload activity logs to reflect the deletion
       await loadPatientData();
-      setError('Activity log deleted successfully');
+      console.log('Activity log deleted successfully');
     } catch (err: any) {
-      setError(err.message || 'Failed to delete activity log');
+      console.log(err.message || 'Failed to delete activity log');
       console.error('Delete activity log error:', err);
     }
   };
@@ -753,7 +748,7 @@ export function PatientDetailPage() {
       await loadPatientData();
     } catch (error) {
       console.error('Error archiving meeting:', error);
-      setError(`Error ${archived ? 'archiving' : 'unarchiving'} meeting: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.log(`Error ${archived ? 'archiving' : 'unarchiving'} meeting: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -932,12 +927,6 @@ export function PatientDetailPage() {
               </div>
             </div>
           </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
 
           {patientPII ? (
             <>
@@ -2297,7 +2286,7 @@ export function PatientDetailPage() {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>
               <button
                 onClick={() => {
-                  if (editingMilestone && window.confirm(t('patientDetail.confirmDeleteMilestone'))) {
+                  if (editingMilestone) {
                     handleDeleteMilestone(editingMilestone.id);
                     setShowEditMilestoneModal(false);
                     setEditingMilestone(null);

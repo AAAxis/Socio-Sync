@@ -10,8 +10,6 @@ export function PasswordResetPage() {
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   // Set document direction based on language
   useEffect(() => {
@@ -23,17 +21,15 @@ export function PasswordResetPage() {
     e.preventDefault();
     
     if (!email) {
-      setError('Please enter your email address');
+      console.log('Please enter your email address');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-    setMessage(null);
 
     try {
       await sendPasswordResetEmail(auth, email);
-      setMessage(t('passwordReset.success'));
+      console.log(t('passwordReset.success'));
       setEmail('');
     } catch (err: any) {
       console.error('Password reset error:', err);
@@ -41,16 +37,16 @@ export function PasswordResetPage() {
       // Handle specific Firebase errors
       switch (err.code) {
         case 'auth/user-not-found':
-          setError(t('passwordReset.userNotFound'));
+          console.log(t('passwordReset.userNotFound'));
           break;
         case 'auth/invalid-email':
-          setError(t('passwordReset.invalidEmail'));
+          console.log(t('passwordReset.invalidEmail'));
           break;
         case 'auth/too-many-requests':
-          setError(t('passwordReset.tooManyRequests'));
+          console.log(t('passwordReset.tooManyRequests'));
           break;
         default:
-          setError(t('passwordReset.error'));
+          console.log(t('passwordReset.error'));
       }
     } finally {
       setIsLoading(false);
@@ -68,25 +64,6 @@ export function PasswordResetPage() {
             <img src="/logo.jpeg" alt="SocioSync" className="login-logo" />
             <p>{t('passwordReset.subtitle')}</p>
           </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div className="success-message" style={{
-              backgroundColor: '#d4edda',
-              color: '#155724',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              border: '1px solid #c3e6cb'
-            }}>
-              {message}
-            </div>
-          )}
 
           <div className="login-options">
             <p style={{ marginBottom: '20px', color: '#000000' }}>

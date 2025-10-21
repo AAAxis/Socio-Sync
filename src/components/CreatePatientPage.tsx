@@ -9,7 +9,6 @@ export function CreatePatientPage() {
   const navigate = useNavigate();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [patientFormData, setPatientFormData] = useState({
     firstName: '',
@@ -60,12 +59,11 @@ export function CreatePatientPage() {
 
   const handleCreatePatient = async () => {
     if (!patientFormData.firstName || !patientFormData.lastName || !patientFormData.dateOfBirth) {
-      setError('Please fill in all required fields (First Name, Last Name, Date of Birth)');
+      console.log('Please fill in all required fields (First Name, Last Name, Date of Birth)');
       return;
     }
 
     setIsCreating(true);
-    setError(null);
 
     try {
       // Create patient case in Firebase
@@ -74,7 +72,7 @@ export function CreatePatientPage() {
       if (result.success) {
         // TODO: Save PII data to PostgreSQL
         // For now, we'll just show success message
-        setError('Patient created successfully! Case ID: ' + result.caseId);
+        console.log('Patient created successfully! Case ID: ' + result.caseId);
         
         // Reset form
         setPatientFormData({
@@ -92,10 +90,10 @@ export function CreatePatientPage() {
           navigate('/dashboard?tab=projects');
         }, 2000);
       } else {
-        setError('Failed to create patient case');
+        console.log('Failed to create patient case');
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create patient');
+      console.log(err.message || 'Failed to create patient');
       console.error('Error creating patient:', err);
     } finally {
       setIsCreating(false);
@@ -110,12 +108,6 @@ export function CreatePatientPage() {
             <h1>SocioSync</h1>
             <p>Create New Patient</p>
           </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
 
           <div className="form-actions-top">
             <button

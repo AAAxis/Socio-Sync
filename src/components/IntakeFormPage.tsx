@@ -12,8 +12,6 @@ export function IntakeFormPage() {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -142,12 +140,11 @@ export function IntakeFormPage() {
     e.preventDefault();
     
     if (!formData.firstName || !formData.lastName || !formData.dateOfBirth) {
-      setError(t('intakeForm.fillRequiredFields'));
+      console.log(t('intakeForm.fillRequiredFields'));
       return;
     }
 
     setIsSubmitting(true);
-    setError(null);
 
     try {
       const patientData = {
@@ -204,7 +201,7 @@ export function IntakeFormPage() {
           obstacles: formData.obstacles
         });
         
-        setSuccess(t('intakeForm.submitSuccess'));
+        console.log(t('intakeForm.submitSuccess'));
         
         // Add activity note for the intake form completion
         const { addActivityNote } = await import('../firebase');
@@ -217,11 +214,11 @@ export function IntakeFormPage() {
       } else {
         const errorText = await response.text();
         console.error('Failed to submit intake form:', errorText);
-        setError(t('intakeForm.submitError'));
+        console.log(t('intakeForm.submitError'));
       }
     } catch (error) {
       console.error('Error submitting intake form:', error);
-      setError(t('intakeForm.submitError'));
+      console.log(t('intakeForm.submitError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -253,25 +250,6 @@ export function IntakeFormPage() {
             </div>
             <p>{caseId}</p>
           </div>
-
-          {error && (
-            <div className="error-message">
-              {error}
-            </div>
-          )}
-
-          {success && (
-            <div style={{
-              backgroundColor: '#d4edda',
-              color: '#155724',
-              padding: '12px 16px',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              border: '1px solid #c3e6cb'
-            }}>
-              {success}
-            </div>
-          )}
 
           <form onSubmit={handleSubmit}>
             <div className="form-blocks-three">

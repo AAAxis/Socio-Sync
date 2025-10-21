@@ -189,10 +189,10 @@ const EventsList: React.FC<EventsListProps> = ({
                 )}
               </td>
               <td>
-                {event.date?.toDate ? event.date.toDate().toLocaleDateString() : t('events.na')}
+                {event.date?.toDate ? event.date.toDate().toLocaleDateString('en-GB') : t('events.na')}
               </td>
               <td>
-                      {event.date?.toDate ? event.date.toDate().toLocaleTimeString('en-US', { 
+                      {event.date?.toDate ? event.date.toDate().toLocaleTimeString('en-GB', { 
                         hour: '2-digit', 
                         minute: '2-digit' 
                       }) : t('events.na')}

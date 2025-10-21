@@ -133,9 +133,9 @@ export function DashboardStats({
                     <td className="activity-note-cell">{log.note}</td>
                     <td className="activity-time-cell">
                       {log.timestamp && typeof log.timestamp === 'object' && log.timestamp.toDate 
-                        ? log.timestamp.toDate().toLocaleString()
+                        ? log.timestamp.toDate().toLocaleString('en-GB')
                         : log.timestamp 
-                          ? new Date(log.timestamp).toLocaleString()
+                          ? new Date(log.timestamp).toLocaleString('en-GB')
                           : 'N/A'
                       }
                     </td>

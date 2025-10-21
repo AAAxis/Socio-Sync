@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate, Navigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Calendar from './Calendar';
 import EventsList from './EventsList';
@@ -15,10 +15,13 @@ import { User, UserManagementUser, Patient } from './types';
 import { PatientNameDisplay, PatientNotesDisplay } from './components/PatientComponents';
 import { getApiUrl } from './config';
 import { formatDate } from './utils';
+import { useLanguageNavigate } from './hooks/useLanguageNavigate';
 
 // Main Dashboard Component (Application Layout)
 export default function MainDashboard() {
   const navigate = useNavigate();
+  const langNavigate = useLanguageNavigate();
+  const location = useLocation();
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,7 +49,7 @@ export default function MainDashboard() {
     }
     
     // Navigate to the patient detail page with navbar visible
-    navigate(`/patient/${caseId}`);
+    langNavigate(`/patient/${caseId}`);
   };
 
   
@@ -394,19 +397,27 @@ export default function MainDashboard() {
     setSelectedPatientForEvent(patient);
     setShowCreateEventModal(false);
     // Navigate to create event with patient data in state
-    navigate('/create-event', { 
+    langNavigate('/create-event', { 
       state: { 
         selectedPatient: patient 
       } 
     });
-  }, [navigate]);
+  }, [langNavigate]);
 
   const handleLanguageChange = useCallback((language: string) => {
+    // Change language by navigating to the new language URL
+    const currentPath = location.pathname;
+    const cleanPath = currentPath.replace(/^\/(he|en)(\/|$)/, '/');
+    const newPath = `/${language}${cleanPath === '/' ? '' : cleanPath}`;
+    
+    navigate(newPath);
+    
+    // Update i18n and localStorage
     i18n.changeLanguage(language);
     localStorage.setItem('language', language);
     document.documentElement.dir = language === 'he' ? 'rtl' : 'ltr';
     document.documentElement.lang = language;
-  }, [i18n]);
+  }, [i18n, location.pathname, navigate]);
 
   const switchToListView = useCallback((date: Date) => {
     // Set the selected date range to only the selected day
@@ -761,6 +772,11 @@ export default function MainDashboard() {
   const getFilteredActivityLogs = useCallback(() => {
     let filtered = activityLogs;
 
+    // Apply role-based filtering: regular admins see only their own notifications
+    if (user?.role !== 'super_admin') {
+      filtered = filtered.filter(log => log.createdBy === user?.id);
+    }
+
     // Apply time filter
     const now = new Date();
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -808,7 +824,7 @@ export default function MainDashboard() {
     }
 
     return filtered;
-  }, [activityLogs, activitySearchTerm, activityTimeFilter]);
+  }, [activityLogs, activitySearchTerm, activityTimeFilter, user]);
 
   const getPaginatedActivityLogs = useCallback(() => {
     const filtered = getFilteredActivityLogs();
@@ -842,13 +858,10 @@ export default function MainDashboard() {
     setIsLoading(false);
   }, []);
 
-  // Set default tab based on user role
+  // Set default tab based on user role - removed redirect, all users can access dashboard now
   useEffect(() => {
     if (user) {
-      // If regular admin and on dashboard tab, redirect to projects
-      if (user.role !== 'super_admin' && activeTab === 'dashboard') {
-        setActiveTab('projects');
-      }
+      // All users can now access dashboard
     }
   }, [user, activeTab]);
 
@@ -1009,12 +1022,23 @@ export default function MainDashboard() {
           getAllActivityLogs()
         ]);
         
+        // Apply role-based filtering for regular admins
+        let filteredPatients = patientsData;
+        let filteredEvents = eventsData;
+        let filteredActivities = activityData;
+        
+        if (user.role !== 'super_admin') {
+          filteredPatients = patientsData.filter(p => p.createdBy === user.id);
+          filteredEvents = eventsData.filter(e => e.createdBy === user.id);
+          filteredActivities = activityData.filter(a => a.createdBy === user.id);
+        }
+        
         setDashboardStats({
-          totalCases: patientsData.length,
-          totalPatients: patientsData.length,
-          totalUsers: usersData.length,
-          totalEvents: eventsData.length,
-          totalActivities: activityData.length
+          totalCases: filteredPatients.length,
+          totalPatients: filteredPatients.length,
+          totalUsers: user.role === 'super_admin' ? usersData.length : 1, // Regular users only see themselves
+          totalEvents: filteredEvents.length,
+          totalActivities: filteredActivities.length
         });
         
         setActivityLogs(activityData);
@@ -1236,17 +1260,15 @@ export default function MainDashboard() {
         </div>
       </div>
                   </li>
-                  {user?.role === 'super_admin' && (
-                    <li>
-                      <button 
-                        onClick={() => handleTabChange('dashboard')}
-                        className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
-                      >
-                        <span className="nav-icon">📊</span>
-                        {t('navigation.dashboard')}
-                      </button>
-                    </li>
-                  )}
+                  <li>
+                    <button 
+                      onClick={() => handleTabChange('dashboard')}
+                      className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
+                    >
+                      <span className="nav-icon">📊</span>
+                      {t('navigation.dashboard')}
+                    </button>
+                  </li>
                   {user?.role === 'super_admin' && (
                     <li>
                       <button 
@@ -1319,7 +1341,7 @@ export default function MainDashboard() {
             </div>
             
             <div className="main-content">
-              {activeTab === 'dashboard' && user?.role === 'super_admin' && (
+              {activeTab === 'dashboard' && (
                 <DashboardStats
                   user={user}
                   dashboardStats={dashboardStats}

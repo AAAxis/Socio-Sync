@@ -141,7 +141,7 @@ export default function Users({
                 </td>
                 <td className="user-login-cell">
                   {userItem.lastLoginAt 
-                    ? new Date(userItem.lastLoginAt).toLocaleDateString()
+                    ? new Date(userItem.lastLoginAt).toLocaleDateString('en-GB')
                     : t('users.never')
                   }
                 </td>

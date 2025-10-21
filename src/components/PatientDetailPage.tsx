@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { getActivityNotes, deletePatientCase, deleteActivityLog, onAuthStateChange, getUserData } from '../firebase';
+import { getActivityNotes, deletePatientCase, deleteActivityLog, onAuthStateChange, getUserData, updateActivityArchiveStatus } from '../firebase';
 import { User, ActivityNote } from '../types';
 import { formatDate } from '../utils';
 import { getApiUrl } from '../config';
@@ -58,8 +58,10 @@ export function PatientDetailPage() {
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [editedNotesData, setEditedNotesData] = useState<any>(null);
   const [milestones, setMilestones] = useState<any[]>([]);
-  const [showAddMilestone, setShowAddMilestone] = useState(false);
-  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', progress: 0 });
+  const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
+  const [showEditMilestoneModal, setShowEditMilestoneModal] = useState(false);
+  const [editingMilestone, setEditingMilestone] = useState<any>(null);
+  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', progress: 0, targetDate: '' });
   const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ description: '', date: '', notes: '' });
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
@@ -83,7 +85,7 @@ export function PatientDetailPage() {
   const openEditMeetingModal = (activity: any) => {
     setEditingMeeting(activity);
     setNewMeeting({
-      description: activity.meetingDescription || activity.note.replace('Meeting: ', '').split(' - ')[0],
+      description: activity.meetingDescription || activity.note.replace(/^Meeting: /, '').split(' - ')[0],
       date: activity.meetingDate || '',
       notes: activity.meetingNotes || ''
     });
@@ -404,10 +406,11 @@ export function PatientDetailPage() {
         const data = doc.data();
         console.log('Milestone data:', data);
         return {
-          id: data.id,
+          id: doc.id, // Use Firebase document ID instead of data.id
           title: data.title,
           description: data.description,
           progress: data.progress,
+          targetDate: data.targetDate || '', // Include targetDate field
           createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
           caseId: data.caseId
         };
@@ -422,34 +425,83 @@ export function PatientDetailPage() {
     }
   };
 
-  const handleAddMilestone = async () => {
-    if (newMilestone.title.trim() && caseId) {
-      const milestone = {
-        id: Date.now().toString(),
+  const handleEditMilestone = (milestone: any) => {
+    setEditingMilestone(milestone);
+    setNewMilestone({
+      title: milestone.title,
+      description: milestone.description,
+      progress: milestone.progress,
+      targetDate: milestone.targetDate || ''
+    });
+    setShowEditMilestoneModal(true);
+  };
+
+  const handleUpdateMilestone = async () => {
+    if (!editingMilestone || !newMilestone.title.trim()) return;
+    
+    try {
+      const { db } = await import('../firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const milestoneRef = doc(db, 'milestones', editingMilestone.id);
+      await updateDoc(milestoneRef, {
         title: newMilestone.title,
         description: newMilestone.description,
         progress: newMilestone.progress,
-        createdAt: new Date().toISOString(),
-        caseId: caseId
-      };
+        targetDate: newMilestone.targetDate,
+        updatedAt: new Date().toISOString()
+      });
       
+      // Update local state
+      setMilestones(milestones.map(m => 
+        m.id === editingMilestone.id 
+          ? { ...m, ...newMilestone, updatedAt: new Date().toISOString() }
+          : m
+      ));
+      
+      setShowEditMilestoneModal(false);
+      setEditingMilestone(null);
+      setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+      
+      console.log('Milestone updated successfully');
+    } catch (error) {
+      console.error('Error updating milestone:', error);
+      setError(`Failed to update milestone: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  };
+
+  const handleAddMilestone = async () => {
+    if (newMilestone.title.trim() && caseId) {
       try {
-        // Add milestone to Firebase
+        // Add milestone to Firebase first to get the document ID
         const { db } = await import('../firebase');
         const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
         
-        console.log('Adding milestone to Firebase:', milestone);
-        
-        const docRef = await addDoc(collection(db, 'milestones'), {
-          ...milestone,
+        const milestoneData = {
+          caseId: caseId,
+          title: newMilestone.title,
+          description: newMilestone.description,
+          progress: newMilestone.progress,
+          targetDate: newMilestone.targetDate,
           createdAt: serverTimestamp()
-        });
+        };
+        
+        console.log('Adding milestone to Firebase:', milestoneData);
+        
+        const docRef = await addDoc(collection(db, 'milestones'), milestoneData);
         
         console.log('Milestone added with ID:', docRef.id);
         
+        // Create local milestone object with the Firebase document ID
+        const milestone = {
+          id: docRef.id,
+          ...milestoneData,
+          createdAt: new Date().toISOString()
+        };
+        
         setMilestones([...milestones, milestone]);
-        setNewMilestone({ title: '', description: '', progress: 0 });
-        setShowAddMilestone(false);
+        setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+        setShowAddMilestoneModal(false);
         
         console.log('Milestone added successfully');
       } catch (error) {
@@ -467,33 +519,25 @@ export function PatientDetailPage() {
     ));
 
     try {
-      // Update in Firebase
+      // Update in Firebase using the document ID directly
       const { db } = await import('../firebase');
-      const { collection, query, where, getDocs, updateDoc, doc } = await import('firebase/firestore');
+      const { doc, updateDoc } = await import('firebase/firestore');
       
       console.log('Updating milestone progress:', id, 'to', progress);
       
-      const milestonesRef = collection(db, 'milestones');
-      const q = query(milestonesRef, where('id', '==', id));
-      const querySnapshot = await getDocs(q);
+      const milestoneRef = doc(db, 'milestones', id);
+      await updateDoc(milestoneRef, {
+        progress: progress,
+        updatedAt: new Date().toISOString()
+      });
       
-      console.log('Found', querySnapshot.docs.length, 'milestones with id:', id);
-      
-      if (!querySnapshot.empty) {
-        const milestoneDoc = querySnapshot.docs[0];
-        console.log('Updating milestone document:', milestoneDoc.id);
-        
-        await updateDoc(doc(db, 'milestones', milestoneDoc.id), {
-          progress: progress
-        });
-        
-        console.log('Milestone progress updated successfully');
-      } else {
-        console.warn('No milestone found with id:', id);
-        setError('Milestone not found in database');
-      }
+      console.log('Milestone progress updated successfully');
     } catch (error) {
       console.error('Error updating milestone progress:', error);
+      // Revert local state on error
+      setMilestones(milestones.map(milestone => 
+        milestone.id === id ? { ...milestone, progress: milestone.progress } : milestone
+      ));
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setError(`Failed to update milestone progress: ${errorMessage}`);
     }
@@ -504,20 +548,18 @@ export function PatientDetailPage() {
     setMilestones(milestones.filter(milestone => milestone.id !== id));
 
     try {
-      // Remove from Firebase
+      // Remove from Firebase using the document ID directly
       const { db } = await import('../firebase');
-      const { collection, query, where, getDocs, deleteDoc, doc } = await import('firebase/firestore');
+      const { doc, deleteDoc } = await import('firebase/firestore');
       
-      const milestonesRef = collection(db, 'milestones');
-      const q = query(milestonesRef, where('id', '==', id));
-      const querySnapshot = await getDocs(q);
+      const milestoneRef = doc(db, 'milestones', id);
+      await deleteDoc(milestoneRef);
       
-      if (!querySnapshot.empty) {
-        const milestoneDoc = querySnapshot.docs[0];
-        await deleteDoc(doc(db, 'milestones', milestoneDoc.id));
-      }
+      console.log('Milestone deleted successfully');
     } catch (error) {
       console.error('Error deleting milestone:', error);
+      // Revert local state on error
+      setMilestones([...milestones]);
       setError('Failed to delete milestone');
     }
   };
@@ -537,7 +579,7 @@ export function PatientDetailPage() {
       const { db } = await import('../firebase');
       const { collection, addDoc, updateDoc, doc, serverTimestamp } = await import('firebase/firestore');
       
-      const meetingNote = `Meeting: ${newMeeting.description}${newMeeting.notes ? ` - ${newMeeting.notes}` : ''}`;
+      const meetingNote = `${newMeeting.description}${newMeeting.notes ? ` - ${newMeeting.notes}` : ''}`;
       
       if (editingMeeting) {
         // Update existing meeting
@@ -700,19 +742,18 @@ export function PatientDetailPage() {
   const handleArchiveMeeting = async (activityId: string, archived: boolean) => {
     if (!caseId || !user) return;
     try {
-      // Update the activity's archived status
-      const activity = activities.find(a => a.id === activityId);
-      if (activity) {
-        // Here you would typically call an API to update the archived status
-        // For now, we'll just update the local state
-        const updatedActivities = activities.map(a => 
-          a.id === activityId ? { ...a, archived } : a
-        );
-        setActivities(updatedActivities);
-      }
+      console.log(`${archived ? 'Archiving' : 'Unarchiving'} meeting:`, activityId);
+      
+      // Update the activity's archived status in Firebase
+      await updateActivityArchiveStatus(activityId, archived);
+      
+      console.log(`Meeting ${archived ? 'archived' : 'unarchived'} successfully`);
+      
+      // Refresh activities after archive/unarchive
+      await loadPatientData();
     } catch (error) {
       console.error('Error archiving meeting:', error);
-      setError(`Error archiving meeting: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      setError(`Error ${archived ? 'archiving' : 'unarchiving'} meeting: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   };
 
@@ -887,12 +928,6 @@ export function PatientDetailPage() {
                         <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#333' }}>{caseId}</p>
                       </div>
               <div className="header-actions">
-                <button
-                  onClick={() => navigate('/dashboard?tab=projects')}
-                  className="cancel-patient-btn"
-                >
-                  {t('patientDetail.back')}
-                </button>
                 
               </div>
             </div>
@@ -1236,7 +1271,7 @@ export function PatientDetailPage() {
                             >
                               <div className="activity-header">
                                 <span className="activity-action">
-                                  {activity.archived ? '📦 ' : ''}{activity.action}
+                                  {activity.archived ? '📦 ' : ''}{t(`actions.${activity.action}`) || activity.action}
                                 </span>
                                 <div className="activity-header-right">
                                   <span className="activity-time">{formatDate(activity.timestamp)}</span>
@@ -1264,7 +1299,8 @@ export function PatientDetailPage() {
                                       <div style={{
                                         position: 'absolute',
                                         top: '100%',
-                                        right: '0',
+                                        right: i18n.language === 'he' ? 'auto' : '0',
+                                        left: i18n.language === 'he' ? '0' : 'auto',
                                         backgroundColor: 'white',
                                         border: '1px solid #ddd',
                                         borderRadius: '6px',
@@ -1285,7 +1321,7 @@ export function PatientDetailPage() {
                                             padding: '8px 12px',
                                             border: 'none',
                                             background: 'none',
-                                            textAlign: 'left',
+                                            textAlign: i18n.language === 'he' ? 'right' : 'left',
                                             cursor: 'pointer',
                                             fontSize: '14px',
                                             color: '#007acc',
@@ -1294,7 +1330,7 @@ export function PatientDetailPage() {
                                           onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
                                           onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
                                         >
-                                          {activity.archived ? '📤 Unarchive' : '📦 Archive'}
+                                          {activity.archived ? `📤 ${t('patientDetail.unarchive')}` : `📦 ${t('patientDetail.archive')}`}
                                         </button>
                                         {user?.role === 'super_admin' && activity.archived && (
                                           <button
@@ -1327,7 +1363,7 @@ export function PatientDetailPage() {
                               </div>
                                 </div>
                               </div>
-                              <div className="activity-note" style={{ width: '100%', padding: '12px 0', fontSize: '15px', lineHeight: '1.5' }}>{activity.note}</div>
+                              <div className="activity-note" style={{ width: '100%', padding: '12px 0', fontSize: '15px', lineHeight: '1.5' }}>{activity.note.replace(/^Meeting: /, '')}</div>
                               <div className="activity-author">👤 {activity.userEmail || activity.createdBy}</div>
                             </div>
                           ))}
@@ -1687,7 +1723,7 @@ export function PatientDetailPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>{t('patientDetail.progressMilestones')}</h3>
                         <button
-                          onClick={() => setShowAddMilestone(true)}
+                          onClick={() => setShowAddMilestoneModal(true)}
                           style={{
                             background: '#007acc',
                             color: 'white',
@@ -1706,90 +1742,13 @@ export function PatientDetailPage() {
                         </button>
                       </div>
 
-                      {/* Add Milestone Form */}
-                      {showAddMilestone && (
-                        <div style={{
-                          background: '#f8f9fa',
-                          border: '1px solid #dee2e6',
-                          borderRadius: '8px',
-                          padding: '20px',
-                          marginBottom: '20px'
-                        }}>
-                          <h4 style={{ color: '#000000', marginBottom: '15px' }}>{t('patientDetail.addNewMilestone')}</h4>
-                          <div style={{ marginBottom: '15px' }}>
-                            <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.title')}</label>
-                            <input
-                              type="text"
-                              value={newMilestone.title}
-                              onChange={(e) => setNewMilestone({...newMilestone, title: e.target.value})}
-                              placeholder={t('patientDetail.enterMilestoneTitle')}
-                              style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px'
-                              }}
-                            />
-                          </div>
-                          <div style={{ marginBottom: '15px' }}>
-                            <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.description')}</label>
-                            <textarea
-                              value={newMilestone.description}
-                              onChange={(e) => setNewMilestone({...newMilestone, description: e.target.value})}
-                              placeholder={t('patientDetail.enterMilestoneDescription')}
-                              rows={3}
-                              style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                border: '1px solid #ced4da',
-                                borderRadius: '4px',
-                                fontSize: '14px',
-                                resize: 'vertical'
-                              }}
-                            />
-                          </div>
-                          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                            <button
-                              onClick={() => {
-                                setShowAddMilestone(false);
-                                setNewMilestone({ title: '', description: '', progress: 0 });
-                              }}
-                              style={{
-                                background: '#6c757d',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {t('patientDetail.cancel')}
-                            </button>
-                            <button
-                              onClick={handleAddMilestone}
-                              style={{
-                                background: '#28a745',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '4px',
-                                cursor: 'pointer'
-                              }}
-                            >
-                              {t('patientDetail.addMilestoneButton')}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
                       {/* Milestones Grid */}
                       <div style={{
                         display: 'grid',
                         gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
                         gap: '20px'
                       }}>
-                        {milestones.map((milestone) => (
+                        {(i18n.language === 'he' ? [...milestones].reverse() : milestones).map((milestone) => (
                           <div
                             key={milestone.id}
                             style={{
@@ -1813,29 +1772,34 @@ export function PatientDetailPage() {
                               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                             }}
                           >
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => handleDeleteMilestone(milestone.id)}
-                              style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '10px',
-                                background: '#dc3545',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '50%',
-                                width: '24px',
-                                height: '24px',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center'
-                              }}
-                              title="Delete Milestone"
-                            >
-                              ×
-                            </button>
+                            {/* Action Buttons */}
+                            <div style={{
+                              position: 'absolute',
+                              top: '10px',
+                              right: '10px',
+                              display: 'flex',
+                              gap: '5px'
+                            }}>
+                              <button
+                                onClick={() => handleEditMilestone(milestone)}
+                                style={{
+                                  background: '#007acc',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '50%',
+                                  width: '24px',
+                                  height: '24px',
+                                  cursor: 'pointer',
+                                  fontSize: '12px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center'
+                                }}
+                                title={t('patientDetail.editMilestone')}
+                              >
+                                ✏️
+                              </button>
+                            </div>
 
                             {/* Milestone Title */}
                             <h4 style={{ 
@@ -1884,33 +1848,60 @@ export function PatientDetailPage() {
                                 </span>
                               </div>
 
-                              {/* Progress Slider */}
-                              <input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={milestone.progress}
-                                onChange={(e) => handleUpdateMilestoneProgress(milestone.id, parseInt(e.target.value))}
-                                style={{
-                                  width: '100%',
-                                  height: '8px',
-                                  background: `linear-gradient(to right, #007acc ${milestone.progress}%, #e9ecef ${milestone.progress}%)`,
-                                  outline: 'none',
-                                  cursor: 'pointer',
-                                  borderRadius: '4px',
-                                  appearance: 'none'
-                                }}
-                              />
+                              {/* Progress Blocks */}
+                              <div style={{
+                                display: 'flex',
+                                gap: '2px',
+                                marginTop: '8px'
+                              }}>
+                                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+                                  <div
+                                    key={value}
+                                    onClick={() => handleUpdateMilestoneProgress(milestone.id, value)}
+                                    style={{
+                                      flex: 1,
+                                      height: '20px',
+                                      backgroundColor: milestone.progress >= value ? '#007acc' : '#e9ecef',
+                                      borderRadius: '4px',
+                                      cursor: 'pointer',
+                                      transition: 'background-color 0.2s ease',
+                                      border: milestone.progress >= value ? '2px solid #0056b3' : '2px solid transparent'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      if (milestone.progress < value) {
+                                        e.currentTarget.style.backgroundColor = '#b3d9ff';
+                                      }
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      if (milestone.progress < value) {
+                                        e.currentTarget.style.backgroundColor = '#e9ecef';
+                                      }
+                                    }}
+                                    title={`${value}%`}
+                                  />
+                                ))}
+                              </div>
                             </div>
 
-                            {/* Created Date */}
+                            {/* Dates Row */}
                             <div style={{ 
                               fontSize: '12px', 
                               color: '#6c757d',
                               borderTop: '1px solid #e9ecef',
-                              paddingTop: '10px'
+                              paddingTop: '10px',
+                              display: 'flex',
+                              justifyContent: 'space-between',
+                              alignItems: 'center'
                             }}>
-                              {new Date(milestone.createdAt).toLocaleDateString()}
+                              <div style={{ 
+                                color: '#007acc',
+                                fontWeight: '500'
+                              }}>
+                                {t('patientDetail.targetDate')}: {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')}
+                              </div>
+                              <div>
+                                {t('patientDetail.created')}: {new Date(milestone.createdAt).toLocaleDateString('en-GB')}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -2082,6 +2073,288 @@ export function PatientDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Add Milestone Modal */}
+      {showAddMilestoneModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+              {t('patientDetail.addNewMilestone')}
+            </h3>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.title')}</label>
+              <input
+                type="text"
+                value={newMilestone.title}
+                onChange={(e) => setNewMilestone({...newMilestone, title: e.target.value})}
+                placeholder={t('patientDetail.enterMilestoneTitle')}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.description')}</label>
+              <textarea
+                value={newMilestone.description}
+                onChange={(e) => setNewMilestone({...newMilestone, description: e.target.value})}
+                placeholder={t('patientDetail.enterMilestoneDescription')}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
+              <input
+                type="date"
+                value={newMilestone.targetDate}
+                onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowAddMilestoneModal(false);
+                  setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                }}
+                style={{
+                  background: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {t('patientDetail.cancel')}
+              </button>
+              <button
+                onClick={handleAddMilestone}
+                style={{
+                  background: '#007acc',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {t('patientDetail.addMilestoneButton')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Milestone Modal */}
+      {showEditMilestoneModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            background: 'white',
+            borderRadius: '12px',
+            padding: '30px',
+            width: '90%',
+            maxWidth: '500px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+              {t('patientDetail.editMilestone')}
+            </h3>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.title')}</label>
+              <input
+                type="text"
+                value={newMilestone.title}
+                onChange={(e) => setNewMilestone({...newMilestone, title: e.target.value})}
+                placeholder={t('patientDetail.enterMilestoneTitle')}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.description')}</label>
+              <textarea
+                value={newMilestone.description}
+                onChange={(e) => setNewMilestone({...newMilestone, description: e.target.value})}
+                placeholder={t('patientDetail.enterMilestoneDescription')}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.progress')}</label>
+              <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
+                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+                  <div
+                    key={value}
+                    onClick={() => setNewMilestone({...newMilestone, progress: value})}
+                    style={{
+                      flex: 1,
+                      height: '20px',
+                      backgroundColor: newMilestone.progress >= value ? '#007acc' : '#e9ecef',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s ease',
+                      border: newMilestone.progress >= value ? '2px solid #0056b3' : '2px solid transparent'
+                    }}
+                    title={`${value}%`}
+                  />
+                ))}
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '14px', color: '#666' }}>
+                {newMilestone.progress}%
+              </div>
+            </div>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
+              <input
+                type="date"
+                value={newMilestone.targetDate}
+                onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+            
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => {
+                  if (editingMilestone && window.confirm(t('patientDetail.confirmDeleteMilestone'))) {
+                    handleDeleteMilestone(editingMilestone.id);
+                    setShowEditMilestoneModal(false);
+                    setEditingMilestone(null);
+                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                  }
+                }}
+                style={{
+                  background: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {t('patientDetail.deleteMilestone')}
+              </button>
+              
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button
+                  onClick={() => {
+                    setShowEditMilestoneModal(false);
+                    setEditingMilestone(null);
+                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                  }}
+                  style={{
+                    background: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {t('patientDetail.cancel')}
+                </button>
+                <button
+                  onClick={handleUpdateMilestone}
+                  style={{
+                    background: '#007acc',
+                    color: 'white',
+                    border: 'none',
+                    padding: '10px 20px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  {t('patientDetail.saveChanges')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

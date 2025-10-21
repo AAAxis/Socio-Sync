@@ -236,13 +236,6 @@ export function IntakeFormPage() {
               <img src="/logo.jpeg" alt="Logo" style={{ height: '40px', width: 'auto' }} />
               <div className="header-actions">
                 <button
-                  onClick={() => navigate('/dashboard?tab=projects')}
-                  className="cancel-patient-btn"
-                  type="button"
-                >
-                  {t('intakeForm.back')}
-                </button>
-                <button
                   onClick={(e) => {
                     e.preventDefault();
                     const form = document.querySelector('form');

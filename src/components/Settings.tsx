@@ -110,8 +110,8 @@ export default function Settings({
             <p><strong>{t('settings.name')}:</strong> {user.name}</p>
             <p><strong>{t('settings.email')}:</strong> {user.email}</p>
             <p><strong>{t('settings.role')}:</strong> {user.role}</p>
-            <p><strong>{t('settings.created')}:</strong> {new Date(user.createdAt || '').toLocaleDateString()}</p>
-            <p><strong>{t('settings.lastLogin')}:</strong> {new Date(user.lastLoginAt || '').toLocaleDateString()}</p>
+            <p><strong>{t('settings.created')}:</strong> {new Date(user.createdAt || '').toLocaleDateString('en-GB')}</p>
+            <p><strong>{t('settings.lastLogin')}:</strong> {new Date(user.lastLoginAt || '').toLocaleDateString('en-GB')}</p>
           </div>
         </div>
       </div>

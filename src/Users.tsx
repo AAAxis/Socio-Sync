@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 
@@ -41,6 +41,23 @@ const Users: React.FC<UsersProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showUserDropdown) {
+        const target = event.target as Element;
+        if (!target.closest('.user-dropdown-container')) {
+          setShowUserDropdown(null);
+        }
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showUserDropdown, setShowUserDropdown]);
 
   return (
     <>
@@ -134,7 +151,7 @@ const Users: React.FC<UsersProps> = ({
                     {tableUser.blocked ? 'Blocked' : 'Active'}
                   </span>
                 </td>
-                <td>{new Date(tableUser.lastLoginAt).toLocaleDateString()}</td>
+                <td>{new Date(tableUser.lastLoginAt).toLocaleDateString('en-GB')}</td>
                 <td>
                   <div className="user-dropdown-container">
                     <button 

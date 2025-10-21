@@ -49,11 +49,11 @@ const Settings: React.FC<SettingsProps> = ({
             </div>
             <div className="info-item">
               <label>{t('settings.memberSince')}:</label>
-              <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}</span>
+              <span>{user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB') : 'Unknown'}</span>
             </div>
             <div className="info-item">
               <label>{t('settings.lastLogin')}:</label>
-              <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString() : 'Unknown'}</span>
+              <span>{user.lastLoginAt ? new Date(user.lastLoginAt).toLocaleDateString('en-GB') : 'Unknown'}</span>
             </div>
           </div>
         </div>

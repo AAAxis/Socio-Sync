@@ -1,7 +1,7 @@
 {
   "login": {
     "appName": "SocioSync",
-    "subtitle": "Secure Medical Management System",
+    "subtitle": "Management System for Social Workers",
     "adminMode": "ADMIN MODE",
     "signInWithPassword": "Sign in with Password",
     "signInWithGoogle": "Sign in with Google",
@@ -263,7 +263,9 @@
     "milestoneDescription": "Milestone Description",
     "milestoneProgress": "Progress",
     "addMilestoneButton": "Add Milestone",
+    "editMilestone": "Edit Milestone",
     "deleteMilestone": "Delete Milestone",
+    "confirmDeleteMilestone": "Are you sure you want to delete this milestone? This action cannot be undone.",
     "addMeetingRecord": "Add Meeting",
     "editMeetingRecord": "Edit Meeting",
     "meetingDescription": "Meeting Description",

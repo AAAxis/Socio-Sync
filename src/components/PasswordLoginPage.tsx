@@ -4,10 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { signInWithEmail, generateOTP, sendOTPEmail, trackUserLogin, findUserByAnyUid } from '../firebase';
 import { User } from '../types';
 import { User as FirebaseUser } from 'firebase/auth';
+import { useLanguageNavigate, useCurrentLanguage } from '../hooks/useLanguageNavigate';
 
 // Password Login Page Component
 export function PasswordLoginPage() {
   const navigate = useNavigate();
+  const langNavigate = useLanguageNavigate();
+  const currentLang = useCurrentLanguage();
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -104,7 +107,7 @@ export function PasswordLoginPage() {
       
       // Small delay to ensure localStorage is set before navigation
       setTimeout(() => {
-        navigate('/dashboard');
+        langNavigate('/dashboard');
       }, 100);
       
     } catch (error) {
@@ -157,7 +160,7 @@ export function PasswordLoginPage() {
       
       // Small delay to ensure localStorage is set before navigation
       setTimeout(() => {
-        navigate('/dashboard');
+        langNavigate('/dashboard');
       }, 100);
       
     } catch (err) {
@@ -241,7 +244,7 @@ export function PasswordLoginPage() {
     <div className="app">
       <div className="container">
         <div className="login-card">
-          <button onClick={() => navigate('/')} className="back-to-login-btn" title="Back to main login">
+          <button onClick={() => langNavigate('/')} className="back-to-login-btn" title="Back to main login">
             ←
           </button>
           <div className="login-header">
@@ -286,7 +289,7 @@ export function PasswordLoginPage() {
             
             <div style={{ textAlign: 'center', marginTop: '20px' }}>
               <p>
-                <a href="/reset-password" style={{ color: '#007acc', textDecoration: 'none', fontSize: '14px' }}>
+                <a href={`/${currentLang}/reset-password`} style={{ color: '#007acc', textDecoration: 'none', fontSize: '14px' }}>
                   🔒 {t('passwordLogin.forgotPassword')}
                 </a>
               </p>

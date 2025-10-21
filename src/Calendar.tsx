@@ -65,7 +65,7 @@ const Calendar: React.FC<CalendarProps> = ({
           {isRTL ? '←' : '→'}
         </button>
         <h3 className="calendar-month-year">
-          {currentDate.toLocaleDateString(i18n.language === 'he' ? 'he-IL' : 'en-US', { month: 'long', year: 'numeric' })}
+          {currentDate.toLocaleDateString(i18n.language === 'he' ? 'he-IL' : 'en-GB', { month: 'long', year: 'numeric' })}
         </h3>
       </div>
 
@@ -131,7 +131,7 @@ const Calendar: React.FC<CalendarProps> = ({
       {selectedDate && (
         <div className="selected-date-events">
           <h4>
-            Events for {selectedDate.toLocaleDateString('en-US', { 
+            Events for {selectedDate.toLocaleDateString('en-GB', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
@@ -145,7 +145,7 @@ const Calendar: React.FC<CalendarProps> = ({
               getEventsForDate(selectedDate).map(event => (
                 <div key={event.id} className="selected-event-item">
                   <div className="event-time">
-                    {event.date?.toDate ? event.date.toDate().toLocaleTimeString('en-US', { 
+                    {event.date?.toDate ? event.date.toDate().toLocaleTimeString('en-GB', { 
                       hour: '2-digit', 
                       minute: '2-digit' 
                     }) : 'All Day'}

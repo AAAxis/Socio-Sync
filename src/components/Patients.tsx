@@ -69,14 +69,17 @@ export default function Patients({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (showPatientMenu) {
-        setShowPatientMenu(null);
-        setDropdownPosition(null);
+        const target = event.target as Element;
+        if (!target.closest('.patient-actions-menu')) {
+          setShowPatientMenu(null);
+          setDropdownPosition(null);
+        }
       }
     };
 
     if (showPatientMenu) {
-      document.addEventListener('click', handleClickOutside);
-      return () => document.removeEventListener('click', handleClickOutside);
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showPatientMenu]);
 

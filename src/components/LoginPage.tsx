@@ -3,10 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { signInWithGoogleSecure, trackUserLogin, findUserByAnyUid, findUserByLinkedGoogleEmail } from '../firebase';
 import { User } from '../types';
+import { useLanguageNavigate, useCurrentLanguage } from '../hooks/useLanguageNavigate';
 
 // Login Page Component
 export function LoginPage() {
   const navigate = useNavigate();
+  const langNavigate = useLanguageNavigate();
+  const currentLang = useCurrentLanguage();
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,7 +60,7 @@ export function LoginPage() {
       
       // Navigate to dashboard after successful sign-in
       setTimeout(() => {
-        navigate('/dashboard');
+        langNavigate('/dashboard');
       }, 100);
       
     } catch (err) {
@@ -66,7 +69,7 @@ export function LoginPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [navigate]);
+  }, [langNavigate]);
 
   // Check for admin mode on component mount and set direction
   useEffect(() => {
@@ -101,7 +104,7 @@ export function LoginPage() {
 
           <div className="login-options">
             <a 
-              href="/login"
+              href={`/${currentLang}/login`}
               className="password-login-btn"
               style={{ textDecoration: 'none', display: 'block' }}
             >
@@ -110,7 +113,7 @@ export function LoginPage() {
 
             {isAdminMode && (
               <a 
-                href="/create"
+                href={`/${currentLang}/create`}
                 className="signup-btn"
                 style={{ textDecoration: 'none', display: 'block' }}
               >

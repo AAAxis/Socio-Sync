@@ -634,8 +634,8 @@ export const trackUserLogin = async (user: User, role: 'super_admin' | 'admin' =
           lastLoginAt: now,
           loginCount: 1,
           hasPiiData: false, // Will be updated when PII is created in PostgreSQL
-          blocked: true, // Default to blocked status for new users
-          blockedReason: 'New user - requires admin approval',
+          blocked: false, // Default to active status for new users
+          blockedReason: '',
         };
         
         console.log('Creating new user in Firestore:', newUserData);
@@ -919,6 +919,8 @@ export const createUserWithRole = async (email: string, password: string, name: 
         lastLoginAt: serverTimestamp(),
         loginCount: 0,
         hasPiiData: false,
+        blocked: false, // Default to active status for new users
+        blockedReason: '',
       };
       
       await setDoc(userRef, newUserData);
@@ -1380,7 +1382,7 @@ export const createEvent = async (eventData: {
       const formattedDate = `${day}/${month}/${year}`;
       
       // Create meeting note with proper structure
-      const meetingNote = `Meeting: ${eventData.title} - ${eventData.description}`;
+      const meetingNote = `${eventData.title} - ${eventData.description}`;
       
       // Add meeting note with proper structure
       await addDoc(collection(db, 'activities'), {
@@ -1400,6 +1402,22 @@ export const createEvent = async (eventData: {
     return eventDoc.id;
   } catch (error) {
     console.error('Error creating event:', error);
+    throw error;
+  }
+};
+
+// Update activity archive status
+export const updateActivityArchiveStatus = async (activityId: string, archived: boolean): Promise<void> => {
+  try {
+    const activityRef = doc(db, 'activities', activityId);
+    await updateDoc(activityRef, {
+      archived: archived,
+      updatedAt: serverTimestamp()
+    });
+    
+    console.log(`Activity ${activityId} ${archived ? 'archived' : 'unarchived'} successfully`);
+  } catch (error) {
+    console.error(`Error ${archived ? 'archiving' : 'unarchiving'} activity:`, error);
     throw error;
   }
 };

@@ -561,6 +561,7 @@ input:checked + .toggle-slider:before {
   overflow-x: auto;
   overflow-y: visible;
   border: 1px solid #e0e0e0;
+  position: relative;
 }
 
 .users-table {
@@ -750,7 +751,7 @@ input:checked + .toggle-slider:before {
 [dir="rtl"] .password-login-btn,
 [dir="rtl"] .signup-btn,
 [dir="rtl"] .google-signin-btn {
-  text-align: right;
+  text-align: center;
   direction: rtl;
 }
 
@@ -2635,6 +2636,11 @@ a.sidebar-nav.active {
   transition: background-color 0.2s ease;
 }
 
+/* RTL text alignment for Hebrew */
+[dir="rtl"] .patient-dropdown button {
+  text-align: right;
+}
+
 .patient-dropdown button:hover {
   background-color: #f8f9fa;
 }
@@ -2814,11 +2820,6 @@ a.sidebar-nav.active {
 }
 
 /* Users Table Styles */
-.users-table-container {
-  overflow-x: auto;
-  margin-top: 20px;
-}
-
 .users-table {
   width: 100%;
   border-collapse: collapse;
@@ -2944,11 +2945,13 @@ a.sidebar-nav.active {
   text-align: center;
   width: 80px;
   position: relative;
+  overflow: visible;
 }
 
 .user-actions {
   position: relative;
   display: inline-block;
+  overflow: visible;
 }
 
 .user-action-btn {
@@ -2967,7 +2970,7 @@ a.sidebar-nav.active {
 
 .user-dropdown {
   position: absolute;
-  left: 0;
+  right: 0;
   top: 100%;
   background: white;
   border: 1px solid #ddd;
@@ -2976,6 +2979,13 @@ a.sidebar-nav.active {
   z-index: 100;
   min-width: 150px;
   margin-top: 4px;
+  white-space: nowrap;
+}
+
+/* RTL positioning for Hebrew */
+[dir="rtl"] .user-dropdown {
+  right: auto;
+  left: 0;
 }
 
 .user-dropdown button {
@@ -2989,6 +2999,11 @@ a.sidebar-nav.active {
   font-size: 14px;
   color: #333;
   transition: background-color 0.2s ease;
+}
+
+/* RTL text alignment for Hebrew */
+[dir="rtl"] .user-dropdown button {
+  text-align: right;
 }
 
 .user-dropdown button:hover {
@@ -3851,6 +3866,18 @@ a.sidebar-nav.active {
   z-index: 1000;
   min-width: 120px;
   overflow: hidden;
+}
+
+/* RTL positioning for Hebrew */
+[dir="rtl"] .dropdown-content {
+  right: auto;
+  left: 0;
+}
+
+/* RTL text alignment for dropdown content */
+[dir="rtl"] .dropdown-content button,
+[dir="rtl"] .dropdown-content .dropdown-item {
+  text-align: right;
 }
 
 .delete-button {
@@ -6201,6 +6228,16 @@ a.sidebar-nav.active,
   display: flex;
   background: #f8f9fa;
   border-bottom: 1px solid #ddd;
+}
+
+/* RTL support for meeting actions menu */
+[dir="rtl"] .meeting-actions-menu {
+  right: auto !important;
+  left: 0 !important;
+}
+
+[dir="rtl"] .meeting-actions-menu button {
+  text-align: right;
 }
 
 .tab-button {

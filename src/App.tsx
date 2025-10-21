@@ -1,5 +1,6 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import './App.css';
 
 // Import all the extracted components
@@ -14,22 +15,70 @@ import { PatientDetailPage } from './components/PatientDetailPage';
 import { IntakeFormPage } from './components/IntakeFormPage';
 import { CreateEventPage } from './components/CreateEventPage';
 
+// Language wrapper component to handle language from URL
+function LanguageWrapper({ children }: { children: React.ReactNode }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { i18n } = useTranslation();
+
+  useEffect(() => {
+    const path = location.pathname;
+    const langMatch = path.match(/^\/(he|en)(\/|$)/);
+    
+    if (langMatch) {
+      const lang = langMatch[1];
+      if (i18n.language !== lang) {
+        i18n.changeLanguage(lang);
+      }
+    } else {
+      // No language prefix - redirect to current language version
+      const currentLang = i18n.language === 'he' ? 'he' : 'en';
+      navigate(`/${currentLang}${path}`, { replace: true });
+    }
+  }, [location.pathname, i18n, navigate]);
+
+  return <>{children}</>;
+}
+
+function AppRoutes() {
+  return (
+    <Routes>
+      {/* Routes with language prefix */}
+      <Route path="/:lang" element={<LoginPage />} />
+      <Route path="/:lang/login" element={<PasswordLoginPage />} />
+      <Route path="/:lang/reset-password" element={<PasswordResetPage />} />
+      <Route path="/:lang/create" element={<CreateAccountPage />} />
+      <Route path="/:lang/dashboard" element={<MainDashboard />} />
+      <Route path="/:lang/edit-user/:userId" element={<EditUserPage />} />
+      <Route path="/:lang/create-patient" element={<CreatePatientPage />} />
+      <Route path="/:lang/patient/:caseId" element={<PatientDetailPage />} />
+      <Route path="/:lang/intake/:caseId" element={<IntakeFormPage />} />
+      <Route path="/:lang/create-event" element={<CreateEventPage />} />
+      
+      {/* Fallback routes without language prefix - will be redirected */}
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/login" element={<PasswordLoginPage />} />
+      <Route path="/reset-password" element={<PasswordResetPage />} />
+      <Route path="/create" element={<CreateAccountPage />} />
+      <Route path="/dashboard" element={<MainDashboard />} />
+      <Route path="/edit-user/:userId" element={<EditUserPage />} />
+      <Route path="/create-patient" element={<CreatePatientPage />} />
+      <Route path="/patient/:caseId" element={<PatientDetailPage />} />
+      <Route path="/intake/:caseId" element={<IntakeFormPage />} />
+      <Route path="/create-event" element={<CreateEventPage />} />
+      
+      {/* Catch all */}
+      <Route path="*" element={<Navigate to="/en" replace />} />
+    </Routes>
+  );
+}
+
 function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<LoginPage />} />
-        <Route path="/login" element={<PasswordLoginPage />} />
-        <Route path="/reset-password" element={<PasswordResetPage />} />
-        <Route path="/create" element={<CreateAccountPage />} />
-        <Route path="/dashboard" element={<MainDashboard />} />
-        <Route path="/edit-user/:userId" element={<EditUserPage />} />
-        <Route path="/create-patient" element={<CreatePatientPage />} />
-        <Route path="/patient/:caseId" element={<PatientDetailPage />} />
-        <Route path="/intake/:caseId" element={<IntakeFormPage />} />
-        <Route path="/create-event" element={<CreateEventPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <LanguageWrapper>
+        <AppRoutes />
+      </LanguageWrapper>
     </Router>
   );
 }

@@ -407,7 +407,7 @@ export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmb
               {activities.map((activity, index) => (
                 <div key={index} className="activity-item">
                   <div className="activity-content">
-                    <p>{activity.note}</p>
+                    <p>{activity.note.replace(/^Meeting: /, '')}</p>
                     <small>
                       {t('patientDetail.by')} {activity.createdBy} - {formatDate(new Date(activity.timestamp))}
                     </small>

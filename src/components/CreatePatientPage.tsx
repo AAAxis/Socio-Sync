@@ -166,9 +166,19 @@ export function CreatePatientPage() {
                 <div className="form-group">
                   <label htmlFor="dateOfBirth">Date of Birth *</label>
                   <div className="input-with-icon">
-                    <span className="field-icon">📅</span>
+                    <span 
+                      className="field-icon" 
+                      onClick={() => {
+                        const dateInput = document.getElementById('dateOfBirth') as HTMLInputElement;
+                        if (dateInput) {
+                          dateInput.showPicker();
+                        }
+                      }}
+                      title="Date of Birth"
+                    >📅</span>
                     <input
                       type="date"
+                      className="date-picker-input"
                       id="dateOfBirth"
                       value={patientFormData.dateOfBirth}
                       onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}

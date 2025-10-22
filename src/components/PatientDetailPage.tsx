@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useCustomDialog } from './CustomDialog';
 import { getActivityNotes, deletePatientCase, deleteActivityLog, onAuthStateChange, getUserData, updateActivityArchiveStatus } from '../firebase';
 import { User, ActivityNote } from '../types';
 import { formatDate } from '../utils';
@@ -11,6 +12,7 @@ export function PatientDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { showAlert, DialogComponent } = useCustomDialog();
 
   // Set document direction based on language
   useEffect(() => {
@@ -234,12 +236,12 @@ export function PatientDetailPage() {
         navigate('/dashboard?tab=projects');
       } else {
         console.log('Failed to delete patient case:', result.error);
-        alert('Failed to delete patient case. Please try again.');
+        showAlert('Failed to delete patient case. Please try again.');
       }
     } catch (err: any) {
       console.log('Error during deletion:', err.message || 'Failed to delete patient case');
       console.error('Error deleting patient case:', err);
-      alert('An error occurred while deleting the patient case. Please try again.');
+      showAlert('An error occurred while deleting the patient case. Please try again.');
     } finally {
       setIsDeleting(false);
       console.log('Deletion process completed');
@@ -1819,51 +1821,24 @@ export function PatientDetailPage() {
                               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                             }}
                           >
-                            {/* Action Buttons */}
-                            <div style={{
-                              position: 'absolute',
-                              top: '10px',
-                              right: '10px',
-                              display: 'flex',
-                              gap: '5px'
-                            }}>
-                              <button
-                                onClick={() => handleEditMilestone(milestone)}
-                                style={{
-                                  background: '#007acc',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '50%',
-                                  width: '24px',
-                                  height: '24px',
-                                  cursor: 'pointer',
-                                  fontSize: '12px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                                title={t('patientDetail.editMilestone')}
-                              >
-                                ✏️
-                              </button>
-                            </div>
 
                             {/* Milestone Title */}
                             <h4 style={{ 
                               color: '#000000', 
                               marginBottom: '10px',
-                              marginRight: '30px',
                               fontSize: '16px',
-                              fontWeight: '600'
+                              fontWeight: '600',
+                              textAlign: 'left',
+                              direction: 'ltr'
                             }}>
                               {milestone.title}
                             </h4>
 
-                            {/* Milestone Status - Clickable Dropdown - Opposite to edit button */}
+                            {/* Milestone Status - Clickable Dropdown */}
                             <div style={{ 
                               position: 'absolute',
                               top: '10px',
-                              left: '10px',
+                              right: '10px',
                               zIndex: 10
                             }}>
                               <select
@@ -1898,7 +1873,9 @@ export function PatientDetailPage() {
                                 color: '#6c757d', 
                                 marginBottom: '15px',
                                 fontSize: '14px',
-                                lineHeight: '1.4'
+                                lineHeight: '1.4',
+                                textAlign: 'left',
+                                direction: 'ltr'
                               }}>
                                 {milestone.description}
                               </p>
@@ -1980,7 +1957,7 @@ export function PatientDetailPage() {
                               }}>
                                 {i18n.language === 'he' ? (
                                   <>
-                                    {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')} :{t('patientDetail.targetDate')}
+                                    {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')} : {t('patientDetail.targetDate')}
                                   </>
                                 ) : (
                                   <>
@@ -2011,7 +1988,7 @@ export function PatientDetailPage() {
                           padding: '60px 20px',
                           color: '#6c757d'
                         }}>
-                          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+                          <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
                           <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesYet')}</h4>
                           <p>{t('patientDetail.addFirstMilestone')}</p>
                         </div>
@@ -2428,6 +2405,7 @@ export function PatientDetailPage() {
           </div>
         </div>
       )}
+      <DialogComponent />
     </>
   );
 }

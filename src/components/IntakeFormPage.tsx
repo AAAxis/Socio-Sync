@@ -283,13 +283,26 @@ export function IntakeFormPage() {
 
                   <div className="form-group">
                     <label style={{ color: '#000000' }}>{t('intakeForm.dateOfBirth')} *</label>
-                    <input
-                      type="date"
-                      value={formData.dateOfBirth}
-                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      required
-                      style={{ cursor: 'pointer' }}
-                    />
+                    <div className="input-with-icon">
+                      <span 
+                        className="field-icon" 
+                        onClick={() => {
+                          const dateInput = document.querySelector('.date-picker-input') as HTMLInputElement;
+                          if (dateInput) {
+                            dateInput.showPicker();
+                          }
+                        }}
+                        title={t('intakeForm.dateOfBirth')}
+                      >📅</span>
+                      <input
+                        type="date"
+                        className="date-picker-input"
+                        value={formData.dateOfBirth}
+                        onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                        required
+                        style={{ cursor: 'pointer' }}
+                      />
+                    </div>
                   </div>
 
                   <div className="form-group">

@@ -10,6 +10,8 @@ export function PasswordResetPage() {
   const { t, i18n } = useTranslation();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
   // Set document direction based on language
   useEffect(() => {
@@ -21,32 +23,44 @@ export function PasswordResetPage() {
     e.preventDefault();
     
     if (!email) {
-      console.log('Please enter your email address');
+      setMessage(t('passwordReset.invalidEmail'));
+      setMessageType('error');
       return;
     }
 
     setIsLoading(true);
+    setMessage('');
+    setMessageType('');
 
     try {
+      console.log('Attempting to send password reset email to:', email);
       await sendPasswordResetEmail(auth, email);
-      console.log(t('passwordReset.success'));
+      console.log('Password reset email sent successfully to:', email);
+      setMessage(t('passwordReset.success'));
+      setMessageType('success');
       setEmail('');
     } catch (err: any) {
       console.error('Password reset error:', err);
+      console.error('Error code:', err.code);
+      console.error('Error message:', err.message);
       
       // Handle specific Firebase errors
       switch (err.code) {
         case 'auth/user-not-found':
-          console.log(t('passwordReset.userNotFound'));
+          setMessage(t('passwordReset.userNotFound'));
+          setMessageType('error');
           break;
         case 'auth/invalid-email':
-          console.log(t('passwordReset.invalidEmail'));
+          setMessage(t('passwordReset.invalidEmail'));
+          setMessageType('error');
           break;
         case 'auth/too-many-requests':
-          console.log(t('passwordReset.tooManyRequests'));
+          setMessage(t('passwordReset.tooManyRequests'));
+          setMessageType('error');
           break;
         default:
-          console.log(t('passwordReset.error'));
+          setMessage(t('passwordReset.error'));
+          setMessageType('error');
       }
     } finally {
       setIsLoading(false);
@@ -69,6 +83,22 @@ export function PasswordResetPage() {
             <p style={{ marginBottom: '20px', color: '#000000' }}>
               {t('passwordReset.instructions')}
             </p>
+            
+            {message && (
+              <div 
+                style={{
+                  padding: '12px',
+                  marginBottom: '20px',
+                  borderRadius: '6px',
+                  backgroundColor: messageType === 'success' ? '#d4edda' : '#f8d7da',
+                  color: messageType === 'success' ? '#155724' : '#721c24',
+                  border: `1px solid ${messageType === 'success' ? '#c3e6cb' : '#f5c6cb'}`,
+                  fontSize: '14px'
+                }}
+              >
+                {message}
+              </div>
+            )}
             
             <form onSubmit={handlePasswordReset}>
               <div className="form-group">

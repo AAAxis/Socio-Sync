@@ -64,6 +64,7 @@
     "events": "פגישות",
     "calendar": "לוח שנה",
     "signOut": "התנתק",
+    "confirmSignOut": "האם אתה בטוח שברצונך להתנתק?",
     "isRTL": "true"
   },
   "events": {
@@ -227,7 +228,7 @@
     "information": "מידע אישי",
     "notes": "טופס אינטייק",
     "intakeForm": "טופס אינטייק",
-    "progress": "תוכנית טיפול 🎯",
+    "progress": "תוכנית טיפול",
     "documentUpload": "העלאת מסמכים",
     "uploadDocuments": "העלאת מסמכים",
     "uploading": "מעלה...",
@@ -275,7 +276,7 @@
     "additionalNotes": "הערות נוספות",
     "noObstacles": "לא נרשמו מכשולים.",
     "noStrengths": "לא נרשמו נקודות חוזק.",
-    "progressMilestones": "תוכנית טיפול 🎯",
+    "progressMilestones": "תוכנית טיפול",
     "addMilestone": "הוספת אבן דרך",
     "targetDate": "תאריך יעד",
     "created": "נוצר",
@@ -346,7 +347,8 @@
     "enterFirstName": "הזנת שם פרטי",
     "enterLastName": "הזנת שם משפחה",
     "enterNotesOptional": "הזנת הערות (אופציונלי)",
-    "createPatient": "יצירת מטופל"
+    "createPatient": "יצירת מטופל",
+    "created": "נוצר"
   },
   "createEvent": {
     "title": "הוספת פגישה",
@@ -354,7 +356,7 @@
     "noPatientSelected": "לא נבחר מטופל/ת",
     "noPatientMessage": "אנא חזור לטאב הפגישות ובחר מטופל/ת ליצירת פגישה.",
     "backToDashboard": "חזור ללוח הבקרה",
-    "selectedPatient": "מטופל/ת נבחר/ת:",
+    "selectedPatient": "מטופל\\ת שנבחרו:",
     "changePatient": "שינוי מטופל/ת",
     "eventTitle": "כותרת הפגישה",
     "eventTitlePlaceholder": "הזן כותרת פגישה",
@@ -364,7 +366,7 @@
     "descriptionPlaceholder": "הזן תיאור הפגישה",
     "cancel": "ביטול",
     "createEvent": "הוספת הפגישה ליומן",
-    "creatingEvent": "יוצר פגישה...",
+    "creatingEvent": "יצירת פגישה...",
     "fillAllFields": "אנא מלא את כל השדות הנדרשים",
     "eventCreatedSuccess": "הפגישה נוצרה בהצלחה!",
     "eventCreatedError": "שגיאה ביצירת הפגישה. אנא נסה שוב."
@@ -389,7 +391,7 @@
     "failedToDeleteUser": "נכשל במחיקת המטפל/ת",
     "status": "סטטוס",
     "statusActive": "פעיל",
-    "statusBlocked": "בהמתנה",
+    "statusBlocked": "בהמתנה לאישור",
     "statusRestricted": "מוגבל"
   },
   "intakeForm": {
@@ -430,8 +432,8 @@
     "enterPhone": "הזנת מספר טלפון",
     "enterAddress": "הזנת כתובת מלאה",
     "enterNotes": "יש להזין הערות או מידע רלוונטי...",
-    "describeObstacles": "יש לתאר מכשולים ואתגרים...",
-    "describeStrengths": "יש לתאר את הנקודות החזקות של המטופל/ת...",
+    "describeObstacles": "כאן ניתן לכתוב את המכשולים...",
+    "describeStrengths": "כאן ניתן לכתוב את נקודות החוזק..",
     "submitIntakeForm": "שלח",
     "submitting": "שולח...",
     "submitSuccess": "טופס הקבלה נשלח בהצלחה!",
@@ -441,14 +443,14 @@
   },
   "users": {
     "title": "ניהול מטפלים/ות",
-    "searchPlaceholder": "חפש מטפלים/ות...",
+    "searchPlaceholder": "חיפוש משתמשים...",
     "allUsers": "כל המטפלים/ות",
     "statusActive": "פעיל",
-    "statusBlocked": "בהמתנה",
+    "statusBlocked": "בהמתנה לאישור",
     "statusRestricted": "מוגבל",
     "addUser": "הוספת מטפל/ת",
     "editUser": "עריכת מטפל/ת",
-    "deleteUser": "מחיקת מטפל/ת",
+    "deleteUser": "מחיקת משתמש",
     "name": "שם",
     "email": "אימייל",
     "role": "תפקיד",
@@ -461,9 +463,16 @@
     "blockUser": "חסימת מטפל/ת",
     "unblockUser": "ביטול חסימה",
     "roles": {
-      "super_admin": "מנהל ראשי",
-      "admin": "מנהל"
+      "super_admin": "מטפל\\ת ראשי\\ת",
+      "admin": "מטפל\\ת"
     }
+  },
+  "dialog": {
+    "alert": "התראה",
+    "confirm": "אישור",
+    "ok": "אישור",
+    "cancel": "ביטול",
+    "close": "סגור"
   },
   "actions": {
     "meeting": "פגישה",

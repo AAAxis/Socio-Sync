@@ -66,6 +66,7 @@
     "events": "Events",
     "calendar": "Calendar",
     "signOut": "Sign Out",
+    "confirmSignOut": "Are you sure you want to sign out?",
     "isRTL": "false"
   },
   "events": {
@@ -232,7 +233,7 @@
     "information": "Information",
     "notes": "Intake Form",
     "intakeForm": "Intake Form",
-    "progress": "🎯 Treatment Plan",
+    "progress": "Treatment Plan",
     "documentUpload": "Document Upload",
     "uploadDocuments": "Upload Documents",
     "uploading": "Uploading...",
@@ -281,7 +282,7 @@
     "editNotes": "Edit Notes",
     "noObstacles": "No obstacles recorded.",
     "noStrengths": "No strengths recorded.",
-    "progressMilestones": "🎯 Treatment Plan",
+    "progressMilestones": "Treatment Plan",
     "addMilestone": "Add Milestone",
     "noMilestonesYet": "No Milestones Yet",
     "addFirstMilestone": "Add your first milestone to start tracking progress!",
@@ -347,7 +348,9 @@
     "enterFirstName": "Enter first name",
     "enterLastName": "Enter last name",
     "enterNotesOptional": "Enter notes (optional)",
-    "createPatient": "Create Patient"
+    "createPatient": "Create Patient",
+    "created": "Created",
+    "targetDate": "Target Date"
   },
   "createEvent": {
     "title": "Create New Event",
@@ -465,5 +468,12 @@
       "super_admin": "Super Admin",
       "admin": "Admin"
     }
+  },
+  "dialog": {
+    "alert": "Alert",
+    "confirm": "Confirm",
+    "ok": "OK",
+    "cancel": "Cancel",
+    "close": "Close"
   }
 }

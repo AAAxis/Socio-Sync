@@ -16,6 +16,7 @@ import { PatientNameDisplay, PatientNotesDisplay } from './components/PatientCom
 import { getApiUrl } from './config';
 import { formatDate } from './utils';
 import { useLanguageNavigate } from './hooks/useLanguageNavigate';
+import { useCustomDialog } from './components/CustomDialog';
 
 // Main Dashboard Component (Application Layout)
 export default function MainDashboard() {
@@ -23,6 +24,7 @@ export default function MainDashboard() {
   const langNavigate = useLanguageNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
+  const { showAlert, showConfirm, DialogComponent } = useCustomDialog();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +46,7 @@ export default function MainDashboard() {
     
     if (!patientExists) {
       console.error('Patient not found in current list:', caseId);
-      alert(`Patient ${caseId} not found. Please refresh the page and try again.`);
+      showAlert(`Patient ${caseId} not found. Please refresh the page and try again.`);
       return;
     }
     
@@ -326,7 +328,7 @@ export default function MainDashboard() {
   }, [user?.id]);
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
-    if (window.confirm('Are you sure you want to delete this event?')) {
+    showConfirm('Are you sure you want to delete this event?', async () => {
       try {
         console.log('Deleting event:', eventId);
         await deleteEvent(eventId, user?.id || '');
@@ -340,8 +342,8 @@ export default function MainDashboard() {
       } catch (error) {
         console.error('Error deleting event:', error);
       }
-    }
-  }, [user?.id]);
+    });
+  }, [user?.id, showConfirm]);
 
   const handleArchiveEvent = useCallback(async (eventId: string, archived: boolean) => {
     try {
@@ -401,7 +403,7 @@ export default function MainDashboard() {
       setEvents(enrichedEvents);
     } catch (error) {
       console.error(`Error ${archived ? 'archiving' : 'unarchiving'} event:`, error);
-      alert(`Failed to ${archived ? 'archive' : 'unarchive'} event. Please try again.`);
+      showAlert(`Failed to ${archived ? 'archive' : 'unarchive'} event. Please try again.`);
     }
   }, []);
 
@@ -484,7 +486,7 @@ export default function MainDashboard() {
       console.log('Milestone deleted successfully');
     } catch (error) {
       console.error('Error deleting milestone:', error);
-      alert('Failed to delete milestone. Please try again.');
+      showAlert('Failed to delete milestone. Please try again.');
     }
   }, [loadTodayMilestones]);
 
@@ -520,7 +522,7 @@ export default function MainDashboard() {
       console.log('Activity log deleted successfully');
     } catch (error) {
       console.error('Error deleting activity log:', error);
-      alert('Failed to delete activity log. Please try again.');
+      showAlert('Failed to delete activity log. Please try again.');
     }
   }, [refreshActivityLogs]);
 
@@ -662,9 +664,7 @@ export default function MainDashboard() {
   const handleUnlinkGoogleCalendar = useCallback(async () => {
     if (!user || !auth.currentUser) return;
     
-    if (!window.confirm('Are you sure you want to unlink your Google Calendar?')) {
-      return;
-    }
+    showConfirm('Are you sure you want to unlink your Google Calendar?', async () => {
     
     setIsLinkingCalendar(true);
     try {
@@ -677,15 +677,16 @@ export default function MainDashboard() {
       });
       
       await refreshUserData(user.id);
-      alert('Google Calendar unlinked successfully!');
+      showAlert('Google Calendar unlinked successfully!');
     } catch (error: any) {
       console.error('Error unlinking Google Calendar:', error);
       const errorMessage = error?.message || 'Failed to unlink Google Calendar. Please try again.';
-      alert(errorMessage);
+      showAlert(errorMessage);
     } finally {
       setIsLinkingCalendar(false);
     }
-  }, [user]);
+    });
+  }, [user, showConfirm, showAlert]);
 
   const handleUserSearchChange = useCallback((searchTerm: string) => {
     setUserSearchTerm(searchTerm);
@@ -831,9 +832,7 @@ export default function MainDashboard() {
     if (!user) return;
     
     // Add confirmation dialog
-    if (!window.confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
-      return;
-    }
+    showConfirm('Are you sure you want to delete this patient? This action cannot be undone.', async () => {
     
     try {
       const result = await deletePatientCase(caseId, user.id);
@@ -841,13 +840,14 @@ export default function MainDashboard() {
       if (result.success) {
         await refreshPatients();
       } else {
-        alert('Failed to delete patient');
+        showAlert('Failed to delete patient');
       }
     } catch (error) {
       console.error('Error deleting patient:', error);
-      alert('Failed to delete patient');
+      showAlert('Failed to delete patient');
     }
-  }, [user, refreshPatients]);
+    });
+  }, [user, refreshPatients, showConfirm, showAlert]);
 
   const refreshUsers = useCallback(async () => {
     if (!user || user.role !== 'super_admin') return;
@@ -899,9 +899,7 @@ export default function MainDashboard() {
   const handleDeleteUser = useCallback(async (userId: string) => {
     if (!user) return;
     
-    if (!window.confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
+    showConfirm(t('editUser.confirmDeleteUser'), async () => {
     
     try {
       const result = await deleteUser(userId);
@@ -910,13 +908,14 @@ export default function MainDashboard() {
         // Refresh the users list after deletion
         await refreshUsers();
       } else {
-        alert('Failed to delete user. Please try again.');
+        showAlert('Failed to delete user. Please try again.');
       }
     } catch (error) {
       console.error('Error deleting user:', error);
-      alert('Failed to delete user. Please try again.');
+      showAlert('Failed to delete user. Please try again.');
     }
-  }, [user, refreshUsers]);
+    });
+  }, [user, refreshUsers, showConfirm, showAlert]);
 
   const getPaginatedPatients = useCallback(() => {
     const startIndex = (patientCurrentPage - 1) * patientsPerPage;
@@ -1013,13 +1012,15 @@ export default function MainDashboard() {
   }, [getFilteredActivityLogs, activityCurrentPage, activitiesPerPage]);
 
   const handleSignOut = async () => {
-    try {
-      await signOutUser();
-      setUser(null);
-      localStorage.removeItem('user');
-    } catch (error) {
-      console.error('Error signing out:', error);
-    }
+    showConfirm(t('navigation.confirmSignOut'), async () => {
+      try {
+        await signOutUser();
+        setUser(null);
+        localStorage.removeItem('user');
+      } catch (error) {
+        console.error('Error signing out:', error);
+      }
+    });
   };
 
   // Check for existing user session on component mount
@@ -1615,29 +1616,40 @@ export default function MainDashboard() {
 
               {activeTab === 'calendar' && (
                 <div className="calendar-section">
-                  <div className="calendar-view-toggle">
-                    <button 
-                      onClick={() => setCalendarViewMode('calendar')}
-                      className={`view-toggle-btn ${calendarViewMode === 'calendar' ? 'active' : ''}`}
-                    >
-                      📅 {t('calendar.calendarView')}
-                    </button>
-                    <button 
-                      onClick={() => setCalendarViewMode('list')}
-                      className={`view-toggle-btn ${calendarViewMode === 'list' ? 'active' : ''}`}
-                    >
-                      📋 {t('calendar.listView')}
-                    </button>
-                    <button 
-                      onClick={() => setShowCreateEventModal(true)}
-                      className="view-toggle-btn"
-                      style={{
-                        backgroundColor: '#007acc',
-                        color: 'white'
-                      }}
-                    >
-                      + {t('calendar.createEvent')}
-                    </button>
+                  <div className="calendar-header">
+                    <div className="calendar-view-toggle">
+                      <button 
+                        onClick={() => setCalendarViewMode('calendar')}
+                        className={`view-toggle-btn ${calendarViewMode === 'calendar' ? 'active' : ''}`}
+                      >
+                        📅 {t('calendar.calendarView')}
+                      </button>
+                      <button 
+                        onClick={() => setCalendarViewMode('list')}
+                        className={`view-toggle-btn ${calendarViewMode === 'list' ? 'active' : ''}`}
+                      >
+                        📋 {t('calendar.listView')}
+                      </button>
+                    </div>
+                    
+                    <div className="calendar-actions">
+                      <button 
+                        onClick={() => setShowCreateEventModal(true)}
+                        className="create-event-btn"
+                        style={{
+                          backgroundColor: '#007acc',
+                          color: 'white',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        + {t('calendar.createEvent')}
+                      </button>
+                    </div>
                   </div>
                   
                   {calendarViewMode === 'calendar' ? (
@@ -2001,6 +2013,7 @@ export default function MainDashboard() {
           </div>
         </div>
       </div>
+      <DialogComponent />
     </>
   );
 }

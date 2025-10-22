@@ -1,6 +1,6 @@
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { User } from '../types';
+import { useCustomDialog } from './CustomDialog';
 
 interface DashboardStatsProps {
   user: User;
@@ -55,6 +55,7 @@ export function DashboardStats({
   i18n,
   t
 }: DashboardStatsProps) {
+  const { showConfirm, DialogComponent } = useCustomDialog();
   const translateActivityAction = (action: string) => {
     const actionTranslations: { [key: string]: string } = {
       // Original translations
@@ -208,11 +209,12 @@ export function DashboardStats({
                   }}
                   onClick={() => handlePatientSelect(milestone.caseId)}
                 >
-                              {/* Status Badge - Moved to left side */}
+                              {/* Status Badge */}
                               <div style={{
                                 position: 'absolute',
                                 top: '8px',
-                                left: '8px',
+                                left: i18n.language === 'he' ? '8px' : 'auto',
+                                right: i18n.language === 'he' ? 'auto' : '8px',
                                 zIndex: 10
                               }}>
                                 <span style={{
@@ -238,7 +240,10 @@ export function DashboardStats({
                     marginBottom: '8px',
                     fontSize: '14px',
                     fontWeight: '600',
-                    paddingLeft: '30px' // Make space for delete button
+                    paddingLeft: i18n.language === 'he' ? '30px' : '0px',
+                    paddingRight: i18n.language === 'he' ? '0px' : '30px',
+                    textAlign: i18n.language === 'he' ? 'right' : 'left',
+                    direction: i18n.language === 'he' ? 'rtl' : 'ltr'
                   }}>
                     {milestone.title}
                   </h4>
@@ -250,7 +255,7 @@ export function DashboardStats({
                     marginBottom: '8px',
                     fontWeight: '500'
                   }}>
-                    Case: {milestone.caseId}
+                    {milestone.caseId}
                   </div>
 
                   {/* Progress */}
@@ -302,7 +307,7 @@ export function DashboardStats({
                   }}>
                     {i18n.language === 'he' ? (
                       <>
-                        {new Date(milestone.createdAt).toLocaleDateString('en-GB')} :{t('patientDetail.created')}
+                        {new Date(milestone.createdAt).toLocaleDateString('en-GB')} : {t('patientDetail.created')}
                       </>
                     ) : (
                       <>
@@ -320,7 +325,7 @@ export function DashboardStats({
                   color: '#6c757d',
                   gridColumn: '1 / -1'
                 }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
                   <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesToday')}</h4>
                   <p>{t('patientDetail.noMilestonesCreatedToday')}</p>
                 </div>
@@ -414,9 +419,9 @@ export function DashboardStats({
                             height: '24px'
                           }}
                           onClick={() => {
-                            if (window.confirm('Are you sure you want to delete this activity log?')) {
+                            showConfirm(t('patients.confirmDelete'), () => {
                               handleDeleteActivityLog(log.id);
-                            }
+                            });
                           }}
                           onMouseEnter={(e) => {
                             e.currentTarget.style.backgroundColor = '#f8f9fa';
@@ -463,6 +468,7 @@ export function DashboardStats({
           </div>
         )}
       </div>
+      <DialogComponent />
     </div>
   );
 }

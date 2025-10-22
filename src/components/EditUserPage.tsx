@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useCustomDialog } from './CustomDialog';
 import { getAllUsers, updateUserRole, deleteUser } from '../firebase';
 import { User } from '../types';
 
@@ -9,6 +10,7 @@ export function EditUserPage() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
   const { t } = useTranslation();
+  const { showConfirm, DialogComponent } = useCustomDialog();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,9 +94,7 @@ export function EditUserPage() {
   const handleDeleteUser = async () => {
     if (!userId) return;
     
-    if (!window.confirm(t('editUser.confirmDeleteUser'))) {
-      return;
-    }
+    showConfirm(t('editUser.confirmDeleteUser'), async () => {
 
     setIsUserLoading(true);
     setError(null);
@@ -108,6 +108,7 @@ export function EditUserPage() {
     } finally {
       setIsUserLoading(false);
     }
+    });
   };
 
   if (isLoading) {
@@ -219,6 +220,7 @@ export function EditUserPage() {
           </div>
         </div>
       </div>
+      <DialogComponent />
     </div>
   );
 }

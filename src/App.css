@@ -734,6 +734,7 @@ input:checked + .toggle-slider:before {
 [dir="rtl"] .back-to-login-btn {
   left: auto;
   right: 20px;
+  transform: scaleX(-1); /* Flip arrow 180 degrees horizontally for Hebrew */
 }
 
 /* Login Options RTL Support */
@@ -2148,12 +2149,14 @@ a.sidebar-nav.active {
 }
 
 .view-toggle-btn.active {
-  background: #007acc;
+  background: #28a745;
   color: white;
+  border-color: #28a745;
 }
 
 .view-toggle-btn.active:hover {
-  background: #0056b3;
+  background: #218838;
+  border-color: #218838;
 }
 
 .calendar-actions {
@@ -2346,11 +2349,16 @@ a.sidebar-nav.active {
 
 .activity-table th {
   padding: 12px;
-  text-align: right;
+  text-align: left;
   font-weight: 600;
   color: #333;
   font-size: 14px;
   white-space: nowrap;
+}
+
+/* RTL support for Hebrew */
+[dir="rtl"] .activity-table th {
+  text-align: right;
 }
 
 .activity-table tbody tr {
@@ -2366,6 +2374,11 @@ a.sidebar-nav.active {
   padding: 12px;
   font-size: 14px;
   color: #666;
+  text-align: left;
+}
+
+/* RTL support for Hebrew */
+[dir="rtl"] .activity-table td {
   text-align: right;
 }
 
@@ -2730,17 +2743,65 @@ a.sidebar-nav.active {
 
 .date-picker-input {
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
   font-size: 14px;
   cursor: pointer;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  color: #333;
+  position: relative;
+  padding-right: 40px; /* Make room for calendar icon */
 }
 
 .date-picker-input:focus {
   outline: none;
   border-color: #007acc;
-  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+  background-color: #ffffff;
+}
+
+.date-picker-input:hover {
+  border-color: #007acc;
+  background-color: #f8f9fa;
+}
+
+/* Calendar icon for date inputs - Force black color */
+.date-picker-input::-webkit-calendar-picker-indicator {
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+/* Hide native calendar picker when using custom icon */
+.input-with-icon input[type="date"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+/* Hide native time picker when using custom icon */
+.input-with-icon input[type="time"]::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+/* RTL support for Hebrew - Calendar icon on left */
+[dir="rtl"] .date-picker-input::-webkit-calendar-picker-indicator {
+  display: none !important;
+}
+
+.date-picker-input::-webkit-calendar-picker-indicator:hover {
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
 .clear-date-btn {
@@ -4621,43 +4682,174 @@ a.sidebar-nav.active {
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
 }
 
-/* Make calendar icon white in date inputs */
-.form-group input[type="date"] {
-  color-scheme: dark;
+/* General date input styling */
+input[type="date"] {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
   cursor: pointer;
-  position: relative;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  color: #333;
   padding-right: 40px; /* Make room for calendar icon */
+  position: relative;
+  z-index: 1;
 }
 
-.form-group input[type="date"]::-webkit-calendar-picker-indicator {
-  filter: invert(1);
-  cursor: pointer;
-  opacity: 1;
-  width: 24px;
-  height: 24px;
-  padding: 4px;
-  margin: 0;
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
+input[type="date"]:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+  background-color: #ffffff;
 }
 
-/* Additional styling for better calendar icon visibility */
+input[type="date"]:hover {
+  border-color: #007acc;
+  background-color: #f8f9fa;
+}
+
+/* Calendar icon for all date inputs - Force black color */
 input[type="date"]::-webkit-calendar-picker-indicator {
-  background: transparent;
-  color: white;
-  filter: invert(1) brightness(1);
-  cursor: pointer;
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+/* RTL support for Hebrew - Calendar icon on left */
+[dir="rtl"] input[type="date"]::-webkit-calendar-picker-indicator {
+  right: auto !important;
+  left: 8px !important;
 }
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
-  filter: invert(1) brightness(1.2);
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
 }
 
-/* Google Places Autocomplete styling */
+/* Time picker styling to match calendar picker */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+[dir="rtl"] input[type="time"]::-webkit-calendar-picker-indicator {
+  right: auto !important;
+  left: 8px !important;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Force black calendar icons in form groups */
+.form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+/* RTL support for Hebrew - Calendar icon on left */
+[dir="rtl"] .form-group input[type="date"]::-webkit-calendar-picker-indicator {
+  right: auto !important;
+  left: 8px !important;
+}
+
+.form-group input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Time picker styling to match calendar picker */
+input[type="time"]::-webkit-calendar-picker-indicator {
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+[dir="rtl"] input[type="time"]::-webkit-calendar-picker-indicator {
+  right: auto !important;
+  left: 8px !important;
+}
+
+input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
+
+/* Force black time icons in form groups */
+.form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  background: transparent !important;
+  color: #000000 !important;
+  cursor: pointer !important;
+  opacity: 1 !important;
+  width: 20px !important;
+  height: 20px !important;
+  padding: 4px !important;
+  margin: 0 !important;
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  border: none !important;
+  filter: none !important;
+}
+
+[dir="rtl"] .form-group input[type="time"]::-webkit-calendar-picker-indicator {
+  right: auto !important;
+  left: 8px !important;
+}
+
+.form-group input[type="time"]::-webkit-calendar-picker-indicator:hover {
+  color: #333333 !important;
+  transform: translateY(-50%) scale(1.1) !important;
+}
 .pac-container {
   background-color: #ffffff !important;
   border: 1px solid #ddd !important;
@@ -4804,22 +4996,42 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   position: relative;
   display: flex;
   align-items: center;
+  z-index: 1;
 }
 
 .field-icon {
   position: absolute;
-  left: 12px;
+  left: 8px;
   top: 50%;
   transform: translateY(-50%);
-  font-size: 18px;
+  font-size: 16px;
   z-index: 2;
-  pointer-events: none;
+  pointer-events: auto; /* Make icons clickable */
+  cursor: pointer; /* Show pointer cursor */
   color: #999;
+  transition: color 0.2s ease;
+}
+
+.field-icon:hover {
+  color: #007acc; /* Highlight on hover */
+}
+
+/* RTL support for field icons */
+[dir="rtl"] .field-icon {
+  left: auto;
+  right: 8px;
 }
 
 .input-with-icon input,
 .input-with-icon textarea {
   padding-left: 40px !important;
+}
+
+/* RTL support for input padding */
+[dir="rtl"] .input-with-icon input,
+[dir="rtl"] .input-with-icon textarea {
+  padding-left: 12px !important;
+  padding-right: 40px !important;
 }
 
 .input-with-icon textarea {
@@ -4829,8 +5041,34 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Special styling for date input with icon */
 .input-with-icon input[type="date"] {
-  padding-left: 40px !important;
-  padding-right: 40px !important;
+  padding-left: 35px !important;
+  padding-right: 12px !important;
+}
+
+/* RTL support for date input with icon */
+[dir="rtl"] .input-with-icon input[type="date"] {
+  padding-left: 12px !important;
+  padding-right: 35px !important;
+}
+
+/* Time picker input styling */
+.time-picker-input {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  color: #333;
+  position: relative;
+  padding-left: 40px; /* Make room for clock icon */
+}
+
+/* RTL support for time picker input */
+[dir="rtl"] .time-picker-input {
+  padding-left: 12px;
+  padding-right: 40px; /* Make room for clock icon on right */
 }
 
 .form-actions {
@@ -5266,10 +5504,15 @@ a.sidebar-nav.active,
   background: #f8f9fa;
   color: #333333;
   padding: 16px 12px;
-  text-align: right;
+  text-align: left;
   font-weight: 600;
   border-bottom: 1px solid #ddd;
   font-size: 14px;
+}
+
+/* RTL support for Hebrew */
+[dir="rtl"] .events-table th {
+  text-align: right;
 }
 
 .events-table td {
@@ -5277,6 +5520,11 @@ a.sidebar-nav.active,
   border-bottom: 1px solid #ddd;
   color: #333333;
   vertical-align: top;
+  text-align: left;
+}
+
+/* RTL support for Hebrew */
+[dir="rtl"] .events-table td {
   text-align: right;
 }
 
@@ -6478,4 +6726,157 @@ a.sidebar-nav.active,
 [dir="rtl"] .event-actions-menu button {
   text-align: right;
   direction: rtl;
+}
+
+/* Custom Dialog Styles */
+.custom-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+.custom-dialog {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: dialogSlideIn 0.2s ease-out;
+}
+
+@keyframes dialogSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.custom-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 20px 0 20px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.custom-dialog-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+}
+
+.custom-dialog-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #666;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.custom-dialog-close:hover {
+  background-color: #f0f0f0;
+  color: #333;
+}
+
+.custom-dialog-body {
+  padding: 0 20px;
+  margin-bottom: 20px;
+}
+
+.custom-dialog-message {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+}
+
+.custom-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 0 20px 20px 20px;
+}
+
+.custom-dialog-button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+}
+
+.custom-dialog-button-ok {
+  background-color: #007acc;
+  color: white;
+}
+
+.custom-dialog-button-ok:hover {
+  background-color: #005a9e;
+}
+
+.custom-dialog-button-confirm {
+  background-color: #dc3545;
+  color: white;
+}
+
+.custom-dialog-button-confirm:hover {
+  background-color: #c82333;
+}
+
+.custom-dialog-button-cancel {
+  background-color: #6c757d;
+  color: white;
+}
+
+.custom-dialog-button-cancel:hover {
+  background-color: #5a6268;
+}
+
+/* RTL Support for Custom Dialog */
+.custom-dialog.rtl {
+  direction: rtl;
+}
+
+.custom-dialog.rtl .custom-dialog-header {
+  flex-direction: row-reverse;
+}
+
+.custom-dialog.rtl .custom-dialog-title {
+  text-align: right;
+}
+
+.custom-dialog.rtl .custom-dialog-message {
+  text-align: right;
+}
+
+.custom-dialog.rtl .custom-dialog-footer {
+  justify-content: flex-start;
+  flex-direction: row-reverse;
 }

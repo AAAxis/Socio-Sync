@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { createEvent, searchPatients } from '../firebase';
+import { useCustomDialog } from './CustomDialog';
 
 // Create Event Page Component
 export function CreateEventPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, i18n } = useTranslation();
+  const { showAlert, DialogComponent } = useCustomDialog();
   const [eventFormData, setEventFormData] = useState({
     title: '',
     description: '',
@@ -100,7 +102,7 @@ export function CreateEventPage() {
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!eventFormData.title || !eventFormData.description || !eventFormData.caseId || !eventFormData.date || !eventFormData.time) {
-      alert(t('createEvent.fillAllFields'));
+      showAlert(t('createEvent.fillAllFields'));
       return;
     }
 
@@ -123,10 +125,10 @@ export function CreateEventPage() {
       });
       
       navigate('/dashboard');
-      alert(t('createEvent.eventCreatedSuccess'));
+      showAlert(t('createEvent.eventCreatedSuccess'));
     } catch (error) {
       console.error('Error creating event:', error);
-      alert(t('createEvent.eventCreatedError'));
+      showAlert(t('createEvent.eventCreatedError'));
     } finally {
       setIsEventSaving(false);
     }
@@ -181,22 +183,48 @@ export function CreateEventPage() {
               
               <div className="form-group">
                 <label>{t('createEvent.eventDate')} *</label>
-                <input
-                  type="date"
-                  value={eventFormData.date}
-                  onChange={(e) => handleEventFormChange('date', e.target.value)}
-                  required
-                />
+                <div className="input-with-icon">
+                  <span 
+                    className="field-icon" 
+                    onClick={() => {
+                      const dateInput = document.querySelector('.date-picker-input') as HTMLInputElement;
+                      if (dateInput) {
+                        dateInput.showPicker();
+                      }
+                    }}
+                    title={t('createEvent.eventDate')}
+                  >📅</span>
+                  <input
+                    type="date"
+                    className="date-picker-input"
+                    value={eventFormData.date}
+                    onChange={(e) => handleEventFormChange('date', e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               
               <div className="form-group">
                 <label>{t('createEvent.eventTime')} *</label>
-                <input
-                  type="time"
-                  value={eventFormData.time}
-                  onChange={(e) => handleEventFormChange('time', e.target.value)}
-                  required
-                />
+                <div className="input-with-icon">
+                  <span 
+                    className="field-icon" 
+                    onClick={() => {
+                      const timeInput = document.querySelector('.time-picker-input') as HTMLInputElement;
+                      if (timeInput) {
+                        timeInput.showPicker();
+                      }
+                    }}
+                    title={t('createEvent.eventTime')}
+                  >🕐</span>
+                  <input
+                    type="time"
+                    className="time-picker-input"
+                    value={eventFormData.time}
+                    onChange={(e) => handleEventFormChange('time', e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               
               <div className="form-group">
@@ -365,6 +393,7 @@ export function CreateEventPage() {
           </div>
         </div>
       )}
+      <DialogComponent />
     </div>
   );
 }

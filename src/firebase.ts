@@ -635,6 +635,7 @@ export const trackUserLogin = async (user: User, role: 'super_admin' | 'admin' =
           loginCount: 1,
           hasPiiData: false, // Will be updated when PII is created in PostgreSQL
           blocked: false, // Default to active status for new users
+          restricted: false, // Explicitly set to active (not restricted)
           blockedReason: '',
         };
         
@@ -920,6 +921,7 @@ export const createUserWithRole = async (email: string, password: string, name: 
         loginCount: 0,
         hasPiiData: false,
         blocked: false, // Default to active status for new users
+        restricted: false, // Explicitly set to active (not restricted)
         blockedReason: '',
       };
       

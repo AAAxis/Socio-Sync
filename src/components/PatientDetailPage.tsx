@@ -47,7 +47,6 @@ export function PatientDetailPage() {
   const [patientPII, setPatientPII] = useState<any>(null);
   const [activities, setActivities] = useState<ActivityNote[]>([]);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
@@ -222,23 +221,27 @@ export function PatientDetailPage() {
     if (!caseId || !user) return;
     
     setIsDeleting(true);
-    // Clear any previous errors
+    console.log('Starting deletion process...');
     
     try {
       const result = await deletePatientCase(caseId, user.id);
+      console.log('Delete result:', result);
       
       if (result.success) {
+        console.log('Deletion successful, navigating to dashboard');
         // Navigate back to dashboard after successful deletion
         navigate('/dashboard?tab=projects');
       } else {
-        console.log('Failed to delete patient case');
+        console.log('Failed to delete patient case:', result.error);
+        alert('Failed to delete patient case. Please try again.');
       }
     } catch (err: any) {
-      console.log(err.message || 'Failed to delete patient case');
+      console.log('Error during deletion:', err.message || 'Failed to delete patient case');
       console.error('Error deleting patient case:', err);
+      alert('An error occurred while deleting the patient case. Please try again.');
     } finally {
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
+      console.log('Deletion process completed');
     }
   };
 
@@ -922,9 +925,6 @@ export function PatientDetailPage() {
                       <div className="header-left">
                         <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#333' }}>{caseId}</p>
                       </div>
-              <div className="header-actions">
-                
-              </div>
             </div>
           </div>
 
@@ -2030,32 +2030,6 @@ export function PatientDetailPage() {
             </div>
           )}
 
-          {/* Delete Confirmation Dialog */}
-          {showDeleteConfirm && (
-            <div className="delete-confirmation-overlay">
-              <div className="delete-confirmation-dialog">
-                <h3>Delete Patient Case</h3>
-                <p>Are you sure you want to delete this patient case?</p>
-                <p><strong>Note:</strong> This will only delete the case from Firebase. PII data in PostgreSQL will remain.</p>
-                <div className="delete-confirmation-actions">
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="cancel-patient-btn"
-                    disabled={isDeleting}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleDeleteCase}
-                    className="confirm-delete-btn"
-                    disabled={isDeleting}
-                  >
-                    {isDeleting ? 'Deleting...' : 'Delete Case'}
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </div>

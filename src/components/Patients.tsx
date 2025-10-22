@@ -70,7 +70,7 @@ export default function Patients({
     const handleClickOutside = (event: MouseEvent) => {
       if (showPatientMenu) {
         const target = event.target as Element;
-        if (!target.closest('.patient-actions-menu')) {
+        if (!target.closest('.patient-actions-menu') && !target.closest('.patient-dropdown-new')) {
           setShowPatientMenu(null);
           setDropdownPosition(null);
         }

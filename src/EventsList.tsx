@@ -54,7 +54,7 @@ const EventsList: React.FC<EventsListProps> = ({
     const handleClickOutside = (event: MouseEvent) => {
       if (showEventMenu) {
         const target = event.target as Element;
-        if (!target.closest('.event-actions-menu')) {
+        if (!target.closest('.event-actions-menu') && !target.closest('.event-dropdown-menu')) {
           setShowEventMenu(null);
           setDropdownPosition(null);
         }
@@ -234,18 +234,22 @@ const EventsList: React.FC<EventsListProps> = ({
                             ⋯
                           </button>
                           {showEventMenu === event.id && dropdownPosition && (
-                            <div style={{
-                              position: 'fixed',
-                              top: dropdownPosition.top,
-                              left: dropdownPosition.left,
-                              backgroundColor: 'white',
-                              border: '1px solid #ddd',
-                              borderRadius: '6px',
-                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                              zIndex: 999999,
-                              minWidth: '120px',
-                              overflow: 'hidden'
-                            }}>
+                            <div 
+                              className="event-dropdown-menu"
+                              style={{
+                                position: 'fixed',
+                                top: dropdownPosition.top,
+                                left: dropdownPosition.left,
+                                backgroundColor: 'white',
+                                border: '1px solid #ddd',
+                                borderRadius: '6px',
+                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                                zIndex: 999999,
+                                minWidth: '120px',
+                                overflow: 'hidden'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

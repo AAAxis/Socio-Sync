@@ -208,6 +208,10 @@ export default function MainDashboard() {
     // Filter by status
     if (eventsStatusFilter === 'active') {
       filtered = filtered.filter(event => {
+        // Exclude archived events from active view
+        if (event.archived === true) {
+          return false;
+        }
         const status = event.status?.toLowerCase();
         // Consider "new" as active status
         return status === 'active' || status === 'new';
@@ -348,9 +352,51 @@ export default function MainDashboard() {
       
       console.log(`Event ${archived ? 'archived' : 'unarchived'} successfully`);
       
-      // Refresh events after archive/unarchive
+      // Refresh events with enrichment to preserve patient/user names
       const eventsData = await getEvents();
-      setEvents(eventsData);
+      
+      // Manually enrich events with patient and user data
+      const enrichedEvents = await Promise.all(eventsData.map(async (event) => {
+        let enrichedEvent = { ...event };
+        
+        // Get patient data if caseId exists
+        if (event.caseId) {
+          try {
+            const piiResponse = await fetch(getApiUrl(`/api/patients/${event.caseId}`));
+            if (piiResponse.ok) {
+              const piiData = await piiResponse.json();
+              enrichedEvent.patient = {
+                firstName: piiData.patient.first_name,
+                lastName: piiData.patient.last_name,
+                email: piiData.patient.email,
+                phone: piiData.patient.phone,
+                address: piiData.patient.address,
+                notes: piiData.patient.notes
+              };
+            }
+          } catch (error) {
+            console.log('Could not fetch patient data for caseId:', event.caseId, error);
+          }
+        }
+        
+        // Get user data for createdBy
+        if (event.createdBy) {
+          try {
+            const userDocRef = doc(db, 'users', event.createdBy);
+            const userDoc = await getDoc(userDocRef);
+            if (userDoc.exists()) {
+              const userData = userDoc.data() as any;
+              enrichedEvent.createdByName = userData.name || userData.email || 'Unknown User';
+            }
+          } catch (error) {
+            console.log('Could not fetch user data for createdBy:', event.createdBy, error);
+          }
+        }
+        
+        return enrichedEvent;
+      }));
+      
+      setEvents(enrichedEvents);
     } catch (error) {
       console.error(`Error ${archived ? 'archiving' : 'unarchiving'} event:`, error);
       alert(`Failed to ${archived ? 'archive' : 'unarchive'} event. Please try again.`);
@@ -654,18 +700,22 @@ export default function MainDashboard() {
   const handleDeletePatient = useCallback(async (caseId: string) => {
     if (!user) return;
     
+    // Add confirmation dialog
+    if (!window.confirm('Are you sure you want to delete this patient? This action cannot be undone.')) {
+      return;
+    }
+    
     try {
       const result = await deletePatientCase(caseId, user.id);
       
       if (result.success) {
-        // Refresh the patients list after deletion
         await refreshPatients();
       } else {
-        alert('Failed to delete patient case. Please try again.');
+        alert('Failed to delete patient');
       }
     } catch (error) {
       console.error('Error deleting patient:', error);
-      alert('Failed to delete patient case. Please try again.');
+      alert('Failed to delete patient');
     }
   }, [user, refreshPatients]);
 

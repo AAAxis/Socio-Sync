@@ -117,7 +117,9 @@ export function IntakeFormPage() {
         <div className="container">
           <div className="login-card">
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '18px', color: '#666666' }}>Loading...</div>
+              <div style={{ fontSize: '18px', color: '#666666' }}>
+                {i18n.language === 'he' ? 'טוען...' : 'Loading...'}
+              </div>
             </div>
           </div>
         </div>

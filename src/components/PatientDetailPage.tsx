@@ -59,12 +59,13 @@ export function PatientDetailPage() {
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
   const [showEditMilestoneModal, setShowEditMilestoneModal] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<any>(null);
-  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', progress: 0, targetDate: '' });
+  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
   const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ description: '', date: '', notes: '' });
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
   const [meetingFilter, setMeetingFilter] = useState<'active' | 'archived'>('active');
   const [showMeetingMenu, setShowMeetingMenu] = useState<string | null>(null);
+  const [milestoneStatusFilter, setMilestoneStatusFilter] = useState<'all' | 'new' | 'easy' | 'medium' | 'critical'>('all');
 
   // Function to get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -413,6 +414,7 @@ export function PatientDetailPage() {
           description: data.description,
           progress: data.progress,
           targetDate: data.targetDate || '', // Include targetDate field
+          status: data.status || 'new', // Include status field, default to 'new'
           createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
           caseId: data.caseId
         };
@@ -433,7 +435,8 @@ export function PatientDetailPage() {
       title: milestone.title,
       description: milestone.description,
       progress: milestone.progress,
-      targetDate: milestone.targetDate || ''
+      targetDate: milestone.targetDate || '',
+      status: milestone.status || 'new'
     });
     setShowEditMilestoneModal(true);
   };
@@ -451,6 +454,7 @@ export function PatientDetailPage() {
         description: newMilestone.description,
         progress: newMilestone.progress,
         targetDate: newMilestone.targetDate,
+        status: newMilestone.status,
         updatedAt: new Date().toISOString()
       });
       
@@ -463,7 +467,7 @@ export function PatientDetailPage() {
       
       setShowEditMilestoneModal(false);
       setEditingMilestone(null);
-      setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+      setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
       
       console.log('Milestone updated successfully');
     } catch (error) {
@@ -485,6 +489,7 @@ export function PatientDetailPage() {
           description: newMilestone.description,
           progress: newMilestone.progress,
           targetDate: newMilestone.targetDate,
+          status: newMilestone.status,
           createdAt: serverTimestamp()
         };
         
@@ -502,7 +507,7 @@ export function PatientDetailPage() {
         };
         
         setMilestones([...milestones, milestone]);
-        setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+        setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
         setShowAddMilestoneModal(false);
         
         console.log('Milestone added successfully');
@@ -542,6 +547,37 @@ export function PatientDetailPage() {
       ));
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.log(`Failed to update milestone progress: ${errorMessage}`);
+    }
+  };
+
+  const handleUpdateMilestoneStatus = async (id: string, newStatus: string) => {
+    // Update local state immediately for responsive UI
+    setMilestones(milestones.map(milestone => 
+      milestone.id === id ? { ...milestone, status: newStatus } : milestone
+    ));
+
+    try {
+      // Update in Firebase using the document ID directly
+      const { db } = await import('../firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      console.log('Updating milestone status:', id, 'to', newStatus);
+      
+      const milestoneRef = doc(db, 'milestones', id);
+      await updateDoc(milestoneRef, {
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      });
+      
+      console.log('Milestone status updated successfully');
+    } catch (error) {
+      console.error('Error updating milestone status:', error);
+      // Revert local state on error
+      setMilestones(milestones.map(milestone => 
+        milestone.id === id ? { ...milestone, status: milestone.status } : milestone
+      ));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.log(`Failed to update milestone status: ${errorMessage}`);
     }
   };
 
@@ -761,7 +797,9 @@ export function PatientDetailPage() {
         <div className="container">
           <div className="login-card">
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '18px', color: '#666666' }}>Loading...</div>
+              <div style={{ fontSize: '18px', color: '#666666' }}>
+                {i18n.language === 'he' ? 'טוען...' : 'Loading...'}
+              </div>
             </div>
           </div>
         </div>
@@ -1711,24 +1749,44 @@ export function PatientDetailPage() {
                     <div className="tab-panel">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                         <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>{t('patientDetail.progressMilestones')}</h3>
-                        <button
-                          onClick={() => setShowAddMilestoneModal(true)}
-                          style={{
-                            background: '#007acc',
-                            color: 'white',
-                            border: 'none',
-                            padding: '8px 16px',
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          {t('patientDetail.addMilestoneButton')}
-                        </button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <select
+                            value={milestoneStatusFilter}
+                            onChange={(e) => setMilestoneStatusFilter(e.target.value as any)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '6px',
+                              border: '1px solid #ddd',
+                              fontSize: '14px',
+                              backgroundColor: 'white',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <option value="all">{t('patientDetail.allStatuses')}</option>
+                            <option value="new">{t('patientDetail.statusNew')}</option>
+                            <option value="easy">{t('patientDetail.statusEasy')}</option>
+                            <option value="medium">{t('patientDetail.statusMedium')}</option>
+                            <option value="critical">{t('patientDetail.statusCritical')}</option>
+                          </select>
+                          <button
+                            onClick={() => setShowAddMilestoneModal(true)}
+                            style={{
+                              background: '#007acc',
+                              color: 'white',
+                              border: 'none',
+                              padding: '8px 16px',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            {t('patientDetail.addMilestoneButton')}
+                          </button>
+                        </div>
                       </div>
 
                       {/* Milestones Grid */}
@@ -1800,6 +1858,39 @@ export function PatientDetailPage() {
                             }}>
                               {milestone.title}
                             </h4>
+
+                            {/* Milestone Status - Clickable Dropdown - Opposite to edit button */}
+                            <div style={{ 
+                              position: 'absolute',
+                              top: '10px',
+                              left: '10px',
+                              zIndex: 10
+                            }}>
+                              <select
+                                value={milestone.status}
+                                onChange={(e) => {
+                                  handleUpdateMilestoneStatus(milestone.id, e.target.value);
+                                }}
+                                style={{
+                                  padding: '4px 8px',
+                                  borderRadius: '12px',
+                                  fontSize: '12px',
+                                  fontWeight: '500',
+                                  backgroundColor: milestone.status === 'critical' ? '#dc3545' : 
+                                                 milestone.status === 'medium' ? '#ffc107' : 
+                                                 milestone.status === 'easy' ? '#28a745' : '#007acc',
+                                  color: 'white',
+                                  border: 'none',
+                                  cursor: 'pointer',
+                                  outline: 'none'
+                                }}
+                              >
+                                <option value="new">{t('patientDetail.statusNew')}</option>
+                                <option value="easy">{t('patientDetail.statusEasy')}</option>
+                                <option value="medium">{t('patientDetail.statusMedium')}</option>
+                                <option value="critical">{t('patientDetail.statusCritical')}</option>
+                              </select>
+                            </div>
 
                             {/* Milestone Description */}
                             {milestone.description && (
@@ -1880,16 +1971,33 @@ export function PatientDetailPage() {
                               paddingTop: '10px',
                               display: 'flex',
                               justifyContent: 'space-between',
-                              alignItems: 'center'
+                              alignItems: 'center',
+                              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
                             }}>
                               <div style={{ 
                                 color: '#007acc',
                                 fontWeight: '500'
                               }}>
-                                {t('patientDetail.targetDate')}: {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')}
+                                {i18n.language === 'he' ? (
+                                  <>
+                                    {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')} :{t('patientDetail.targetDate')}
+                                  </>
+                                ) : (
+                                  <>
+                                    {t('patientDetail.targetDate')}: {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')}
+                                  </>
+                                )}
                               </div>
                               <div>
-                                {t('patientDetail.created')}: {new Date(milestone.createdAt).toLocaleDateString('en-GB')}
+                                {i18n.language === 'he' ? (
+                                  <>
+                                    {new Date(milestone.createdAt).toLocaleDateString('en-GB')} :{t('patientDetail.created')}
+                                  </>
+                                ) : (
+                                  <>
+                                    {t('patientDetail.created')}: {new Date(milestone.createdAt).toLocaleDateString('en-GB')}
+                                  </>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -1915,7 +2023,9 @@ export function PatientDetailPage() {
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '18px', color: '#666666' }}>Loading patient data...</div>
+              <div style={{ fontSize: '18px', color: '#666666' }}>
+                {i18n.language === 'he' ? 'טוען נתוני מטופל...' : 'Loading patient data...'}
+              </div>
             </div>
           )}
 
@@ -2120,7 +2230,7 @@ export function PatientDetailPage() {
               <button
                 onClick={() => {
                   setShowAddMilestoneModal(false);
-                  setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                  setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
                 }}
                 style={{
                   background: '#6c757d',
@@ -2264,7 +2374,7 @@ export function PatientDetailPage() {
                     handleDeleteMilestone(editingMilestone.id);
                     setShowEditMilestoneModal(false);
                     setEditingMilestone(null);
-                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
                   }
                 }}
                 style={{
@@ -2285,7 +2395,7 @@ export function PatientDetailPage() {
                   onClick={() => {
                     setShowEditMilestoneModal(false);
                     setEditingMilestone(null);
-                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '' });
+                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
                   }}
                   style={{
                     background: '#6c757d',

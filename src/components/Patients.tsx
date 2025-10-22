@@ -191,7 +191,9 @@ export default function Patients({
       
       <div className="patients-table-container">
         {isPatientLoading ? (
-          <div className="loading">Loading patients...</div>
+          <div className="loading">
+            {i18n.language === 'he' ? 'טוען מטופלים...' : 'Loading patients...'}
+          </div>
         ) : (
           <table className="patients-table">
           <thead>

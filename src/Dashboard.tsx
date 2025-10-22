@@ -131,6 +131,8 @@ export default function MainDashboard() {
   const [activityTimeFilter, setActivityTimeFilter] = useState<'all' | 'today' | 'lastWeek' | 'lastMonth'>('lastWeek');
   const [activityCurrentPage, setActivityCurrentPage] = useState(1);
   const [activitiesPerPage] = useState(10);
+  const [todayMilestones, setTodayMilestones] = useState<any[]>([]);
+  const [isTodayMilestonesLoading, setIsTodayMilestonesLoading] = useState(false);
 
   // Calendar functionality
   const getCalendarDays = useCallback(() => {
@@ -414,6 +416,134 @@ export default function MainDashboard() {
     }
   }, []);
 
+  // Fetch today's milestones across all cases
+  const loadTodayMilestones = useCallback(async () => {
+    if (!user) return;
+    
+    setIsTodayMilestonesLoading(true);
+    try {
+      const { db } = await import('./firebase');
+      const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+      
+      // Get today's date range
+      const today = new Date();
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1);
+      
+      const milestonesRef = collection(db, 'milestones');
+      const q = query(
+        milestonesRef, 
+        where('createdAt', '>=', startOfDay),
+        where('createdAt', '<', endOfDay),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(q);
+      const loadedMilestones = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          progress: data.progress,
+          targetDate: data.targetDate || '',
+          status: data.status || 'new',
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+          caseId: data.caseId
+        };
+      });
+      
+      // Apply role-based filtering: super admins see all, regular admins see only their own
+      let filteredMilestones = loadedMilestones;
+      if (user.role !== 'super_admin') {
+        // For regular admins, we need to check if they created the patient case
+        // Since milestones don't have createdBy field, we'll show all for now
+        // In a real implementation, you might want to add createdBy to milestones
+        filteredMilestones = loadedMilestones;
+      }
+      
+      setTodayMilestones(filteredMilestones);
+    } catch (error) {
+      console.error('Error loading today\'s milestones:', error);
+    } finally {
+      setIsTodayMilestonesLoading(false);
+    }
+  }, [user]);
+
+  const handleDeleteMilestone = useCallback(async (milestoneId: string) => {
+    try {
+      const { db } = await import('./firebase');
+      const { doc, deleteDoc } = await import('firebase/firestore');
+      
+      const milestoneRef = doc(db, 'milestones', milestoneId);
+      await deleteDoc(milestoneRef);
+      
+      // Refresh today's milestones
+      await loadTodayMilestones();
+      
+      console.log('Milestone deleted successfully');
+    } catch (error) {
+      console.error('Error deleting milestone:', error);
+      alert('Failed to delete milestone. Please try again.');
+    }
+  }, [loadTodayMilestones]);
+
+  const refreshActivityLogs = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      const activityData = await getAllActivityLogs();
+      
+      // Apply role-based filtering for regular admins
+      let filteredActivities = activityData;
+      if (user.role !== 'super_admin') {
+        filteredActivities = activityData.filter(a => a.createdBy === user.id);
+      }
+      
+      setActivityLogs(filteredActivities);
+    } catch (error) {
+      console.error('Error refreshing activity logs:', error);
+    }
+  }, [user]);
+
+  const handleDeleteActivityLog = useCallback(async (logId: string) => {
+    try {
+      const { db } = await import('./firebase');
+      const { doc, deleteDoc } = await import('firebase/firestore');
+      
+      const logRef = doc(db, 'activities', logId);
+      await deleteDoc(logRef);
+      
+      // Refresh activity logs
+      await refreshActivityLogs();
+      
+      console.log('Activity log deleted successfully');
+    } catch (error) {
+      console.error('Error deleting activity log:', error);
+      alert('Failed to delete activity log. Please try again.');
+    }
+  }, [refreshActivityLogs]);
+
+  const handleUpdateMilestoneStatus = useCallback(async (milestoneId: string, newStatus: string) => {
+    try {
+      const { db } = await import('./firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const milestoneRef = doc(db, 'milestones', milestoneId);
+      await updateDoc(milestoneRef, { 
+        status: newStatus,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Refresh today's milestones
+      await loadTodayMilestones();
+      
+      console.log('Milestone status updated successfully');
+    } catch (error) {
+      console.error('Error updating milestone status:', error);
+      alert('Failed to update milestone status. Please try again.');
+    }
+  }, [loadTodayMilestones]);
 
   const handleCreateEventClick = useCallback(() => {
     setShowCreateEventModal(true);
@@ -1102,6 +1232,11 @@ export default function MainDashboard() {
     loadDashboardStats();
   }, [user]);
 
+  // Load today's milestones
+  useEffect(() => {
+    loadTodayMilestones();
+  }, [loadTodayMilestones]);
+
   // Load users data for super admin
   useEffect(() => {
     const loadUsers = async () => {
@@ -1232,7 +1367,9 @@ export default function MainDashboard() {
         <div className="container">
           <div className="login-card">
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '18px', color: '#666666' }}>Loading...</div>
+              <div style={{ fontSize: '18px', color: '#666666' }}>
+                {i18n.language === 'he' ? 'טוען...' : 'Loading...'}
+              </div>
             </div>
           </div>
         </div>
@@ -1392,22 +1529,32 @@ export default function MainDashboard() {
             
             <div className="main-content">
               {activeTab === 'dashboard' && (
-                <DashboardStats
-                  user={user}
-                  dashboardStats={dashboardStats}
-                  isStatsLoading={isStatsLoading}
-                  activityLogs={getPaginatedActivityLogs()}
-                  totalActivityLogs={getFilteredActivityLogs().length}
-                  isActivityLoading={isActivityLoading}
-                  activitySearchTerm={activitySearchTerm}
-                  setActivitySearchTerm={setActivitySearchTerm}
-                  activityTimeFilter={activityTimeFilter}
-                  setActivityTimeFilter={setActivityTimeFilter}
-                  activityCurrentPage={activityCurrentPage}
-                  setActivityCurrentPage={setActivityCurrentPage}
-                  activityTotalPages={Math.ceil(getFilteredActivityLogs().length / activitiesPerPage)}
-                  activitiesPerPage={activitiesPerPage}
-                />
+                <div className="dashboard-content">
+                  {/* Use existing DashboardStats component with milestones integrated */}
+                  <DashboardStats
+                    user={user}
+                    dashboardStats={dashboardStats}
+                    isStatsLoading={isStatsLoading}
+                    activityLogs={getPaginatedActivityLogs()}
+                    totalActivityLogs={getFilteredActivityLogs().length}
+                    isActivityLoading={isActivityLoading}
+                    activitySearchTerm={activitySearchTerm}
+                    setActivitySearchTerm={setActivitySearchTerm}
+                    activityTimeFilter={activityTimeFilter}
+                    setActivityTimeFilter={setActivityTimeFilter}
+                    activityCurrentPage={activityCurrentPage}
+                    setActivityCurrentPage={setActivityCurrentPage}
+                    activityTotalPages={Math.ceil(getFilteredActivityLogs().length / activitiesPerPage)}
+                    activitiesPerPage={activitiesPerPage}
+                    todayMilestones={todayMilestones}
+                    isTodayMilestonesLoading={isTodayMilestonesLoading}
+                    handleDeleteMilestone={handleDeleteMilestone}
+                    handlePatientSelect={handlePatientSelect}
+                    handleDeleteActivityLog={handleDeleteActivityLog}
+                    i18n={i18n}
+                    t={t}
+                  />
+                </div>
               )}
 
               {activeTab === 'settings' && (
@@ -1464,6 +1611,7 @@ export default function MainDashboard() {
                   totalPatients={filteredPatients.length}
                 />
               )}
+
 
               {activeTab === 'calendar' && (
                 <div className="calendar-section">

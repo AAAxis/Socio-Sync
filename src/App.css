@@ -224,7 +224,7 @@ code {
     min-height: calc(100vh - 120px);
     padding: 20px;
     margin-top: 0;
-    background: #f8f9fa;
+    background: #ffffff;
     border: none;
     position: relative;
     z-index: 1;
@@ -298,10 +298,10 @@ code {
 }
 
 .main-content {
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: #ffffff;
+  border-radius: 0;
   padding: 20px;
-  border: 1px solid #e0e0e0;
+  border: none;
   overflow-y: auto;
 }
 

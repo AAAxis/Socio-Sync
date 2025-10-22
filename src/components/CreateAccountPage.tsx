@@ -7,7 +7,7 @@ import { User } from '../types';
 // Create Account Page Component
 export function CreateAccountPage() {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [passwordData, setPasswordData] = useState({

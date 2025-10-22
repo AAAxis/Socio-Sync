@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { createPatientCase } from '../firebase';
 import { User } from '../types';
 import { GooglePlacesSearch } from './PatientComponents';
@@ -7,6 +8,7 @@ import { GooglePlacesSearch } from './PatientComponents';
 // Create Patient Page Component
 export function CreatePatientPage() {
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);

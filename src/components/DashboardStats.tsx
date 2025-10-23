@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { User, Task, Notification } from '../types';
 import { useCustomDialog } from './CustomDialog';
+import { createTask } from '../firebase';
 
 interface DashboardStatsProps {
   user: User;
@@ -44,6 +45,7 @@ interface DashboardStatsProps {
   isNotificationsLoading?: boolean;
   handleTaskStatusChange?: (taskId: string, status: 'pending' | 'inProgress' | 'completed') => void;
   handleMarkNotificationRead?: (notificationId: string) => void;
+  refreshTasks?: () => void;
   // Events props
   events?: any[];
   isEventsLoading?: boolean;
@@ -79,6 +81,7 @@ export function DashboardStats({
   isNotificationsLoading = false,
   handleTaskStatusChange,
   handleMarkNotificationRead,
+  refreshTasks,
   // Events props
   events = [],
   isEventsLoading = false
@@ -87,6 +90,30 @@ export function DashboardStats({
   
   // Tab state
   const [activeTab, setActiveTab] = useState<'notifications' | 'todayTasks' | 'pendingTasks' | 'milestones' | 'upcomingMeetings' | 'inactiveCases'>('notifications');
+  
+  // Task filter state
+  const [taskFilter, setTaskFilter] = useState<'all' | 'done' | 'undone'>('all');
+  
+  // Create task state
+  const [showCreateTaskForm, setShowCreateTaskForm] = useState(false);
+  const [isCreatingTask, setIsCreatingTask] = useState(false);
+  const [createTaskError, setCreateTaskError] = useState<string | null>(null);
+  const [newTask, setNewTask] = useState({
+    title: '',
+    description: '',
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
+  });
+  const translateTaskStatus = (status: string) => {
+    const statusTranslations: { [key: string]: string } = {
+      'pending': i18n.language === 'he' ? 'ממתין' : 'Pending',
+      'inProgress': i18n.language === 'he' ? 'בתהליך' : 'In Progress',
+      'completed': i18n.language === 'he' ? 'הושלם' : 'Completed',
+      'overdue': i18n.language === 'he' ? 'איחור' : 'Overdue'
+    };
+    
+    return statusTranslations[status] || status;
+  };
+
   const translateActivityAction = (action: string) => {
     const actionTranslations: { [key: string]: string } = {
       // Original translations
@@ -273,43 +300,6 @@ export function DashboardStats({
                   fontWeight: 'bold'
                 }}>
                   {todayTasks.length}
-                </span>
-              )}
-            </button>
-            
-            <button
-              onClick={() => setActiveTab('pendingTasks')}
-              style={{
-                padding: '12px 20px',
-                border: 'none',
-                backgroundColor: activeTab === 'pendingTasks' ? '#007acc' : 'transparent',
-                color: activeTab === 'pendingTasks' ? 'white' : '#666',
-                borderRadius: '8px 8px 0 0',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              <span>⏳</span>
-              {t('dashboard.pendingTasks')}
-              {pendingTasks.length > 0 && (
-                <span style={{
-                  backgroundColor: '#dc3545',
-                  color: 'white',
-                  borderRadius: '50%',
-                  width: '20px',
-                  height: '20px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '10px',
-                  fontWeight: 'bold'
-                }}>
-                  {pendingTasks.length}
                 </span>
               )}
             </button>
@@ -618,7 +608,7 @@ export function DashboardStats({
                             }
                           </span>
                           <span style={{ color: '#007acc', fontWeight: '500' }}>
-                            👤 {log.userEmail || log.createdBy || 'Unknown'}
+                            👤 {log.userEmail || log.createdBy || t('unknownUser')}
                           </span>
                         </div>
                       </div>
@@ -637,10 +627,95 @@ export function DashboardStats({
             {/* Today's Tasks Tab */}
             {activeTab === 'todayTasks' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>📋</span>
-                  {t('dashboard.todayTasks')}
-                </h3>
+                <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ color: '#333', display: 'flex', alignItems: 'center', margin: 0 }}>
+                    <span style={{ marginRight: '8px' }}>📋</span>
+                    {t('dashboard.todayTasks')}
+                  </h3>
+                  <button
+                    onClick={() => setShowCreateTaskForm(true)}
+                    style={{
+                      backgroundColor: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#218838';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#28a745';
+                    }}
+                  >
+                    <span>+</span>
+                    {i18n.language === 'he' ? 'הוסף משימה' : 'Add Task'}
+                  </button>
+                </div>
+                
+                {/* Filter Buttons */}
+                <div style={{ 
+                  marginBottom: '20px', 
+                  display: 'flex', 
+                  gap: '8px',
+                  alignItems: 'center'
+                }}>
+                  <button
+                    onClick={() => setTaskFilter('all')}
+                    style={{
+                      padding: '8px 16px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      backgroundColor: taskFilter === 'all' ? '#007acc' : 'white',
+                      color: taskFilter === 'all' ? 'white' : '#666',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {i18n.language === 'he' ? 'הכל' : 'All'}
+                  </button>
+                  <button
+                    onClick={() => setTaskFilter('done')}
+                    style={{
+                      padding: '8px 16px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      backgroundColor: taskFilter === 'done' ? '#28a745' : 'white',
+                      color: taskFilter === 'done' ? 'white' : '#666',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {i18n.language === 'he' ? 'הושלמו' : 'Done'}
+                  </button>
+                  <button
+                    onClick={() => setTaskFilter('undone')}
+                    style={{
+                      padding: '8px 16px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      backgroundColor: taskFilter === 'undone' ? '#dc3545' : 'white',
+                      color: taskFilter === 'undone' ? 'white' : '#666',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      transition: 'all 0.2s ease'
+                    }}
+                  >
+                    {i18n.language === 'he' ? 'לא הושלמו' : 'Undone'}
+                  </button>
+                </div>
                 {isTasksLoading ? (
                   <div style={{ textAlign: 'center', padding: '40px' }}>
                     <div style={{ fontSize: '18px', color: '#666666' }}>
@@ -649,7 +724,14 @@ export function DashboardStats({
                   </div>
                 ) : todayTasks.length > 0 ? (
                   <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                    {todayTasks.map((task) => (
+                    {todayTasks
+                      .filter(task => {
+                        if (taskFilter === 'all') return true;
+                        if (taskFilter === 'done') return task.status === 'completed';
+                        if (taskFilter === 'undone') return task.status !== 'completed';
+                        return true;
+                      })
+                      .map((task) => (
                       <div
                         key={task.id}
                         style={{
@@ -720,7 +802,7 @@ export function DashboardStats({
                           color: '#6c757d'
                         }}>
                           <span>{t('dashboard.dueDate')}: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A'}</span>
-                          <span>{t('dashboard.taskStatus')}: {task.status}</span>
+                          <span>{t('dashboard.taskStatus')}: {translateTaskStatus(task.status)}</span>
                         </div>
                         
                         {handleTaskStatusChange && task.status !== 'completed' && (
@@ -758,6 +840,195 @@ export function DashboardStats({
                   <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6c757d' }}>
                     <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
                     <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('dashboard.noTodayTasks')}</h4>
+                  </div>
+                )}
+                
+                {/* Create Task Form Modal */}
+                {showCreateTaskForm && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                  }}>
+                    <div style={{
+                      backgroundColor: 'white',
+                      borderRadius: '12px',
+                      padding: '24px',
+                      width: '90%',
+                      maxWidth: '500px',
+                      maxHeight: '80vh',
+                      overflowY: 'auto'
+                    }}>
+                      <h3 style={{ marginBottom: '20px', color: '#333' }}>
+                        {i18n.language === 'he' ? 'הוסף משימה חדשה' : 'Add New Task'}
+                      </h3>
+                      
+                      <form onSubmit={async (e) => {
+                        e.preventDefault();
+                        setIsCreatingTask(true);
+                        setCreateTaskError(null);
+                        
+                        try {
+                          console.log('Creating task with data:', {
+                            title: newTask.title,
+                            description: newTask.description,
+                            priority: newTask.priority,
+                            createdBy: user.email
+                          });
+                          
+                          const result = await createTask({
+                            title: newTask.title,
+                            description: newTask.description,
+                            priority: newTask.priority
+                          }, user.email);
+                          
+                          console.log('Create task result:', result);
+                          
+                          if (result.success) {
+                            console.log('Task created successfully:', result.taskId);
+                            setShowCreateTaskForm(false);
+                            setNewTask({ title: '', description: '', priority: 'medium' });
+                            // Refresh the tasks list
+                            if (refreshTasks) {
+                              refreshTasks();
+                            }
+                          } else {
+                            setCreateTaskError(i18n.language === 'he' ? 'שגיאה ביצירת המשימה' : 'Error creating task');
+                          }
+                        } catch (error) {
+                          console.error('Error creating task:', error);
+                          setCreateTaskError(i18n.language === 'he' ? 'שגיאה ביצירת המשימה' : 'Error creating task');
+                        } finally {
+                          setIsCreatingTask(false);
+                        }
+                      }}>
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                            {i18n.language === 'he' ? 'כותרת המשימה' : 'Task Title'} *
+                          </label>
+                          <input
+                            type="text"
+                            value={newTask.title}
+                            onChange={(e) => setNewTask(prev => ({ ...prev, title: e.target.value }))}
+                            placeholder={i18n.language === 'he' ? 'הכנס כותרת למשימה' : 'Enter task title'}
+                            required
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
+                        
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                            {i18n.language === 'he' ? 'תיאור' : 'Description'}
+                          </label>
+                          <textarea
+                            value={newTask.description}
+                            onChange={(e) => setNewTask(prev => ({ ...prev, description: e.target.value }))}
+                            placeholder={i18n.language === 'he' ? 'הכנס תיאור למשימה' : 'Enter task description'}
+                            rows={3}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              resize: 'vertical'
+                            }}
+                          />
+                        </div>
+                        
+                        
+                        <div style={{ marginBottom: '20px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                            {i18n.language === 'he' ? 'עדיפות' : 'Priority'}
+                          </label>
+                          <select
+                            value={newTask.priority}
+                            onChange={(e) => setNewTask(prev => ({ ...prev, priority: e.target.value as 'low' | 'medium' | 'high' | 'urgent' }))}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              fontSize: '14px'
+                            }}
+                          >
+                            <option value="low">{i18n.language === 'he' ? 'נמוכה' : 'Low'}</option>
+                            <option value="medium">{i18n.language === 'he' ? 'בינונית' : 'Medium'}</option>
+                            <option value="high">{i18n.language === 'he' ? 'גבוהה' : 'High'}</option>
+                            <option value="urgent">{i18n.language === 'he' ? 'דחוף' : 'Urgent'}</option>
+                          </select>
+                        </div>
+                        
+                        {/* Error Message */}
+                        {createTaskError && (
+                          <div style={{
+                            marginBottom: '16px',
+                            padding: '12px',
+                            backgroundColor: '#f8d7da',
+                            color: '#721c24',
+                            border: '1px solid #f5c6cb',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}>
+                            {createTaskError}
+                          </div>
+                        )}
+                        
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowCreateTaskForm(false);
+                              setNewTask({ title: '', description: '', priority: 'medium' });
+                            }}
+                            style={{
+                              padding: '10px 20px',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              backgroundColor: 'white',
+                              color: '#666',
+                              cursor: 'pointer',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {i18n.language === 'he' ? 'ביטול' : 'Cancel'}
+                          </button>
+                          <button
+                            type="submit"
+                            disabled={isCreatingTask}
+                            style={{
+                              padding: '10px 20px',
+                              border: 'none',
+                              borderRadius: '6px',
+                              backgroundColor: isCreatingTask ? '#6c757d' : '#28a745',
+                              color: 'white',
+                              cursor: isCreatingTask ? 'not-allowed' : 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '500',
+                              opacity: isCreatingTask ? 0.7 : 1
+                            }}
+                          >
+                            {isCreatingTask 
+                              ? (i18n.language === 'he' ? 'יוצר...' : 'Creating...') 
+                              : (i18n.language === 'he' ? 'צור משימה' : 'Create Task')
+                            }
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                   </div>
                 )}
               </div>

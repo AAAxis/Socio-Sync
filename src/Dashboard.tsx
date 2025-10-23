@@ -341,7 +341,7 @@ export default function MainDashboard() {
   }, [user?.id]);
 
   const handleDeleteEvent = useCallback(async (eventId: string) => {
-    showConfirm('Are you sure you want to delete this event?', async () => {
+    showConfirm(t('events.confirmDeleteEvent'), async () => {
       try {
         console.log('Deleting event:', eventId);
         await deleteEvent(eventId, user?.id || '');
@@ -617,11 +617,14 @@ export default function MainDashboard() {
       const tasksRef = collection(db, 'tasks');
       const tasksQuery = query(
         tasksRef,
-        where('createdBy', '==', user.id),
+        where('createdBy', '==', user.email),
         orderBy('createdAt', 'desc')
       );
       
       const tasksSnapshot = await getDocs(tasksQuery);
+      console.log('Loaded tasks from Firebase:', tasksSnapshot.docs.length, 'tasks');
+      console.log('User email for filtering:', user.email);
+      
       const allTasks: Task[] = tasksSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
@@ -708,9 +711,24 @@ export default function MainDashboard() {
         const todayString = today.toISOString().split('T')[0];
         
         const todayTasksFiltered = allTasks.filter(task => {
-          if (!task.dueDate) return false;
+          if (!task.dueDate) {
+            console.log('Task has no dueDate:', task.title);
+            return false;
+          }
           const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
-          return taskDate === todayString && task.status !== 'completed';
+          const matchesToday = taskDate === todayString;
+          const notCompleted = task.status !== 'completed';
+          console.log('Task filtering:', {
+            title: task.title,
+            dueDate: task.dueDate,
+            taskDate,
+            todayString,
+            matchesToday,
+            status: task.status,
+            notCompleted,
+            willShow: matchesToday && notCompleted
+          });
+          return matchesToday && notCompleted;
         });
         
         const pendingTasksFiltered = allTasks.filter(task => {
@@ -1341,6 +1359,16 @@ export default function MainDashboard() {
     }
   }, [user, activeTab]);
 
+  // Handle URL parameters for tab navigation
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const tabParam = searchParams.get('tab');
+    if (tabParam && ['dashboard', 'projects', 'calendar', 'users', 'settings'].includes(tabParam)) {
+      console.log('Setting active tab from URL parameter:', tabParam);
+      setActiveTab(tabParam);
+    }
+  }, [location.search]);
+
   // Helper function to load and enrich events
   const loadAndEnrichEvents = useCallback(async () => {
     if (!user) return [];
@@ -1886,7 +1914,7 @@ export default function MainDashboard() {
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
                 <img 
-                  src="/logo.jpeg" 
+                  src="/logo.png" 
                   alt="Logo" 
                   style={{ 
                     height: '40px', 
@@ -1931,6 +1959,7 @@ export default function MainDashboard() {
                     isNotificationsLoading={isNotificationsLoading}
                     handleTaskStatusChange={handleTaskStatusChange}
                     handleMarkNotificationRead={handleMarkNotificationRead}
+                    refreshTasks={loadTasksAndNotifications}
                     // Events props
                     events={events}
                     isEventsLoading={isEventsLoading}
@@ -2247,10 +2276,25 @@ export default function MainDashboard() {
                     </div>
                     <div className="event-details-modal-footer">
                       <button 
-                        onClick={() => setShowEventDetailsModal(false)}
-                        className="cancel-btn"
+                        onClick={() => {
+                          if (selectedEventForDetails) {
+                            handleDeleteEvent(selectedEventForDetails.id);
+                            setShowEventDetailsModal(false);
+                          }
+                        }}
+                        className="delete-btn"
+                        style={{
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          padding: '10px 20px',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}
                       >
-                        {t('events.cancel')}
+                        {t('events.deleteEvent')}
                       </button>
                               <button
                         onClick={async () => {

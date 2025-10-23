@@ -1597,4 +1597,42 @@ export const deletePatientCase = async (caseId: string, deletedBy: string): Prom
   }
 };
 
+// Create a new task
+export const createTask = async (taskData: {
+  title: string;
+  description?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  caseId?: string;
+  patientName?: string;
+  dueDate?: string;
+}, createdBy: string): Promise<{ success: boolean; taskId?: string; error?: any }> => {
+  try {
+    const { collection, addDoc, serverTimestamp } = await import('firebase/firestore');
+    const { db } = await import('./firebase');
+    
+    const task = {
+      title: taskData.title,
+      description: taskData.description || '',
+      priority: taskData.priority,
+      status: 'pending' as const,
+      caseId: taskData.caseId || '',
+      patientName: taskData.patientName || '',
+      dueDate: taskData.dueDate || new Date().toISOString().split('T')[0], // Default to today
+      createdAt: serverTimestamp(),
+      createdBy: createdBy,
+      updatedAt: serverTimestamp(),
+      updatedBy: createdBy
+    };
+    
+    const tasksCollection = collection(db, 'tasks');
+    const docRef = await addDoc(tasksCollection, task);
+    
+    console.log('Task created successfully with ID:', docRef.id);
+    return { success: true, taskId: docRef.id };
+  } catch (error) {
+    console.error('Error creating task:', error);
+    return { success: false, error };
+  }
+};
+
 export default app;

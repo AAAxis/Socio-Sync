@@ -46,26 +46,6 @@ const EventsList: React.FC<EventsListProps> = ({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'he';
-  const [showEventMenu, setShowEventMenu] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState<{ top: number; left: number } | null>(null);
-
-  // Click outside handler for dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (showEventMenu) {
-        const target = event.target as Element;
-        if (!target.closest('.event-actions-menu') && !target.closest('.event-dropdown-menu')) {
-          setShowEventMenu(null);
-          setDropdownPosition(null);
-        }
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [showEventMenu]);
 
   // Reset page to 1 when filters change
   useEffect(() => {
@@ -235,19 +215,7 @@ const EventsList: React.FC<EventsListProps> = ({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              const button = e.currentTarget;
-                              const rect = button.getBoundingClientRect();
-                              
-                              if (showEventMenu === event.id) {
-                                setShowEventMenu(null);
-                                setDropdownPosition(null);
-                              } else {
-                                setShowEventMenu(event.id);
-                                setDropdownPosition({
-                                  top: rect.bottom + window.scrollY,
-                                  left: isRTL ? rect.left - 120 : rect.right - 120
-                                });
-                              }
+                              handleArchiveEvent(event.id, !event.archived);
                             }}
                             style={{
                               background: 'none',
@@ -256,84 +224,15 @@ const EventsList: React.FC<EventsListProps> = ({
                               padding: '4px 8px',
                               borderRadius: '4px',
                               fontSize: '16px',
-                              color: '#666'
+                              color: '#007acc',
+                              transition: 'background-color 0.2s ease'
                             }}
-                            title="Event Actions"
+                            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
+                            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
+                            title={event.archived ? t('events.unarchiveEvent') : t('events.archiveEvent')}
                           >
-                            ⋯
+                            {event.archived ? '📤' : '📦'}
                           </button>
-                          {showEventMenu === event.id && dropdownPosition && (
-                            <div 
-                              className="event-dropdown-menu"
-                              style={{
-                                position: 'fixed',
-                                top: dropdownPosition.top,
-                                left: dropdownPosition.left,
-                                backgroundColor: 'white',
-                                border: '1px solid #ddd',
-                                borderRadius: '6px',
-                                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                zIndex: 999999,
-                                minWidth: '120px',
-                                overflow: 'hidden'
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleArchiveEvent(event.id, !event.archived);
-                                  setShowEventMenu(null);
-                                  setDropdownPosition(null);
-                                }}
-                                style={{
-                                  display: 'block',
-                                  width: '100%',
-                                  padding: '8px 12px',
-                                  border: 'none',
-                                  background: 'none',
-                                  textAlign: isRTL ? 'right' : 'left',
-                                  direction: isRTL ? 'rtl' : 'ltr',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  color: '#007acc',
-                                  transition: 'background-color 0.2s ease'
-                                }}
-                                onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
-                                onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                              >
-                                {event.archived ? '📤 ' + t('events.unarchiveEvent') : '📦 ' + t('events.archiveEvent')}
-                              </button>
-                              {event.archived && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteEvent(event.id);
-                                    setShowEventMenu(null);
-                                    setDropdownPosition(null);
-                                  }}
-                                  style={{
-                                    display: 'block',
-                                    width: '100%',
-                                    padding: '8px 12px',
-                                    border: 'none',
-                                    background: 'none',
-                                    textAlign: isRTL ? 'right' : 'left',
-                                    direction: isRTL ? 'rtl' : 'ltr',
-                                    cursor: 'pointer',
-                                    fontSize: '14px',
-                                    color: '#dc3545',
-                                    borderTop: '1px solid #f0f0f0',
-                                    transition: 'background-color 0.2s ease'
-                                  }}
-                                  onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
-                                  onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                                >
-                                  🗑️ {t('events.deleteEvent')}
-                                </button>
-                              )}
-                            </div>
-                          )}
                         </div>
                       </td>
                     )}

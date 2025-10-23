@@ -75,7 +75,7 @@ export function PasswordResetPage() {
             ←
           </button>
           <div className="login-header">
-            <img src="/logo.jpeg" alt="SocioSync" className="login-logo" />
+            <img src="/logo.png" alt="SocioSync" className="login-logo" />
             <p>{t('passwordReset.subtitle')}</p>
           </div>
 

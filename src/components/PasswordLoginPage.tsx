@@ -248,7 +248,7 @@ export function PasswordLoginPage() {
             ←
           </button>
           <div className="login-header">
-            <img src="/logo.jpeg" alt="SocioSync" className="login-logo" />
+            <img src="/logo.png" alt="SocioSync" className="login-logo" />
             <p>{t('passwordLogin.subtitle')}</p>
           </div>
 

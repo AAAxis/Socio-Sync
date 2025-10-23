@@ -87,7 +87,7 @@ export function LoginPage() {
       <div className="container">
         <div className="login-card">
           <div className="login-header">
-            <img src="/logo.jpeg" alt="SocioSync" className="login-logo" />
+            <img src="/logo.png" alt="SocioSync" className="login-logo" />
             <p>{t('login.subtitle')}</p>
             {isAdminMode && (
               <div className="admin-mode-indicator">

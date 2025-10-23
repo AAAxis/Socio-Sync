@@ -134,7 +134,7 @@ export function EditUserPage() {
       <div className="container">
         <div className="login-card">
           <div className="login-header">
-            <img src="/logo.jpeg" alt="Logo" style={{ height: '40px', width: 'auto', marginRight: '20px' }} />
+            <img src="/logo.png" alt="Logo" style={{ height: '40px', width: 'auto', marginRight: '20px' }} />
             <p>{t('editUser.title')}</p>
           </div>
 

@@ -91,6 +91,8 @@
     "archiveEvent": "Archive",
     "unarchiveEvent": "Unarchive",
     "deleteEvent": "Delete",
+    "confirmDeleteEvent": "Are you sure you want to delete this event?",
+    "cancel": "Cancel",
     "unknownPatient": "Unknown Patient",
     "unknownUser": "Unknown User",
     "na": "N/A",

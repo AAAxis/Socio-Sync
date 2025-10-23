@@ -12,7 +12,7 @@ export function PatientDetailPage() {
   const { caseId } = useParams<{ caseId: string }>();
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { showAlert, DialogComponent } = useCustomDialog();
+  const { showAlert, showConfirm, DialogComponent } = useCustomDialog();
 
   // Set document direction based on language
   useEffect(() => {
@@ -66,7 +66,6 @@ export function PatientDetailPage() {
   const [newMeeting, setNewMeeting] = useState({ description: '', date: '', notes: '' });
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
   const [meetingFilter, setMeetingFilter] = useState<'active' | 'archived'>('active');
-  const [showMeetingMenu, setShowMeetingMenu] = useState<string | null>(null);
   const [milestoneStatusFilter, setMilestoneStatusFilter] = useState<'all' | 'new' | 'easy' | 'medium' | 'critical'>('all');
 
   // Function to get today's date in YYYY-MM-DD format
@@ -94,13 +93,19 @@ export function PatientDetailPage() {
   };
 
   useEffect(() => {
+    console.log('Loading user from localStorage...');
     const savedUser = localStorage.getItem('user');
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const userData = JSON.parse(savedUser);
+        console.log('User loaded from localStorage:', userData);
+        setUser(userData);
       } catch (err) {
+        console.log('Error parsing user from localStorage:', err);
         localStorage.removeItem('user');
       }
+    } else {
+      console.log('No user found in localStorage');
     }
     setIsLoading(false);
   }, []);
@@ -111,13 +116,13 @@ export function PatientDetailPage() {
     if (tab === 'dashboard') {
       navigate('/dashboard');
     } else if (tab === 'projects') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=projects');
     } else if (tab === 'calendar') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=calendar');
     } else if (tab === 'users') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=users');
     } else if (tab === 'settings') {
-      navigate('/dashboard');
+      navigate('/dashboard?tab=settings');
     }
   };
 
@@ -137,19 +142,18 @@ export function PatientDetailPage() {
           setShowMenu(false);
         }
       }
-      if (showMeetingMenu) {
-        const target = event.target as Element;
-        if (!target.closest('.meeting-actions-menu')) {
-          setShowMeetingMenu(null);
-        }
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showMenu, showMeetingMenu]);
+  }, [showMenu]);
+
+  // Debug tab switching
+  useEffect(() => {
+    console.log('Active tab changed to:', activeDetailTab);
+  }, [activeDetailTab]);
 
   const loadPatientData = async () => {
     if (!caseId) return;
@@ -809,7 +813,8 @@ export function PatientDetailPage() {
     );
   }
 
-  if (!user) {
+  if (!user && !isLoading) {
+    console.log('No user found and not loading, redirecting to login');
     return <Navigate to="/" replace />;
   }
 
@@ -862,10 +867,10 @@ export function PatientDetailPage() {
                 <ul className="sidebar-nav">
                   <li className="welcome-nav-item">
                     <div className="welcome-nav-content">
-                      {user.picture && !user.picture.includes('placeholder') && user.picture.startsWith('http') ? (
+                      {user?.picture && !user.picture.includes('placeholder') && user.picture.startsWith('http') ? (
                         <img 
                           src={user.picture} 
-                          alt={user.name} 
+                          alt={user.name || 'User'} 
                           className="user-avatar"
                         />
                       ) : (
@@ -875,7 +880,7 @@ export function PatientDetailPage() {
                       )}
                       <div className="welcome-text">
                         <span className="welcome-label">{t('navigation.welcome')},</span>
-                        <span className="user-name">{user.name}!</span>
+                        <span className="user-name">{user?.name || 'User'}!</span>
                       </div>
                     </div>
                   </li>
@@ -926,7 +931,7 @@ export function PatientDetailPage() {
                   </li>
                   <li>
                     <button 
-                      onClick={() => navigate('/')}
+                      onClick={() => showConfirm(t('navigation.confirmSignOut'), () => navigate('/'))}
                       className="nav-link sign-out-nav-btn"
                     >
                       <span className="nav-icon">🚪</span>
@@ -946,7 +951,7 @@ export function PatientDetailPage() {
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
                 <img 
-                  src="/logo.jpeg" 
+                  src="/logo.png" 
                   alt="Logo" 
                   style={{ 
                     height: '40px', 
@@ -975,31 +980,46 @@ export function PatientDetailPage() {
                 <div className="tab-navigation">
                   <button
                     className={`tab-button ${activeDetailTab === 'progress' ? 'active' : ''}`}
-                    onClick={() => setActiveDetailTab('progress')}
+                    onClick={() => {
+                      console.log('Switching to progress tab');
+                      setActiveDetailTab('progress');
+                    }}
                   >
-                    {t('patientDetail.progress')}
+                    🏥 {t('patientDetail.progress')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'activity' ? 'active' : ''}`}
-                    onClick={() => setActiveDetailTab('activity')}
+                    onClick={() => {
+                      console.log('Switching to activity tab');
+                      setActiveDetailTab('activity');
+                    }}
                   >
                     📊 {t('patientDetail.meetings')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'notes' ? 'active' : ''}`}
-                    onClick={() => setActiveDetailTab('notes')}
+                    onClick={() => {
+                      console.log('Switching to notes tab');
+                      setActiveDetailTab('notes');
+                    }}
                   >
                     📝 {t('patientDetail.intakeForm')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'patient-info' ? 'active' : ''}`}
-                    onClick={() => setActiveDetailTab('patient-info')}
+                    onClick={() => {
+                      console.log('Switching to patient-info tab');
+                      setActiveDetailTab('patient-info');
+                    }}
                   >
                     👤 {t('patientDetail.information')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'documents' ? 'active' : ''}`}
-                    onClick={() => setActiveDetailTab('documents')}
+                    onClick={() => {
+                      console.log('Switching to documents tab');
+                      setActiveDetailTab('documents');
+                    }}
                   >
                     📄 {t('patientDetail.documents')}
                   </button>
@@ -1304,96 +1324,10 @@ export function PatientDetailPage() {
                                 </span>
                                 <div className="activity-header-right">
                                   <span className="activity-time">{formatDate(activity.timestamp)}</span>
-                                  <div className="meeting-actions-menu" style={{ position: 'relative', display: 'inline-block' }}>
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setShowMeetingMenu(showMeetingMenu === activity.id ? null : activity.id);
-                                      }}
-                                      style={{
-                                        background: 'none',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        padding: '4px 8px',
-                                        borderRadius: '4px',
-                                        fontSize: '16px',
-                                        marginLeft: '8px',
-                                        color: '#666'
-                                      }}
-                                      title="Meeting Actions"
-                                    >
-                                      ⋯
-                                    </button>
-                                    {showMeetingMenu === activity.id && (
-                                      <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        right: i18n.language === 'he' ? 'auto' : '0',
-                                        left: i18n.language === 'he' ? '0' : 'auto',
-                                        backgroundColor: 'white',
-                                        border: '1px solid #ddd',
-                                        borderRadius: '6px',
-                                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                                        zIndex: 1000,
-                                        minWidth: '120px',
-                                        overflow: 'hidden'
-                                      }}>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleArchiveMeeting(activity.id, !activity.archived);
-                                            setShowMeetingMenu(null);
-                                          }}
-                                          style={{
-                                            display: 'block',
-                                            width: '100%',
-                                            padding: '8px 12px',
-                                            border: 'none',
-                                            background: 'none',
-                                            textAlign: i18n.language === 'he' ? 'right' : 'left',
-                                            cursor: 'pointer',
-                                            fontSize: '14px',
-                                            color: '#007acc',
-                                            transition: 'background-color 0.2s ease'
-                                          }}
-                                          onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
-                                          onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                                        >
-                                          {activity.archived ? `📤 ${t('patientDetail.unarchive')}` : `📦 ${t('patientDetail.archive')}`}
-                                        </button>
-                                        {user?.role === 'super_admin' && activity.archived && (
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleDeleteActivityLog(activity.id);
-                                              setShowMeetingMenu(null);
-                                            }}
-                                            style={{
-                                              display: 'block',
-                                              width: '100%',
-                                              padding: '8px 12px',
-                                              border: 'none',
-                                              background: 'none',
-                                              textAlign: 'left',
-                                              cursor: 'pointer',
-                                              fontSize: '14px',
-                                              color: '#dc3545',
-                                              borderTop: '1px solid #f0f0f0',
-                                              transition: 'background-color 0.2s ease'
-                                            }}
-                                            onMouseEnter={(e) => (e.target as HTMLElement).style.backgroundColor = '#f8f9fa'}
-                                            onMouseLeave={(e) => (e.target as HTMLElement).style.backgroundColor = 'transparent'}
-                                          >
-                                            🗑️ Delete
-                                    </button>
-                                  )}
-                                </div>
-                                    )}
-                              </div>
                                 </div>
                               </div>
                               <div className="activity-note" style={{ width: '100%', padding: '12px 0', fontSize: '15px', lineHeight: '1.5' }}>{activity.note.replace(/^Meeting: /, '')}</div>
-                              <div className="activity-author">👤 {activity.userEmail || activity.createdBy}</div>
+                              <div className="activity-author">👤 {activity.userEmail || activity.createdBy || t('unknownUser')}</div>
                             </div>
                           ))}
                         </div>
@@ -1479,7 +1413,7 @@ export function PatientDetailPage() {
                               value={editedPatientData?.first_name || ''}
                               onChange={(e) => handleFieldChange('first_name', e.target.value)}
                               className="patient-edit-input"
-                              placeholder="Enter first name"
+                              placeholder={t('intakeForm.enterFirstName')}
                             />
                           ) : (
                             <div className="patient-detail-value">{patientPII.first_name}</div>
@@ -1493,7 +1427,7 @@ export function PatientDetailPage() {
                               value={editedPatientData?.last_name || ''}
                               onChange={(e) => handleFieldChange('last_name', e.target.value)}
                               className="patient-edit-input"
-                              placeholder="Enter last name"
+                              placeholder={t('intakeForm.enterLastName')}
                             />
                           ) : (
                             <div className="patient-detail-value">{patientPII.last_name}</div>
@@ -1520,7 +1454,7 @@ export function PatientDetailPage() {
                               value={editedPatientData?.government_id || ''}
                               onChange={(e) => handleFieldChange('government_id', e.target.value)}
                               className="patient-edit-input"
-                              placeholder="Enter government ID"
+                              placeholder={t('intakeForm.enterGovernmentId')}
                             />
                           ) : (
                             <div className="patient-detail-value">{patientPII.government_id || 'N/A'}</div>
@@ -1589,7 +1523,7 @@ export function PatientDetailPage() {
                               value={editedPatientData?.email || ''}
                               onChange={(e) => handleFieldChange('email', e.target.value)}
                               className="patient-edit-input"
-                              placeholder="Enter email address"
+                              placeholder={t('intakeForm.enterEmail')}
                             />
                           ) : (
                             <div className="patient-detail-value">{patientPII.email || 'N/A'}</div>
@@ -1603,7 +1537,7 @@ export function PatientDetailPage() {
                               value={editedPatientData?.phone || ''}
                               onChange={(e) => handleFieldChange('phone', e.target.value)}
                               className="patient-edit-input"
-                              placeholder="Enter phone number"
+                              placeholder={t('intakeForm.enterPhone')}
                             />
                           ) : (
                             <div className="patient-detail-value">{patientPII.phone || 'N/A'}</div>
@@ -1617,7 +1551,7 @@ export function PatientDetailPage() {
                               onChange={(e) => handleFieldChange('address', e.target.value)}
                               className="patient-edit-textarea"
                               rows={4}
-                              placeholder="Enter full address"
+                              placeholder={t('intakeForm.enterAddress')}
                             />
                           ) : (
                             <div className="patient-detail-value" style={{ minHeight: '60px', padding: '16px' }}>
@@ -1701,7 +1635,7 @@ export function PatientDetailPage() {
                               onChange={(e) => handleNotesFieldChange('obstacles', e.target.value)}
                               className="patient-edit-textarea"
                               rows={6}
-                              placeholder="Describe obstacles and challenges..."
+                              placeholder={t('intakeForm.describeObstacles')}
                             />
                           ) : (
                             <div className="patient-detail-value" style={{ minHeight: '100px', padding: '16px' }}>
@@ -1718,7 +1652,7 @@ export function PatientDetailPage() {
                               onChange={(e) => handleNotesFieldChange('strengths', e.target.value)}
                               className="patient-edit-textarea"
                               rows={6}
-                              placeholder="Describe the patient's strengths..."
+                              placeholder={t('intakeForm.describeStrengths')}
                             />
                           ) : (
                             <div className="patient-detail-value" style={{ minHeight: '100px', padding: '16px' }}>
@@ -1735,7 +1669,7 @@ export function PatientDetailPage() {
                               onChange={(e) => handleNotesFieldChange('notes', e.target.value)}
                               className="patient-edit-textarea"
                               rows={8}
-                              placeholder="Enter additional notes..."
+                              placeholder={t('intakeForm.enterNotes')}
                             />
                           ) : (
                             <div className="patient-detail-value" style={{ minHeight: '120px', padding: '16px' }}>
@@ -1750,7 +1684,7 @@ export function PatientDetailPage() {
                   {activeDetailTab === 'progress' && (
                     <div className="tab-panel">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>{t('patientDetail.progressMilestones')}</h3>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>🏥 {t('patientDetail.progressMilestones')}</h3>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <select
                             value={milestoneStatusFilter}
@@ -1820,6 +1754,7 @@ export function PatientDetailPage() {
                               e.currentTarget.style.transform = 'translateY(0)';
                               e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
                             }}
+                            onClick={() => handleEditMilestone(milestone)}
                           >
 
                             {/* Milestone Title */}
@@ -1988,7 +1923,7 @@ export function PatientDetailPage() {
                           padding: '60px 20px',
                           color: '#6c757d'
                         }}>
-                          <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
+                          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
                           <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesYet')}</h4>
                           <p>{t('patientDetail.addFirstMilestone')}</p>
                         </div>
@@ -2028,9 +1963,47 @@ export function PatientDetailPage() {
                 maxWidth: '90vw',
                 maxHeight: '90vh',
                 overflow: 'auto',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)'
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
+                position: 'relative'
               }}>
-                <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setShowAddMeetingModal(false);
+                    setEditingMeeting(null);
+                    setNewMeeting({ description: '', date: '', notes: '' });
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '15px',
+                    right: '15px',
+                    background: 'none',
+                    border: 'none',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    color: '#666',
+                    width: '30px',
+                    height: '30px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: '50%',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8f9fa';
+                    e.currentTarget.style.color = '#000';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.color = '#666';
+                  }}
+                  title={t('patientDetail.close')}
+                >
+                  ×
+                </button>
+                
+                <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
                   📊 {editingMeeting ? t('patientDetail.editMeetingRecord') : t('patientDetail.addMeetingRecord')}
                 </h3>
                 
@@ -2078,25 +2051,54 @@ export function PatientDetailPage() {
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  <button
-                    onClick={() => {
-                      setShowAddMeetingModal(false);
-                      setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
-                      setEditingMeeting(null);
-                    }}
-                    style={{
-                      background: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      padding: '12px 24px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    {t('patientDetail.cancel')}
-                  </button>
+                  {editingMeeting && (
+                    <button
+                      onClick={() => {
+                        if (editingMeeting) {
+                          handleDeleteActivityLog(editingMeeting.id);
+                          setShowAddMeetingModal(false);
+                          setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
+                          setEditingMeeting(null);
+                        }
+                      }}
+                      style={{
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '12px 24px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {t('patientDetail.deleteActivityLog')}
+                    </button>
+                  )}
+                  {editingMeeting && (
+                    <button
+                      onClick={() => {
+                        if (editingMeeting) {
+                          handleArchiveMeeting(editingMeeting.id, !editingMeeting.archived);
+                          setShowAddMeetingModal(false);
+                          setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
+                          setEditingMeeting(null);
+                        }
+                      }}
+                      style={{
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        padding: '12px 24px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      {editingMeeting?.archived ? `📤 ${t('patientDetail.unarchive')}` : `📦 ${t('patientDetail.archive')}`}
+                    </button>
+                  )}
                   <button
                     onClick={handleAddMeeting}
                     style={{
@@ -2146,9 +2148,46 @@ export function PatientDetailPage() {
             maxWidth: '500px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            position: 'relative'
           }}>
-            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowAddMilestoneModal(false);
+                setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+              }}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('patientDetail.close')}
+            >
+              ×
+            </button>
+            
+            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
               {t('patientDetail.addNewMilestone')}
             </h3>
             
@@ -2205,23 +2244,6 @@ export function PatientDetailPage() {
             
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => {
-                  setShowAddMilestoneModal(false);
-                  setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
-                }}
-                style={{
-                  background: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                {t('patientDetail.cancel')}
-              </button>
-              <button
                 onClick={handleAddMilestone}
                 style={{
                   background: '#007acc',
@@ -2262,9 +2284,47 @@ export function PatientDetailPage() {
             maxWidth: '500px',
             maxHeight: '90vh',
             overflowY: 'auto',
-            boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+            position: 'relative'
           }}>
-            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+            {/* Close Button */}
+            <button
+              onClick={() => {
+                setShowEditMilestoneModal(false);
+                setEditingMilestone(null);
+                setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+              }}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                right: '15px',
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('patientDetail.close')}
+            >
+              ×
+            </button>
+            
+            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
               {t('patientDetail.editMilestone')}
             </h3>
             
@@ -2344,7 +2404,7 @@ export function PatientDetailPage() {
               />
             </div>
             
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
                 onClick={() => {
                   if (editingMilestone) {
@@ -2366,41 +2426,20 @@ export function PatientDetailPage() {
               >
                 {t('patientDetail.deleteMilestone')}
               </button>
-              
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button
-                  onClick={() => {
-                    setShowEditMilestoneModal(false);
-                    setEditingMilestone(null);
-                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
-                  }}
-                  style={{
-                    background: '#6c757d',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  {t('patientDetail.cancel')}
-                </button>
-                <button
-                  onClick={handleUpdateMilestone}
-                  style={{
-                    background: '#007acc',
-                    color: 'white',
-                    border: 'none',
-                    padding: '10px 20px',
-                    borderRadius: '6px',
-                    cursor: 'pointer',
-                    fontSize: '14px'
-                  }}
-                >
-                  {t('patientDetail.saveChanges')}
-                </button>
-              </div>
+              <button
+                onClick={handleUpdateMilestone}
+                style={{
+                  background: '#007acc',
+                  color: 'white',
+                  border: 'none',
+                  padding: '10px 20px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px'
+                }}
+              >
+                {t('patientDetail.saveChanges')}
+              </button>
             </div>
           </div>
         </div>

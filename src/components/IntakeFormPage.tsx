@@ -229,10 +229,43 @@ export function IntakeFormPage() {
   return (
     <div className="app">
       <div className="create-patient-container">
-        <div className="create-patient-form">
+        <div className="create-patient-form" style={{ position: 'relative' }}>
+          {/* Close Button */}
+          <button
+            onClick={() => navigate('/dashboard')}
+            style={{
+              position: 'absolute',
+              top: '15px',
+              right: '15px',
+              background: 'none',
+              border: 'none',
+              fontSize: '24px',
+              cursor: 'pointer',
+              color: '#666',
+              width: '30px',
+              height: '30px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '50%',
+              transition: 'all 0.2s ease',
+              zIndex: 10
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8f9fa';
+              e.currentTarget.style.color = '#000';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+              e.currentTarget.style.color = '#666';
+            }}
+            title={t('intakeForm.back')}
+          >
+            ×
+          </button>
           <div className="login-header">
             <div className="header-top-row">
-              <img src="/logo.jpeg" alt="Logo" style={{ height: '40px', width: 'auto' }} />
+              <img src="/logo.png" alt="Logo" style={{ height: '40px', width: 'auto' }} />
               <div className="header-actions">
                 <button
                   onClick={(e) => {
@@ -250,7 +283,6 @@ export function IntakeFormPage() {
                 </button>
               </div>
             </div>
-            <p>{caseId}</p>
           </div>
 
           <form onSubmit={handleSubmit}>

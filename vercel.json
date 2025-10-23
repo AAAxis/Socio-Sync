@@ -21,6 +21,10 @@
       "dest": "/logo.jpeg"
     },
     {
+      "src": "/logo.png",
+      "dest": "/logo.png"
+    },
+    {
       "src": "/favicon.ico",
       "dest": "/favicon.ico"
     },

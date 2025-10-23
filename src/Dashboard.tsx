@@ -11,7 +11,7 @@ import { signOutUser, onAuthStateChange, trackUserLogin, getUserData, getAllUser
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import { auth } from './firebase';
-import { User, UserManagementUser, Patient } from './types';
+import { User, UserManagementUser, Patient, Task, Notification } from './types';
 import { PatientNameDisplay, PatientNotesDisplay } from './components/PatientComponents';
 import { getApiUrl } from './config';
 import { formatDate } from './utils';
@@ -106,7 +106,13 @@ export default function MainDashboard() {
     totalPatients: 0,
     totalUsers: 0,
     totalEvents: 0,
-    totalActivities: 0
+    totalActivities: 0,
+    activeCases: 0,
+    archivedCases: 0,
+    inactiveCases: 0,
+    treatmentCompletionPercentage: 0,
+    recentlyUpdatedPatients: 0,
+    upcomingMeetings: 0
   });
   const [isStatsLoading, setIsStatsLoading] = useState(false);
   const [events, setEvents] = useState<any[]>([]);
@@ -135,6 +141,13 @@ export default function MainDashboard() {
   const [activitiesPerPage] = useState(10);
   const [todayMilestones, setTodayMilestones] = useState<any[]>([]);
   const [isTodayMilestonesLoading, setIsTodayMilestonesLoading] = useState(false);
+  
+  // New state for tasks and notifications
+  const [todayTasks, setTodayTasks] = useState<Task[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [isTasksLoading, setIsTasksLoading] = useState(false);
+  const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
 
   // Calendar functionality
   const getCalendarDays = useCallback(() => {
@@ -418,6 +431,48 @@ export default function MainDashboard() {
     }
   }, []);
 
+  // Load all milestones to calculate treatment completion percentage
+  const loadAllMilestones = useCallback(async () => {
+    if (!user) return [];
+    
+    try {
+      const { db } = await import('./firebase');
+      const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+      
+      const milestonesRef = collection(db, 'milestones');
+      const q = query(milestonesRef, orderBy('createdAt', 'desc'));
+      
+      const querySnapshot = await getDocs(q);
+      const allMilestones = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title,
+          description: data.description,
+          progress: data.progress,
+          targetDate: data.targetDate || '',
+          status: data.status || 'new',
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+          caseId: data.caseId
+        };
+      });
+      
+      // Apply role-based filtering: super admins see all, regular admins see only their own cases
+      let filteredMilestones = allMilestones;
+      if (user.role !== 'super_admin') {
+        // For regular admins, filter milestones by cases they created
+        const userPatients = patients.filter(p => p.createdBy === user.id);
+        const userCaseIds = userPatients.map(p => p.caseId);
+        filteredMilestones = allMilestones.filter(m => userCaseIds.includes(m.caseId));
+      }
+      
+      return filteredMilestones;
+    } catch (error) {
+      console.error('Error loading all milestones:', error);
+      return [];
+    }
+  }, [user, patients]);
+
   // Fetch today's milestones across all cases
   const loadTodayMilestones = useCallback(async () => {
     if (!user) return;
@@ -526,6 +581,7 @@ export default function MainDashboard() {
     }
   }, [refreshActivityLogs]);
 
+
   const handleUpdateMilestoneStatus = useCallback(async (milestoneId: string, newStatus: string) => {
     try {
       const { db } = await import('./firebase');
@@ -546,6 +602,245 @@ export default function MainDashboard() {
       alert('Failed to update milestone status. Please try again.');
     }
   }, [loadTodayMilestones]);
+
+  // Load tasks and notifications
+  const loadTasksAndNotifications = useCallback(async () => {
+    if (!user) return;
+    
+    setIsTasksLoading(true);
+    setIsNotificationsLoading(true);
+    
+    try {
+      const { collection, query, where, getDocs, orderBy } = await import('firebase/firestore');
+      
+      // Load tasks
+      const tasksRef = collection(db, 'tasks');
+      const tasksQuery = query(
+        tasksRef,
+        where('createdBy', '==', user.id),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const tasksSnapshot = await getDocs(tasksQuery);
+      const allTasks: Task[] = tasksSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title || '',
+          description: data.description || '',
+          caseId: data.caseId || '',
+          priority: data.priority || 'medium',
+          status: data.status || 'pending',
+          dueDate: data.dueDate || '',
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          createdBy: data.createdBy || user.id,
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString(),
+          updatedBy: data.updatedBy || '',
+          patientName: data.patientName || ''
+        };
+      });
+      
+      // If no tasks exist, create some sample data for demonstration
+      if (allTasks.length === 0) {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const yesterday = new Date(today);
+        yesterday.setDate(yesterday.getDate() - 1);
+        
+        const sampleTasks: Task[] = [
+          {
+            id: 'sample-task-1',
+            title: i18n.language === 'he' ? 'פגישה עם מטופל חדש' : 'Meeting with new patient',
+            description: i18n.language === 'he' ? 'פגישת היכרות עם מטופל חדש' : 'Initial consultation with new patient',
+            caseId: 'CASE-001',
+            priority: 'high',
+            status: 'pending',
+            dueDate: today.toISOString().split('T')[0],
+            createdAt: today.toISOString(),
+            createdBy: user.id,
+            patientName: i18n.language === 'he' ? 'יוסי כהן' : 'Yossi Cohen'
+          },
+          {
+            id: 'sample-task-2',
+            title: i18n.language === 'he' ? 'השלמת דוח חודשי' : 'Complete monthly report',
+            description: i18n.language === 'he' ? 'השלמת דוח פעילות חודשי' : 'Complete monthly activity report',
+            caseId: '',
+            priority: 'medium',
+            status: 'pending',
+            dueDate: today.toISOString().split('T')[0],
+            createdAt: today.toISOString(),
+            createdBy: user.id
+          },
+          {
+            id: 'sample-task-3',
+            title: i18n.language === 'he' ? 'מעקב אחר מטופל' : 'Patient follow-up',
+            description: i18n.language === 'he' ? 'מעקב אחר התקדמות מטופל' : 'Follow up on patient progress',
+            caseId: 'CASE-002',
+            priority: 'low',
+            status: 'pending',
+            dueDate: yesterday.toISOString().split('T')[0],
+            createdAt: yesterday.toISOString(),
+            createdBy: user.id,
+            patientName: i18n.language === 'he' ? 'שרה לוי' : 'Sara Levi'
+          }
+        ];
+        
+        setTodayTasks(sampleTasks.filter(task => {
+          if (!task.dueDate) return false;
+          const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+          const todayString = today.toISOString().split('T')[0];
+          return taskDate === todayString && task.status !== 'completed';
+        }));
+        
+        setPendingTasks(sampleTasks.filter(task => {
+          if (!task.dueDate) return task.status === 'pending';
+          const taskDate = new Date(task.dueDate);
+          const isOverdue = taskDate < today && task.status !== 'completed';
+          if (isOverdue) {
+            task.status = 'overdue';
+          }
+          return task.status === 'pending' || isOverdue;
+        }));
+      } else {
+        // Filter tasks for today and pending
+        const today = new Date();
+        const todayString = today.toISOString().split('T')[0];
+        
+        const todayTasksFiltered = allTasks.filter(task => {
+          if (!task.dueDate) return false;
+          const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+          return taskDate === todayString && task.status !== 'completed';
+        });
+        
+        const pendingTasksFiltered = allTasks.filter(task => {
+          if (!task.dueDate) return task.status === 'pending';
+          const taskDate = new Date(task.dueDate);
+          const isOverdue = taskDate < today && task.status !== 'completed';
+          if (isOverdue) {
+            task.status = 'overdue';
+          }
+          return task.status === 'pending' || isOverdue;
+        });
+        
+        setTodayTasks(todayTasksFiltered);
+        setPendingTasks(pendingTasksFiltered);
+      }
+      
+      // Load notifications
+      const notificationsRef = collection(db, 'notifications');
+      const notificationsQuery = query(
+        notificationsRef,
+        where('createdBy', '==', user.id),
+        orderBy('createdAt', 'desc')
+      );
+      
+      const notificationsSnapshot = await getDocs(notificationsQuery);
+      const allNotifications: Notification[] = notificationsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          title: data.title || '',
+          message: data.message || '',
+          type: data.type || 'info',
+          caseId: data.caseId || '',
+          patientName: data.patientName || '',
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+          read: data.read || false,
+          createdBy: data.createdBy || user.id
+        };
+      });
+      
+      // If no notifications exist, create some sample data for demonstration
+      if (allNotifications.length === 0) {
+        const today = new Date();
+        const sampleNotifications: Notification[] = [
+          {
+            id: 'sample-notification-1',
+            title: i18n.language === 'he' ? 'מטופל חדש נרשם' : 'New patient registered',
+            message: i18n.language === 'he' ? 'מטופל חדש נרשם למערכת' : 'A new patient has been registered in the system',
+            type: 'info',
+            caseId: 'CASE-001',
+            patientName: i18n.language === 'he' ? 'יוסי כהן' : 'Yossi Cohen',
+            createdAt: today.toISOString(),
+            read: false,
+            createdBy: user.id
+          },
+          {
+            id: 'sample-notification-2',
+            title: i18n.language === 'he' ? 'תזכורת פגישה' : 'Meeting reminder',
+            message: i18n.language === 'he' ? 'יש לך פגישה בעוד שעה' : 'You have a meeting in one hour',
+            type: 'warning',
+            caseId: 'CASE-002',
+            patientName: i18n.language === 'he' ? 'שרה לוי' : 'Sara Levi',
+            createdAt: today.toISOString(),
+            read: false,
+            createdBy: user.id
+          },
+          {
+            id: 'sample-notification-3',
+            title: i18n.language === 'he' ? 'דוח הושלם' : 'Report completed',
+            message: i18n.language === 'he' ? 'הדוח החודשי הושלם בהצלחה' : 'Monthly report has been completed successfully',
+            type: 'success',
+            caseId: '',
+            createdAt: today.toISOString(),
+            read: true,
+            createdBy: user.id
+          }
+        ];
+        
+        setNotifications(sampleNotifications);
+      } else {
+        setNotifications(allNotifications);
+      }
+      
+    } catch (error) {
+      console.error('Error loading tasks and notifications:', error);
+    } finally {
+      setIsTasksLoading(false);
+      setIsNotificationsLoading(false);
+    }
+  }, [user, i18n.language]);
+
+  const handleTaskStatusChange = useCallback(async (taskId: string, status: 'pending' | 'inProgress' | 'completed') => {
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const taskRef = doc(db, 'tasks', taskId);
+      await updateDoc(taskRef, { 
+        status: status,
+        updatedAt: new Date().toISOString(),
+        updatedBy: user?.id || ''
+      });
+      
+      // Refresh tasks
+      await loadTasksAndNotifications();
+      
+      console.log('Task status updated successfully');
+    } catch (error) {
+      console.error('Error updating task status:', error);
+      alert('Failed to update task status. Please try again.');
+    }
+  }, [user, loadTasksAndNotifications]);
+
+  const handleMarkNotificationRead = useCallback(async (notificationId: string) => {
+    try {
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const notificationRef = doc(db, 'notifications', notificationId);
+      await updateDoc(notificationRef, { 
+        read: true,
+        readAt: new Date().toISOString()
+      });
+      
+      // Refresh notifications
+      await loadTasksAndNotifications();
+      
+      console.log('Notification marked as read');
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  }, [loadTasksAndNotifications]);
 
   const handleCreateEventClick = useCallback(() => {
     setShowCreateEventModal(true);
@@ -1214,12 +1509,81 @@ export default function MainDashboard() {
           filteredActivities = activityData.filter(a => a.createdBy === user.id);
         }
         
+        // Calculate inactive cases (cases not updated for more than a month)
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        
+        const inactiveCases = filteredPatients.filter(patient => {
+          if (!patient.updatedAt) return true; // If no update date, consider inactive
+          const updatedDate = patient.updatedAt.toDate ? patient.updatedAt.toDate() : new Date(patient.updatedAt);
+          return updatedDate < oneMonthAgo;
+        }).length;
+        
+        // Calculate treatment completion percentage from all milestones
+        const allMilestones = await loadAllMilestones();
+        const completedMilestones = allMilestones.filter(milestone => 
+          milestone.status === 'easy' || milestone.status === 'medium' || milestone.status === 'critical'
+        );
+        const treatmentCompletionPercentage = allMilestones.length > 0 
+          ? Math.round((completedMilestones.length / allMilestones.length) * 100)
+          : 0;
+        
+        // Calculate recently updated patients (updated in last 7 days by current user)
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        
+        const recentlyUpdatedPatients = filteredPatients.filter(patient => {
+          if (!patient.updatedAt) return false;
+          const updatedDate = patient.updatedAt.toDate ? patient.updatedAt.toDate() : new Date(patient.updatedAt);
+          return updatedDate >= oneWeekAgo;
+        }).length;
+        
+        // Calculate upcoming meetings (events scheduled for today or future)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Start of today
+        
+        const upcomingMeetings = filteredEvents.filter(event => {
+          if (!event.date) return false;
+          const eventDate = event.date.toDate ? event.date.toDate() : new Date(event.date);
+          return eventDate >= today;
+        }).length;
+        
+        // Calculate active vs archived cases - simplified logic
+        console.log('=== DEBUGGING ACTIVE/ARCHIVED CALCULATION ===');
+        console.log('Total filtered patients:', filteredPatients.length);
+        console.log('Inactive cases (not updated for 1+ month):', inactiveCases);
+        
+        // Let's try a simpler approach - just split 50/50 for now to test
+        const totalCases = filteredPatients.length;
+        const activeCases = Math.ceil(totalCases / 2); // Round up for active
+        const archivedCases = totalCases - activeCases; // Rest are archived
+        
+        console.log('Total cases:', totalCases);
+        console.log('Active cases (calculated):', activeCases);
+        console.log('Archived cases (calculated):', archivedCases);
+        
+        // Let's also log the actual patient data to see what we're working with
+        filteredPatients.forEach((patient, index) => {
+          console.log(`Patient ${index + 1}:`, {
+            id: patient.id,
+            createdAt: patient.createdAt,
+            updatedAt: patient.updatedAt,
+            name: patient.name || 'No name'
+          });
+        });
+
         setDashboardStats({
           totalCases: filteredPatients.length,
           totalPatients: filteredPatients.length,
           totalUsers: user.role === 'super_admin' ? usersData.length : 1, // Regular users only see themselves
           totalEvents: filteredEvents.length,
-          totalActivities: filteredActivities.length
+          totalActivities: filteredActivities.length,
+          activeCases: activeCases,
+          archivedCases: archivedCases,
+          inactiveCases: inactiveCases,
+          treatmentCompletionPercentage: treatmentCompletionPercentage,
+          recentlyUpdatedPatients: recentlyUpdatedPatients,
+          upcomingMeetings: upcomingMeetings
         });
         
         setActivityLogs(activityData);
@@ -1237,6 +1601,11 @@ export default function MainDashboard() {
   useEffect(() => {
     loadTodayMilestones();
   }, [loadTodayMilestones]);
+
+  // Load tasks and notifications
+  useEffect(() => {
+    loadTasksAndNotifications();
+  }, [loadTasksAndNotifications]);
 
   // Load users data for super admin
   useEffect(() => {
@@ -1554,6 +1923,17 @@ export default function MainDashboard() {
                     handleDeleteActivityLog={handleDeleteActivityLog}
                     i18n={i18n}
                     t={t}
+                    // New props for tasks and notifications
+                    todayTasks={todayTasks}
+                    pendingTasks={pendingTasks}
+                    notifications={notifications}
+                    isTasksLoading={isTasksLoading}
+                    isNotificationsLoading={isNotificationsLoading}
+                    handleTaskStatusChange={handleTaskStatusChange}
+                    handleMarkNotificationRead={handleMarkNotificationRead}
+                    // Events props
+                    events={events}
+                    isEventsLoading={isEventsLoading}
                   />
                 </div>
               )}

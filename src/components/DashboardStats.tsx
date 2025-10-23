@@ -1,5 +1,5 @@
-import React from 'react';
-import { User } from '../types';
+import React, { useState } from 'react';
+import { User, Task, Notification } from '../types';
 import { useCustomDialog } from './CustomDialog';
 
 interface DashboardStatsProps {
@@ -10,6 +10,12 @@ interface DashboardStatsProps {
     totalUsers: number;
     totalEvents: number;
     totalActivities: number;
+    activeCases: number;
+    archivedCases: number;
+    inactiveCases: number;
+    treatmentCompletionPercentage: number;
+    recentlyUpdatedPatients: number;
+    upcomingMeetings: number;
   };
   isStatsLoading: boolean;
   activityLogs: any[];
@@ -30,6 +36,17 @@ interface DashboardStatsProps {
   handleDeleteActivityLog: (logId: string) => void;
   i18n: any;
   t: (key: string) => string;
+  // New props for tasks and notifications
+  todayTasks?: Task[];
+  pendingTasks?: Task[];
+  notifications?: Notification[];
+  isTasksLoading?: boolean;
+  isNotificationsLoading?: boolean;
+  handleTaskStatusChange?: (taskId: string, status: 'pending' | 'inProgress' | 'completed') => void;
+  handleMarkNotificationRead?: (notificationId: string) => void;
+  // Events props
+  events?: any[];
+  isEventsLoading?: boolean;
 }
 
 export function DashboardStats({
@@ -53,9 +70,23 @@ export function DashboardStats({
   handlePatientSelect,
   handleDeleteActivityLog,
   i18n,
-  t
+  t,
+  // New props for tasks and notifications
+  todayTasks = [],
+  pendingTasks = [],
+  notifications = [],
+  isTasksLoading = false,
+  isNotificationsLoading = false,
+  handleTaskStatusChange,
+  handleMarkNotificationRead,
+  // Events props
+  events = [],
+  isEventsLoading = false
 }: DashboardStatsProps) {
   const { showConfirm, DialogComponent } = useCustomDialog();
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'notifications' | 'todayTasks' | 'pendingTasks' | 'milestones' | 'upcomingMeetings' | 'inactiveCases'>('notifications');
   const translateActivityAction = (action: string) => {
     const actionTranslations: { [key: string]: string } = {
       // Original translations
@@ -124,37 +155,37 @@ export function DashboardStats({
         <div className="stat-card">
           <div className="stat-icon">📁</div>
           <div className="stat-content">
-            <div className="stat-number">{dashboardStats.totalCases}</div>
-            <div className="stat-label">{t('dashboard.totalCases')}</div>
+            <div className="stat-number">{dashboardStats.inactiveCases}</div>
+            <div className="stat-label">{t('dashboard.inactiveCases')}</div>
           </div>
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon">👥</div>
+          <div className="stat-icon">📊</div>
           <div className="stat-content">
-            <div className="stat-number">{dashboardStats.totalPatients}</div>
-            <div className="stat-label">{t('dashboard.totalPatients')}</div>
+            <div className="stat-number">{dashboardStats.treatmentCompletionPercentage}%</div>
+            <div className="stat-label">{t('dashboard.treatmentCompletion')}</div>
           </div>
         </div>
         
         <div className="stat-card">
           <div className="stat-icon">👤</div>
           <div className="stat-content">
-            <div className="stat-number">{dashboardStats.totalUsers}</div>
-            <div className="stat-label">{t('dashboard.totalUsers')}</div>
+            <div className="stat-number">{dashboardStats.recentlyUpdatedPatients}</div>
+            <div className="stat-label">{t('dashboard.recentlyUpdatedPatients')}</div>
           </div>
         </div>
         
         <div className="stat-card">
-          <div className="stat-icon">📅</div>
+          <div className="stat-icon">👥</div>
           <div className="stat-content">
-            <div className="stat-number">{dashboardStats.totalEvents}</div>
-            <div className="stat-label">{t('dashboard.totalEvents')}</div>
+            <div className="stat-number">{dashboardStats.totalCases}</div>
+            <div className="stat-label">{t('dashboard.totalCases')}</div>
           </div>
         </div>
       </div>
       
-      {/* Today's Milestones Section */}
+      {/* Tabbed Dashboard Interface */}
       <div style={{ 
         marginBottom: '20px',
         padding: '0 20px'
@@ -163,15 +194,712 @@ export function DashboardStats({
           backgroundColor: 'white', 
           borderRadius: '12px', 
           padding: '20px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          overflow: 'auto'
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
         }}>
-          <h3 style={{ marginBottom: '20px', color: '#333' }}>
-            {t('navigation.todayMilestones')} - {t('patientDetail.progressMilestones')}
-          </h3>
-          <div style={{ fontSize: '14px', color: '#666', marginBottom: '15px' }}>
-            {todayMilestones.length} {t('patientDetail.milestonesCreatedToday')}
+          {/* Tab Navigation */}
+          <div style={{
+            display: 'flex',
+            borderBottom: '2px solid #e9ecef',
+            marginBottom: '20px',
+            gap: '0'
+          }}>
+            <button
+              onClick={() => setActiveTab('notifications')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'notifications' ? '#007acc' : 'transparent',
+                color: activeTab === 'notifications' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>🔔</span>
+              {t('dashboard.recentActivities')}
+              {activityLogs.length > 0 && (
+                <span style={{
+                  backgroundColor: '#007acc',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {activityLogs.length}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('todayTasks')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'todayTasks' ? '#007acc' : 'transparent',
+                color: activeTab === 'todayTasks' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>📋</span>
+              {t('dashboard.todayTasks')}
+              {todayTasks.length > 0 && (
+                <span style={{
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {todayTasks.length}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('pendingTasks')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'pendingTasks' ? '#007acc' : 'transparent',
+                color: activeTab === 'pendingTasks' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>⏳</span>
+              {t('dashboard.pendingTasks')}
+              {pendingTasks.length > 0 && (
+                <span style={{
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {pendingTasks.length}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('milestones')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'milestones' ? '#007acc' : 'transparent',
+                color: activeTab === 'milestones' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>🎯</span>
+              {t('navigation.todayMilestones')}
+              {todayMilestones.length > 0 && (
+                <span style={{
+                  backgroundColor: '#28a745',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {todayMilestones.length}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('upcomingMeetings')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'upcomingMeetings' ? '#007acc' : 'transparent',
+                color: activeTab === 'upcomingMeetings' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>📅</span>
+              {t('dashboard.upcomingMeetings')}
+              {dashboardStats.upcomingMeetings > 0 && (
+                <span style={{
+                  backgroundColor: '#007acc',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {dashboardStats.upcomingMeetings}
+                </span>
+              )}
+            </button>
+            
+            <button
+              onClick={() => setActiveTab('inactiveCases')}
+              style={{
+                padding: '12px 20px',
+                border: 'none',
+                backgroundColor: activeTab === 'inactiveCases' ? '#007acc' : 'transparent',
+                color: activeTab === 'inactiveCases' ? 'white' : '#666',
+                borderRadius: '8px 8px 0 0',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <span>📁</span>
+              {t('dashboard.inactiveCases')}
+              {dashboardStats.inactiveCases > 0 && (
+                <span style={{
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}>
+                  {dashboardStats.inactiveCases}
+                </span>
+              )}
+            </button>
           </div>
+
+          {/* Tab Content */}
+          <div style={{ minHeight: '400px' }}>
+            {/* Notifications Tab - Using Recent Activities */}
+            {activeTab === 'notifications' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>🔔</span>
+                  {t('dashboard.recentActivities')}
+                </h3>
+                
+                {/* Filter Controls */}
+                <div style={{ 
+                  marginBottom: '20px', 
+                  display: 'flex', 
+                  gap: '10px', 
+                  alignItems: 'center',
+                  flexWrap: 'wrap'
+                }}>
+                  <input
+                    type="text"
+                    placeholder={t('dashboard.searchActivities')}
+                    value={activitySearchTerm}
+                    onChange={(e) => setActivitySearchTerm(e.target.value)}
+                    style={{
+                      padding: '8px 12px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      minWidth: '200px',
+                      flex: '1'
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      onClick={() => setActivityTimeFilter('all')}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        backgroundColor: activityTimeFilter === 'all' ? '#007acc' : 'white',
+                        color: activityTimeFilter === 'all' ? 'white' : '#666',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {t('dashboard.allTime')}
+                    </button>
+                    <button
+                      onClick={() => setActivityTimeFilter('today')}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        backgroundColor: activityTimeFilter === 'today' ? '#007acc' : 'white',
+                        color: activityTimeFilter === 'today' ? 'white' : '#666',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {t('dashboard.today')}
+                    </button>
+                    <button
+                      onClick={() => setActivityTimeFilter('lastWeek')}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        backgroundColor: activityTimeFilter === 'lastWeek' ? '#007acc' : 'white',
+                        color: activityTimeFilter === 'lastWeek' ? 'white' : '#666',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {t('dashboard.lastWeek')}
+                    </button>
+                    <button
+                      onClick={() => setActivityTimeFilter('lastMonth')}
+                      style={{
+                        padding: '8px 12px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        backgroundColor: activityTimeFilter === 'lastMonth' ? '#007acc' : 'white',
+                        color: activityTimeFilter === 'lastMonth' ? 'white' : '#666',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      {t('dashboard.lastMonth')}
+                    </button>
+                  </div>
+                </div>
+                {isActivityLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666666' }}>
+                      {i18n.language === 'he' ? 'טוען פעילויות...' : 'Loading activities...'}
+                    </div>
+                  </div>
+                ) : activityLogs.length > 0 ? (
+                  <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                    {activityLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        style={{
+                          padding: '15px',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                          backgroundColor: 'white',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onClick={() => {
+                          if (log.caseId) {
+                            handlePatientSelect(log.caseId);
+                          } else {
+                            showConfirm(
+                              i18n.language === 'he' 
+                                ? 'מזהה מקרה לא נמצא. האם ברצונך להסיר את רשומת הפעילות הזו?' 
+                                : 'Patient CASE not found. Do you want to remove this activity log?',
+                              () => {
+                                if (handleDeleteActivityLog) {
+                                  handleDeleteActivityLog(log.id);
+                                }
+                              }
+                            );
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f8f9fa';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'white';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600', 
+                          color: '#333',
+                          marginBottom: '8px',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <span>{translateActivityAction(log.action)}</span>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {!log.caseId && (
+                              <span style={{
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                padding: '2px 6px',
+                                borderRadius: '8px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                cursor: 'pointer'
+                              }}
+                              title={i18n.language === 'he' ? 'לחץ להסרה' : 'Click to remove'}
+                              >
+                                {i18n.language === 'he' ? 'להסיר' : 'REMOVE'}
+                              </span>
+                            )}
+                            <span style={{
+                              backgroundColor: '#007acc',
+                              color: 'white',
+                              padding: '4px 8px',
+                              borderRadius: '12px',
+                              fontSize: '11px',
+                              fontWeight: 'bold'
+                            }}>
+                              {i18n.language === 'he' ? 'פעילות' : 'ACTIVITY'}
+                            </span>
+                          </div>
+                        </div>
+                        <div style={{ 
+                          fontSize: '12px', 
+                          color: '#999',
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <span>
+                            {log.timestamp && typeof log.timestamp === 'object' && log.timestamp.toDate 
+                              ? log.timestamp.toDate().toLocaleString('en-GB')
+                              : log.timestamp 
+                                ? new Date(log.timestamp).toLocaleString('en-GB')
+                                : 'N/A'
+                            }
+                          </span>
+                          <span style={{ color: '#007acc', fontWeight: '500' }}>
+                            👤 {log.userEmail || log.createdBy || 'Unknown'}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6c757d' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>📭</div>
+                    <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('dashboard.noNotifications')}</h4>
+                  </div>
+                )}
+              </div>
+            )}
+
+
+            {/* Today's Tasks Tab */}
+            {activeTab === 'todayTasks' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>📋</span>
+                  {t('dashboard.todayTasks')}
+                </h3>
+                {isTasksLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666666' }}>
+                      {i18n.language === 'he' ? 'טוען משימות...' : 'Loading tasks...'}
+                    </div>
+                  </div>
+                ) : todayTasks.length > 0 ? (
+                  <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                    {todayTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        style={{
+                          padding: '15px',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                          backgroundColor: 'white',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#f8f9fa';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = 'white';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '10px'
+                        }}>
+                          <div style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '600', 
+                            color: '#333',
+                            flex: 1
+                          }}>
+                            {task.title}
+                          </div>
+                          <div style={{ 
+                            fontSize: '11px', 
+                            fontWeight: '500',
+                            backgroundColor: task.status === 'overdue' ? '#dc3545' : 
+                            task.priority === 'urgent' ? '#dc3545' : 
+                            task.priority === 'high' ? '#fd7e14' : 
+                            task.priority === 'medium' ? '#ffc107' : '#28a745',
+                            color: 'white',
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            marginLeft: '10px'
+                          }}>
+                            {task.status === 'overdue' ? t('dashboard.overdue') : 
+                            task.priority === 'urgent' ? t('dashboard.urgent') : 
+                            task.priority === 'high' ? t('dashboard.highPriority') : 
+                            task.priority === 'medium' ? t('dashboard.mediumPriority') : t('dashboard.lowPriority')}
+                          </div>
+                        </div>
+                        
+                        <div style={{ 
+                          fontSize: '14px', 
+                          color: '#666',
+                          marginBottom: '8px'
+                        }}>
+                          {task.description}
+                        </div>
+                        
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          fontSize: '12px',
+                          color: '#6c757d'
+                        }}>
+                          <span>{t('dashboard.dueDate')}: {task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-GB') : 'N/A'}</span>
+                          <span>{t('dashboard.taskStatus')}: {task.status}</span>
+                        </div>
+                        
+                        {handleTaskStatusChange && task.status !== 'completed' && (
+                          <div style={{ marginTop: '10px' }}>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleTaskStatusChange(task.id, 'completed');
+                              }}
+                              style={{
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = '#218838';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = '#28a745';
+                              }}
+                            >
+                              {t('dashboard.markAsDone')}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6c757d' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>✅</div>
+                    <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('dashboard.noTodayTasks')}</h4>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Pending Tasks Tab */}
+            {activeTab === 'pendingTasks' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>⏳</span>
+                  {t('dashboard.pendingTasks')}
+                </h3>
+                {isTasksLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666666' }}>
+                      {i18n.language === 'he' ? 'טוען משימות...' : 'Loading tasks...'}
+                    </div>
+                  </div>
+                ) : pendingTasks.length > 0 ? (
+                  <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                    {pendingTasks.map((task) => (
+                      <div
+                        key={task.id}
+                        style={{
+                          padding: '15px',
+                          border: '1px solid #e9ecef',
+                          borderRadius: '8px',
+                          marginBottom: '12px',
+                          backgroundColor: task.status === 'overdue' ? '#fff5f5' : 'white',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = task.status === 'overdue' ? '#ffe6e6' : '#f8f9fa';
+                          e.currentTarget.style.transform = 'translateY(-2px)';
+                          e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = task.status === 'overdue' ? '#fff5f5' : 'white';
+                          e.currentTarget.style.transform = 'translateY(0)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'flex-start',
+                          marginBottom: '10px'
+                        }}>
+                          <div style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '600', 
+                            color: task.status === 'overdue' ? '#dc3545' : '#333',
+                            flex: 1
+                          }}>
+                            {task.title}
+                          </div>
+                          <span style={{
+                            padding: '4px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '500',
+                            backgroundColor: task.status === 'overdue' ? '#dc3545' : 
+                                             task.priority === 'urgent' ? '#dc3545' : 
+                                             task.priority === 'high' ? '#fd7e14' : 
+                                             task.priority === 'medium' ? '#ffc107' : '#28a745',
+                            color: 'white'
+                          }}>
+                            {task.status === 'overdue' ? t('dashboard.overdue') :
+                             task.priority === 'urgent' ? t('dashboard.urgent') :
+                             task.priority === 'high' ? t('dashboard.highPriority') :
+                             task.priority === 'medium' ? t('dashboard.mediumPriority') : t('dashboard.lowPriority')}
+                          </span>
+                        </div>
+                        {task.description && (
+                          <div style={{ 
+                            fontSize: '14px', 
+                            color: '#666',
+                            marginBottom: '10px',
+                            lineHeight: '1.4'
+                          }}>
+                            {task.description}
+                          </div>
+                        )}
+                        <div style={{ 
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center'
+                        }}>
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#999',
+                            display: 'flex',
+                            gap: '12px'
+                          }}>
+                            {task.patientName && (
+                              <span style={{ color: '#007acc', fontWeight: '500' }}>
+                                👤 {task.patientName}
+                              </span>
+                            )}
+                            {task.dueDate && (
+                              <span>
+                                📅 {new Date(task.dueDate).toLocaleDateString('en-GB')}
+                              </span>
+                            )}
+                          </div>
+                          {handleTaskStatusChange && (
+                            <button
+                              style={{
+                                backgroundColor: '#28a745',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '6px',
+                                padding: '6px 12px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                fontWeight: '500'
+                              }}
+                              onClick={() => handleTaskStatusChange(task.id, 'inProgress')}
+                            >
+                              {t('dashboard.inProgress')}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '60px 20px', color: '#6c757d' }}>
+                    <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎉</div>
+                    <h4 style={{ color: '#000000', marginBottom: '8px' }}>{i18n.language === 'he' ? 'תיקים לא מעודכנים' : 'Inactive cases'}</h4>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Milestones Tab */}
+            {activeTab === 'milestones' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>🎯</span>
+                  {t('navigation.todayMilestones')}
+                </h3>
           {isTodayMilestonesLoading ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <div style={{ fontSize: '18px', color: '#666666' }}>
@@ -181,10 +909,10 @@ export function DashboardStats({
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
               gap: '15px'
             }}>
-              {todayMilestones.slice(0, 4).map((milestone) => (
+                    {todayMilestones.map((milestone) => (
                 <div
                   key={milestone.id}
                   style={{
@@ -315,7 +1043,6 @@ export function DashboardStats({
                       </>
                     )}
                   </div>
-
                 </div>
               ))}
               {todayMilestones.length === 0 && (
@@ -325,148 +1052,221 @@ export function DashboardStats({
                   color: '#6c757d',
                   gridColumn: '1 / -1'
                 }}>
-                  <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
                   <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesToday')}</h4>
-                  <p>{t('patientDetail.noMilestonesCreatedToday')}</p>
                 </div>
               )}
             </div>
           )}
         </div>
-      </div>
-      
-      <div className="recent-activities">
-        <div className="activities-header">
-          <h3>{t('dashboard.recentActivities')}</h3>
-          <div className="activity-filters">
-            <div className="activity-search-container">
-              <input
-                type="text"
-                placeholder={t('dashboard.searchActivities')}
-                value={activitySearchTerm}
-                onChange={(e) => setActivitySearchTerm(e.target.value)}
-                className="activity-search-input"
-              />
-              {activitySearchTerm && (
-                <button
-                  onClick={() => setActivitySearchTerm('')}
-                  className="clear-search-btn"
-                  title={t('dashboard.clearSearch')}
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-            <select
-              value={activityTimeFilter}
-              onChange={(e) => setActivityTimeFilter(e.target.value as 'all' | 'today' | 'lastWeek' | 'lastMonth')}
-              className="activity-time-filter"
-            >
-              <option value="all">{t('dashboard.allTime')}</option>
-              <option value="today">{t('dashboard.today')}</option>
-              <option value="lastWeek">{t('dashboard.lastWeek')}</option>
-              <option value="lastMonth">{t('dashboard.lastMonth')}</option>
-            </select>
-          </div>
-        </div>
-        {isActivityLoading ? (
-          <div className="loading">
-            {i18n.language === 'he' ? 'טוען פעילויות...' : 'Loading activities...'}
-          </div>
-        ) : (
-          <div className="activity-table-container">
-            <table className="activity-table">
-              <thead>
-                <tr>
-                  <th>{t('dashboard.action')}</th>
-                  <th>{t('dashboard.note')}</th>
-                  <th>{t('dashboard.dateTime')}</th>
-                  <th>{t('dashboard.createdBy')}</th>
-                  {user.role === 'super_admin' && <th style={{ width: '60px' }}>{t('dashboard.actions')}</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {activityLogs.map((log) => (
-                  <tr key={log.id} className="activity-row">
-                    <td className="activity-action-cell">{translateActivityAction(log.action)}</td>
-                    <td className="activity-note-cell">{log.note}</td>
-                    <td className="activity-time-cell">
-                      {log.timestamp && typeof log.timestamp === 'object' && log.timestamp.toDate 
-                        ? log.timestamp.toDate().toLocaleString('en-GB')
-                        : log.timestamp 
-                          ? new Date(log.timestamp).toLocaleString('en-GB')
-                          : 'N/A'
-                      }
-                    </td>
-                    <td className="activity-creator-cell">
-                      {log.userEmail || log.createdBy || 'Unknown'}
-                    </td>
-                    {user.role === 'super_admin' && (
-                      <td className="activity-actions-cell" style={{ textAlign: 'center' }}>
-                        <button
+            )}
+            
+            {/* Upcoming Meetings Tab */}
+            {activeTab === 'upcomingMeetings' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>📅</span>
+                  {t('dashboard.upcomingMeetings')}
+                </h3>
+                {isEventsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666666' }}>
+                      {i18n.language === 'he' ? 'טוען פגישות...' : 'Loading meetings...'}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: '15px'
+                  }}>
+                    {events
+                      .filter(event => {
+                        if (!event.date) return false;
+                        const eventDate = event.date.toDate ? event.date.toDate() : new Date(event.date);
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        return eventDate >= today;
+                      })
+                      .sort((a, b) => {
+                        const dateA = a.date.toDate ? a.date.toDate() : new Date(a.date);
+                        const dateB = b.date.toDate ? b.date.toDate() : new Date(b.date);
+                        return dateA.getTime() - dateB.getTime(); // Ascending order (closest first)
+                      })
+                      .map((event) => (
+                        <div
+                          key={event.id}
                           style={{
-                            background: 'white',
-                            color: '#dc3545',
-                            border: '1px solid #dc3545',
-                            borderRadius: '4px',
-                            padding: '4px 8px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minWidth: '32px',
-                            height: '24px'
-                          }}
-                          onClick={() => {
-                            showConfirm(t('patients.confirmDelete'), () => {
-                              handleDeleteActivityLog(log.id);
-                            });
+                            backgroundColor: 'white',
+                            border: '1px solid #e9ecef',
+                            borderRadius: '8px',
+                            padding: '16px',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                            transition: 'all 0.2s ease',
+                            cursor: 'pointer'
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f8f9fa';
-                            e.currentTarget.style.borderColor = '#c82333';
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                           }}
                           onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'white';
-                            e.currentTarget.style.borderColor = '#dc3545';
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
                           }}
-                          title={t('dashboard.deleteActivity')}
+                          onClick={() => {
+                            if (event.caseId) {
+                              handlePatientSelect(event.caseId);
+                            }
+                          }}
                         >
-                          🗑️
-                        </button>
-                      </td>
+                          {/* Event Title */}
+                          <div style={{ 
+                            fontSize: '16px', 
+                            fontWeight: '600', 
+                            color: '#333',
+                            marginBottom: '8px'
+                          }}>
+                            {event.title}
+                          </div>
+
+                          {/* Event Description */}
+                          {event.description && (
+                            <div style={{ 
+                              fontSize: '14px', 
+                              color: '#666',
+                              marginBottom: '12px',
+                              lineHeight: '1.4'
+                            }}>
+                              {event.description.length > 100 
+                                ? `${event.description.substring(0, 100)}...` 
+                                : event.description
+                              }
+                            </div>
+                          )}
+
+                          {/* Patient Info */}
+                          <div style={{ marginBottom: '12px' }}>
+                            {event.patient ? (
+                              <div style={{ 
+                                fontSize: '14px', 
+                                color: '#007acc',
+                                fontWeight: '500'
+                              }}>
+                                👤 {event.patient.firstName} {event.patient.lastName}
+                              </div>
+                            ) : (
+                              <div style={{ 
+                                fontSize: '14px', 
+                                color: '#dc3545',
+                                fontWeight: '500'
+                              }}>
+                                👤 {i18n.language === 'he' ? 'מטופל לא ידוע' : 'Unknown Patient'}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Date and Time */}
+                          <div style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            marginBottom: '8px'
+                          }}>
+                            <div style={{ 
+                              fontSize: '12px', 
+                              color: '#6c757d',
+                              fontWeight: '500'
+                            }}>
+                              📅 {event.date?.toDate ? event.date.toDate().toLocaleDateString('en-GB') : 'N/A'}
+                            </div>
+                            <div style={{ 
+                              fontSize: '12px', 
+                              color: '#6c757d',
+                              fontWeight: '500'
+                            }}>
+                              🕐 {event.date?.toDate ? event.date.toDate().toLocaleTimeString('en-GB', { 
+                                hour: '2-digit', 
+                                minute: '2-digit' 
+                              }) : 'N/A'}
+                            </div>
+                          </div>
+
+                          {/* Case ID */}
+                          <div style={{ 
+                            fontSize: '12px', 
+                            color: '#007acc',
+                            fontWeight: '500',
+                            borderTop: '1px solid #e9ecef',
+                            paddingTop: '8px'
+                          }}>
+                            {event.caseId}
+                          </div>
+                        </div>
+                      ))}
+                    {events.filter(event => {
+                      if (!event.date) return false;
+                      const eventDate = event.date.toDate ? event.date.toDate() : new Date(event.date);
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return eventDate >= today;
+                    }).length === 0 && (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '60px 20px',
+                        color: '#6c757d',
+                        gridColumn: '1 / -1'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📅</div>
+                        <h4 style={{ color: '#000000', marginBottom: '8px' }}>
+                          {i18n.language === 'he' ? 'אין פגישות קרובות' : 'No upcoming meetings'}
+                        </h4>
+                      </div>
                     )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Inactive Cases Tab */}
+            {activeTab === 'inactiveCases' && (
+              <div>
+                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
+                  <span style={{ marginRight: '8px' }}>📁</span>
+                  {t('dashboard.inactiveCases')}
+                </h3>
+                {isStatsLoading ? (
+                  <div style={{ textAlign: 'center', padding: '40px' }}>
+                    <div style={{ fontSize: '18px', color: '#666666' }}>
+                      {i18n.language === 'he' ? 'טוען תיקים...' : 'Loading cases...'}
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                    gap: '15px'
+                  }}>
+                    {/* This will be populated with inactive patients data */}
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '60px 20px',
+                      color: '#6c757d',
+                      gridColumn: '1 / -1'
+                    }}>
+                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+                      <h4 style={{ color: '#000000', marginBottom: '8px' }}>
+                        {t('dashboard.noInactiveCases')}
+                      </h4>
+                      <p style={{ fontSize: '14px', color: '#6c757d' }}>
+                        {t('dashboard.allCasesUpToDate')}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
-        
-        {!isActivityLoading && totalActivityLogs > 0 && (
-          <div className="activities-pagination">
-            <div className="pagination-controls">
-              <button
-                onClick={() => setActivityCurrentPage(Math.max(1, activityCurrentPage - 1))}
-                disabled={activityCurrentPage === 1}
-                className="pagination-btn"
-              >
-                {t('dashboard.isRTL') === 'true' ? '→' : '←'}
-              </button>
-              <span className="pagination-current">
-                {activityCurrentPage} / {activityTotalPages}
-              </span>
-              <button
-                onClick={() => setActivityCurrentPage(Math.min(activityTotalPages, activityCurrentPage + 1))}
-                disabled={activityCurrentPage === activityTotalPages}
-                className="pagination-btn"
-              >
-                {t('dashboard.isRTL') === 'true' ? '←' : '→'}
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
       <DialogComponent />
     </div>

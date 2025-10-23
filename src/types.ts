@@ -65,9 +65,29 @@ export interface PatientPII {
   createdBy: string;
 }
 
-// Google Maps TypeScript declarations
-declare global {
-  interface Window {
-    gapi: any;
-  }
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  caseId?: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'pending' | 'inProgress' | 'completed' | 'overdue';
+  dueDate?: string;
+  createdAt: string;
+  createdBy: string;
+  updatedAt?: string;
+  updatedBy?: string;
+  patientName?: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  caseId?: string;
+  patientName?: string;
+  createdAt: string;
+  read: boolean;
+  createdBy: string;
 }

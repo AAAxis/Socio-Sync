@@ -2937,6 +2937,7 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
   isSelected?: boolean;
   onSelect?: (checked: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'achieved': return '#28a745';
@@ -2944,17 +2945,19 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
       case 'frozen': return '#6c757d';
       case 'maintenance': return '#17a2b8';
       case 'stuck': return '#dc3545';
+      case 'new': return '#007acc';
       default: return '#6c757d';
     }
   };
 
   const getStatusLabel = (status: string) => {
     switch (status) {
-      case 'in_progress': return 'בתהליך';
-      case 'achieved': return 'הושג';
-      case 'frozen': return 'בהקפאה';
-      case 'maintenance': return 'שימור';
-      case 'stuck': return 'נתקע';
+      case 'new': return t('patientDetail.statusNew');
+      case 'in_progress': return t('patientDetail.statusInProgress');
+      case 'achieved': return t('patientDetail.statusAchieved');
+      case 'frozen': return t('patientDetail.statusFrozen');
+      case 'maintenance': return t('patientDetail.statusMaintenance');
+      case 'stuck': return t('patientDetail.statusStuck');
       default: return status;
     }
   };

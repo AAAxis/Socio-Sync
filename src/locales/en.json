@@ -379,7 +379,10 @@
     "enterNotesOptional": "Enter notes (optional)",
     "createPatient": "Create Patient",
     "created": "Created",
-    "targetDate": "Target Date"
+    "targetDate": "Target Date",
+    "currentProgress": "Current Progress",
+    "status": "Status",
+    "editInformation": "Edit Information"
   },
   "intake": {
     "emotionalTitle": "Intake Emotional",

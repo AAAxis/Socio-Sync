@@ -377,7 +377,10 @@
     "enterLastName": "הזן/י שם משפחה",
     "enterNotesOptional": "הזן/י הערות (אופציונלי)",
     "createPatient": "יצירת מטופל",
-    "created": "נוצר"
+    "created": "נוצר",
+    "currentProgress": "התקדמות נוכחית",
+    "status": "סטטוס",
+    "editInformation": "עריכת מידע"
   },
   "intake": {
     "emotionalTitle": "טופס רגשי",

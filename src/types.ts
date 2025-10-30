@@ -91,3 +91,46 @@ export interface Notification {
   read: boolean;
   createdBy: string;
 }
+
+// Treatment Plan Types
+export interface TreatmentMilestone {
+  id: string;
+  caseId: string;
+  title: string; // כותרת - what we want to achieve
+  axis: 'emotional' | 'occupational' | 'rights'; // ציר - Emotional/Occupational/Rights
+  description: string; // תיאור קצר - short description
+  successMetric: string; // מדד הצלחה - success criteria
+  targetDate: string; // תאריך יעד - target date
+  resources: string; // משאב רלוונטי - relevant resources
+  barriers: string; // חסם פוטנציאלי - potential barriers
+  notes: string; // הערות/מעקב שיחה - notes/conversation tracking
+  status: 'in_progress' | 'achieved' | 'frozen' | 'maintenance' | 'stuck'; // סטטוס
+  progress: number; // Progress percentage (0-100)
+  steps: TreatmentStep[]; // רשימת צעדים - list of steps
+  therapistNotes: string; // הערת מטפל - therapist notes
+  createdAt: string;
+  createdBy: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface TreatmentStep {
+  id: string;
+  milestoneId: string;
+  description: string;
+  completed: boolean;
+  completedAt?: string;
+  order: number;
+}
+
+export interface MeetingRecord {
+  id: string;
+  caseId: string;
+  date: string; // תאריך פגישה - meeting date
+  topic: string; // נושא הפגישה - meeting topic
+  notes: string; // מלל פתוח - open text notes
+  createdAt: string;
+  createdBy: string;
+  updatedAt?: string;
+  updatedBy?: string;
+}

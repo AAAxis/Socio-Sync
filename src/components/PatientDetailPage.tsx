@@ -62,12 +62,27 @@ export function PatientDetailPage() {
   const [showAddMilestoneModal, setShowAddMilestoneModal] = useState(false);
   const [showEditMilestoneModal, setShowEditMilestoneModal] = useState(false);
   const [editingMilestone, setEditingMilestone] = useState<any>(null);
-  const [newMilestone, setNewMilestone] = useState({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+  const [newMilestone, setNewMilestone] = useState({ 
+    title: '', 
+    description: '', 
+    progress: 0, 
+    targetDate: '', 
+    status: 'new',
+    axis: 'emotional', // ציר - Emotional/Occupational/Rights
+    successMetric: '', // מדד הצלחה - success criteria
+    resources: '', // משאב רלוונטי - relevant resources
+    barriers: '', // חסם פוטנציאלי - potential barriers
+    notes: '', // הערות/מעקב שיחה - notes/conversation tracking
+    therapistNotes: '' // הערת מטפל - therapist notes
+  });
   const [showAddMeetingModal, setShowAddMeetingModal] = useState(false);
   const [newMeeting, setNewMeeting] = useState({ description: '', date: '', notes: '' });
   const [editingMeeting, setEditingMeeting] = useState<any>(null);
   const [meetingFilter, setMeetingFilter] = useState<'active' | 'archived'>('active');
-  const [milestoneStatusFilter, setMilestoneStatusFilter] = useState<'all' | 'new' | 'easy' | 'medium' | 'critical'>('all');
+  const [milestoneStatusFilter, setMilestoneStatusFilter] = useState<'all' | 'in_progress' | 'achieved' | 'frozen' | 'maintenance' | 'stuck'>('all');
+  const [draggedMilestone, setDraggedMilestone] = useState<any>(null);
+  const [selectedRecords, setSelectedRecords] = useState<Set<string>>(new Set());
+  const [selectedMilestones, setSelectedMilestones] = useState<Set<string>>(new Set());
 
   // Function to get today's date in YYYY-MM-DD format
   const getTodayDate = () => {
@@ -80,6 +95,117 @@ export function PatientDetailPage() {
     setEditingMeeting(null);
     setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
     setShowAddMeetingModal(true);
+  };
+
+  // Functions for handling record selection
+  const handleRecordSelect = (recordId: string, checked: boolean) => {
+    const newSelected = new Set(selectedRecords);
+    if (checked) {
+      newSelected.add(recordId);
+    } else {
+      newSelected.delete(recordId);
+    }
+    setSelectedRecords(newSelected);
+  };
+
+  const handleSelectAllRecords = (checked: boolean) => {
+    if (checked) {
+      const allRecordIds = activities
+        .filter(activity => activity.action === 'meeting')
+        .filter(activity => {
+          if (meetingFilter === 'active') return !activity.archived;
+          if (meetingFilter === 'archived') return activity.archived;
+          return false;
+        })
+        .map(activity => activity.id);
+      setSelectedRecords(new Set(allRecordIds));
+    } else {
+      setSelectedRecords(new Set());
+    }
+  };
+
+  // Functions for handling milestone selection and completion
+  const handleMilestoneSelect = async (milestoneId: string, checked: boolean) => {
+    // Update local state immediately for responsive UI
+    const newSelected = new Set(selectedMilestones);
+    if (checked) {
+      newSelected.add(milestoneId);
+      // Mark milestone as completed
+      setMilestones(milestones.map(milestone => 
+        milestone.id === milestoneId 
+          ? { ...milestone, status: 'achieved', progress: 100 } 
+          : milestone
+      ));
+    } else {
+      newSelected.delete(milestoneId);
+      // Mark milestone as in progress
+      setMilestones(milestones.map(milestone => 
+        milestone.id === milestoneId 
+          ? { ...milestone, status: 'in_progress', progress: milestone.progress || 0 } 
+          : milestone
+      ));
+    }
+    setSelectedMilestones(newSelected);
+
+    try {
+      // Update in Firebase
+      const { db } = await import('../firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const milestoneRef = doc(db, 'milestones', milestoneId);
+      
+      if (checked) {
+        // Mark as completed
+        await updateDoc(milestoneRef, {
+          status: 'achieved',
+          progress: 100,
+          updatedAt: new Date().toISOString()
+        });
+        console.log('Milestone marked as completed:', milestoneId);
+      } else {
+        // Mark as in progress
+        const milestone = milestones.find(m => m.id === milestoneId);
+        const originalProgress = milestone?.progress || 0;
+        await updateDoc(milestoneRef, {
+          status: 'in_progress',
+          progress: originalProgress > 100 ? 0 : originalProgress, // Reset if it was 100%
+          updatedAt: new Date().toISOString()
+        });
+        console.log('Milestone marked as in progress:', milestoneId);
+      }
+    } catch (error) {
+      console.error('Error updating milestone completion status:', error);
+      // Revert local state on error
+      if (checked) {
+        setMilestones(milestones.map(milestone => 
+          milestone.id === milestoneId 
+            ? { ...milestone, status: milestone.status, progress: milestone.progress } 
+            : milestone
+        ));
+        newSelected.delete(milestoneId);
+      } else {
+        setMilestones(milestones.map(milestone => 
+          milestone.id === milestoneId 
+            ? { ...milestone, status: milestone.status, progress: milestone.progress } 
+            : milestone
+        ));
+        newSelected.add(milestoneId);
+      }
+      setSelectedMilestones(newSelected);
+    }
+  };
+
+  const handleSelectAllMilestones = (checked: boolean) => {
+    if (checked) {
+      const filteredMilestones = milestones.filter(milestone => {
+        if (milestoneStatusFilter === 'all') return true;
+        return milestone.status === milestoneStatusFilter;
+      });
+      const allMilestoneIds = filteredMilestones.map(milestone => milestone.id);
+      setSelectedMilestones(new Set(allMilestoneIds));
+    } else {
+      setSelectedMilestones(new Set());
+    }
   };
 
   // Function to open meeting modal for editing
@@ -445,6 +571,12 @@ export function PatientDetailPage() {
           progress: data.progress,
           targetDate: data.targetDate || '', // Include targetDate field
           status: data.status || 'new', // Include status field, default to 'new'
+          axis: data.axis || 'emotional', // ציר - default to emotional
+          successMetric: data.successMetric || '', // מדד הצלחה
+          resources: data.resources || '', // משאב רלוונטי
+          barriers: data.barriers || '', // חסם פוטנציאלי
+          notes: data.notes || '', // הערות/מעקב שיחה
+          therapistNotes: data.therapistNotes || '', // הערת מטפל
           createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
           caseId: data.caseId
         };
@@ -452,6 +584,12 @@ export function PatientDetailPage() {
       
       console.log('Loaded milestones:', loadedMilestones);
       setMilestones(loadedMilestones);
+      
+      // Initialize selectedMilestones with completed milestones
+      const completedMilestoneIds = loadedMilestones
+        .filter(milestone => milestone.status === 'achieved')
+        .map(milestone => milestone.id);
+      setSelectedMilestones(new Set(completedMilestoneIds));
     } catch (error) {
       console.error('Error loading milestones:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -466,7 +604,13 @@ export function PatientDetailPage() {
       description: milestone.description,
       progress: milestone.progress,
       targetDate: milestone.targetDate || '',
-      status: milestone.status || 'new'
+      status: milestone.status || 'new',
+      axis: milestone.axis || 'emotional',
+      successMetric: milestone.successMetric || '',
+      resources: milestone.resources || '',
+      barriers: milestone.barriers || '',
+      notes: milestone.notes || '',
+      therapistNotes: milestone.therapistNotes || ''
     });
     setShowEditMilestoneModal(true);
   };
@@ -485,6 +629,12 @@ export function PatientDetailPage() {
         progress: newMilestone.progress,
         targetDate: newMilestone.targetDate,
         status: newMilestone.status,
+        axis: newMilestone.axis,
+        successMetric: newMilestone.successMetric,
+        resources: newMilestone.resources,
+        barriers: newMilestone.barriers,
+        notes: newMilestone.notes,
+        therapistNotes: newMilestone.therapistNotes,
         updatedAt: new Date().toISOString()
       });
       
@@ -497,7 +647,19 @@ export function PatientDetailPage() {
       
       setShowEditMilestoneModal(false);
       setEditingMilestone(null);
-      setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+      setNewMilestone({ 
+        title: '', 
+        description: '', 
+        progress: 0, 
+        targetDate: '', 
+        status: 'in_progress',
+        axis: 'emotional',
+        successMetric: '',
+        resources: '',
+        barriers: '',
+        notes: '',
+        therapistNotes: ''
+      });
       
       console.log('Milestone updated successfully');
     } catch (error) {
@@ -520,6 +682,12 @@ export function PatientDetailPage() {
           progress: newMilestone.progress,
           targetDate: newMilestone.targetDate,
           status: newMilestone.status,
+          axis: newMilestone.axis,
+          successMetric: newMilestone.successMetric,
+          resources: newMilestone.resources,
+          barriers: newMilestone.barriers,
+          notes: newMilestone.notes,
+          therapistNotes: newMilestone.therapistNotes,
           createdAt: serverTimestamp()
         };
         
@@ -537,7 +705,19 @@ export function PatientDetailPage() {
         };
         
         setMilestones([...milestones, milestone]);
-        setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+        setNewMilestone({ 
+          title: '', 
+          description: '', 
+          progress: 0, 
+          targetDate: '', 
+          status: 'in_progress',
+          axis: 'emotional',
+          successMetric: '',
+          resources: '',
+          barriers: '',
+          notes: '',
+          therapistNotes: ''
+        });
         setShowAddMilestoneModal(false);
         
         console.log('Milestone added successfully');
@@ -579,6 +759,64 @@ export function PatientDetailPage() {
       console.log(`Failed to update milestone progress: ${errorMessage}`);
     }
   };
+
+  // Drag and Drop handlers
+  const handleDragStart = (milestone: any) => {
+    setDraggedMilestone(milestone);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = async (e: React.DragEvent, newAxis: 'emotional' | 'occupational' | 'rights') => {
+    e.preventDefault();
+    
+    try {
+      const milestoneData = JSON.parse(e.dataTransfer.getData('text/plain'));
+      
+      // Don't do anything if dropped in the same column
+      if (milestoneData.axis === newAxis) {
+        setDraggedMilestone(null);
+        return;
+      }
+
+      // Update milestone axis in Firebase
+      const { db } = await import('../firebase');
+      const { doc, updateDoc } = await import('firebase/firestore');
+      
+      const milestoneRef = doc(db, 'milestones', milestoneData.id);
+      await updateDoc(milestoneRef, {
+        axis: newAxis,
+        updatedAt: new Date().toISOString()
+      });
+      
+      // Update local state
+      setMilestones(milestones.map(m => 
+        m.id === milestoneData.id 
+          ? { ...m, axis: newAxis, updatedAt: new Date().toISOString() }
+          : m
+      ));
+      
+      console.log(`Milestone "${milestoneData.title}" moved to ${newAxis} column`);
+    } catch (error) {
+      console.error('Error updating milestone axis:', error);
+    }
+    
+    setDraggedMilestone(null);
+  };
+
+  // Missing handler functions
+  const handleSaveClick = () => {
+    // TODO: Implement save patient info functionality
+    console.log('Save patient info clicked');
+  };
+
+  const handleCancelClick = () => {
+    setIsEditing(false);
+  };
+
 
   const handleUpdateMilestoneStatus = async (id: string, newStatus: string) => {
     // Update local state immediately for responsive UI
@@ -1282,7 +1520,9 @@ export function PatientDetailPage() {
                   {activeDetailTab === 'activity' && (
                     <div className="tab-panel" style={{ position: 'relative' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📊 {t('patientDetail.meetings')}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📊 {t('patientDetail.meetings')}</h3>
+                        </div>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           <select
                             value={meetingFilter}
@@ -1299,22 +1539,21 @@ export function PatientDetailPage() {
                             <option value="active">{t('patientDetail.filterActive')}</option>
                             <option value="archived">{t('patientDetail.filterArchived')}</option>
                           </select>
-                        <button
-                          onClick={openAddMeetingModal}
-                          style={{
-                            padding: '8px 16px',
-                            backgroundColor: '#007acc',
-                            color: 'white',
-                            
-                            borderRadius: '6px',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            fontWeight: '500'
-                          }}
-                        >
-                          + {t('patientDetail.addMeeting')}
-                        </button>
-                      </div>
+                          <button
+                            onClick={openAddMeetingModal}
+                            style={{
+                              padding: '8px 16px',
+                              backgroundColor: '#007acc',
+                              color: 'white',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontSize: '14px',
+                              fontWeight: '500'
+                            }}
+                          >
+                            + {t('patientDetail.addMeeting')}
+                          </button>
+                        </div>
                       </div>
                       {activities.filter(activity => activity.action === 'meeting').length > 0 ? (
                         <div className="activity-list">
@@ -1339,11 +1578,12 @@ export function PatientDetailPage() {
                               style={{ 
                                 cursor: 'pointer',
                                 opacity: activity.archived ? 0.7 : 1,
-                                backgroundColor: activity.archived ? '#f8f9fa' : 'white'
+                                backgroundColor: activity.archived ? '#f8f9fa' : 'white',
+                                position: 'relative'
                               }}
                             >
-                              <div className="activity-header">
-                                <span className="activity-action">
+                              <div className="activity-header" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span className="activity-action" style={{ flex: 1 }}>
                                   {activity.archived ? '📦 ' : ''}{t(`actions.${activity.action}`) || activity.action}
                                 </span>
                                 <div className="activity-header-right">
@@ -1367,8 +1607,7 @@ export function PatientDetailPage() {
 
                   {activeDetailTab === 'patient-info' && (
                     <div className="tab-panel">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           {!isEditing ? (
                             <button
@@ -1427,6 +1666,7 @@ export function PatientDetailPage() {
                             </>
                           )}
                         </div>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
                       </div>
                       <div className="form-fields-vertical">
                         <div className="form-group">
@@ -1673,7 +1913,9 @@ export function PatientDetailPage() {
                   {activeDetailTab === 'progress' && (
                     <div className="tab-panel">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>🏥 {t('patientDetail.progressMilestones')}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>🏥 {t('patientDetail.progressMilestones')}</h3>
+                        </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <select
                             value={milestoneStatusFilter}
@@ -1687,11 +1929,12 @@ export function PatientDetailPage() {
                               cursor: 'pointer'
                             }}
                           >
-                            <option value="all">{t('patientDetail.allStatuses')}</option>
-                            <option value="new">{t('patientDetail.statusNew')}</option>
-                            <option value="easy">{t('patientDetail.statusEasy')}</option>
-                            <option value="medium">{t('patientDetail.statusMedium')}</option>
-                            <option value="critical">{t('patientDetail.statusCritical')}</option>
+                            <option value="all">הכל</option>
+                            <option value="in_progress">בתהליך</option>
+                            <option value="achieved">הושג</option>
+                            <option value="frozen">בהקפאה</option>
+                            <option value="maintenance">שימור</option>
+                            <option value="stuck">נתקע</option>
                           </select>
                           <button
                             onClick={() => setShowAddMilestoneModal(true)}
@@ -1714,204 +1957,438 @@ export function PatientDetailPage() {
                         </div>
                       </div>
 
-                      {/* Milestones Grid */}
-                      <div style={{
-                        display: 'grid',
-                        gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                        gap: '20px'
-                      }}>
-                        {(i18n.language === 'he' ? [...milestones].reverse() : milestones).map((milestone) => (
-                          <div
-                            key={milestone.id}
-                            style={{
-                              background: 'white',
-                              border: '2px solid #e9ecef',
-                              borderRadius: '12px',
-                              padding: '20px',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                              transition: 'all 0.3s ease',
-                              cursor: 'pointer',
-                              position: 'relative'
+                      {/* Three Column Layout */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                        {/* Emotional Column */}
+                        <div>
+                          <h4 style={{ 
+                            textAlign: 'center', 
+                            padding: '12px', 
+                            background: '#e74c3c', 
+                            color: 'white', 
+                            borderRadius: '8px 8px 0 0',
+                            margin: '0 0 0 0',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}>
+                            רגשי
+                          </h4>
+                          <div 
+                            style={{ 
+                              border: '2px solid #e74c3c', 
+                              borderTop: 'none', 
+                              borderRadius: '0 0 8px 8px', 
+                              minHeight: '400px', 
+                              padding: '15px',
+                              background: '#fafafa',
+                              transition: 'background-color 0.2s ease'
                             }}
-                            onMouseEnter={(e) => {
-                              e.currentTarget.style.borderColor = '#007acc';
-                              e.currentTarget.style.transform = 'translateY(-2px)';
-                              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, 'emotional')}
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              if (draggedMilestone && draggedMilestone.axis !== 'emotional') {
+                                e.currentTarget.style.backgroundColor = '#ffebee';
+                              }
                             }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.style.borderColor = '#e9ecef';
-                              e.currentTarget.style.transform = 'translateY(0)';
-                              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              e.currentTarget.style.backgroundColor = '#fafafa';
                             }}
-                            onClick={() => handleEditMilestone(milestone)}
                           >
-
-                            {/* Milestone Title */}
-                            <h4 style={{ 
-                              color: '#000000', 
-                              marginBottom: '10px',
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              textAlign: 'left',
-                              direction: 'ltr'
-                            }}>
-                              {milestone.title}
-                            </h4>
-
-                            {/* Milestone Status - Shown as badge; editable inside dialog */}
-                            <div style={{ 
-                              position: 'absolute',
-                              top: '10px',
-                              right: '10px',
-                              zIndex: 10
-                            }}>
-                              <span
-                                style={{
-                                  display: 'inline-block',
-                                  padding: '4px 8px',
-                                  borderRadius: '12px',
-                                  fontSize: '12px',
-                                  fontWeight: '500',
-                                  backgroundColor: milestone.status === 'critical' ? '#dc3545' : 
-                                                 milestone.status === 'medium' ? '#ffc107' : 
-                                                 milestone.status === 'easy' ? '#28a745' : '#007acc',
-                                  color: 'white',
-                                  border: 'none'
-                                }}
-                              >
-                                {milestone.status === 'new' ? t('patientDetail.statusNew') :
-                                 milestone.status === 'easy' ? t('patientDetail.statusEasy') :
-                                 milestone.status === 'medium' ? t('patientDetail.statusMedium') :
-                                 milestone.status === 'critical' ? t('patientDetail.statusCritical') : milestone.status}
-                              </span>
-                            </div>
-
-                            {/* Milestone Description */}
-                            {milestone.description && (
-                              <p style={{ 
-                                color: '#6c757d', 
-                                marginBottom: '15px',
-                                fontSize: '14px',
-                                lineHeight: '1.4',
-                                textAlign: 'left',
-                                direction: 'ltr'
-                              }}>
-                                {milestone.description}
-                              </p>
+                            {milestones.filter(m => m.axis === 'emotional').map((milestone) => (
+                              <MilestoneCard 
+                                key={milestone.id} 
+                                milestone={milestone} 
+                                onEdit={handleEditMilestone}
+                                onDragStart={handleDragStart}
+                                isSelected={milestone.status === 'achieved'}
+                                onSelect={(checked) => handleMilestoneSelect(milestone.id, checked)}
+                              />
+                            ))}
+                            {milestones.filter(m => m.axis === 'emotional').length === 0 && (
+                              <div style={{ textAlign: 'center', color: '#666', padding: '40px 20px' }}>
+                                אין אבני דרך רגשיות
+                              </div>
                             )}
-
-                            {/* Progress Section */}
-                            <div style={{ marginBottom: '10px' }}>
-                              <div style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: 'center',
-                                marginBottom: '12px'
-                              }}>
-                                <label style={{ 
-                                  color: '#000000', 
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}>
-                                  {t('patientDetail.milestoneProgress')}
-                                </label>
-                                <span style={{ 
-                                  color: '#007acc', 
-                                  fontSize: '14px',
-                                  fontWeight: '600'
-                                }}>
-                                  {milestone.progress}%
-                                </span>
-                              </div>
-
-                              {/* Progress Blocks - Editable in Treatment Plan tab */}
-                              <div style={{
-                                display: 'flex',
-                                gap: '2px',
-                                marginTop: '8px'
-                              }}>
-                                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
-                                  <div
-                                    key={value}
-                                    onClick={() => handleUpdateMilestoneProgress(milestone.id, value)}
-                                    style={{
-                                      flex: 1,
-                                      height: '20px',
-                                      backgroundColor: milestone.progress >= value ? '#007acc' : '#e9ecef',
-                                      borderRadius: '4px',
-                                      cursor: 'pointer',
-                                      transition: 'background-color 0.2s ease',
-                                      border: milestone.progress >= value ? '2px solid #0056b3' : '2px solid transparent'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                      if (milestone.progress < value) {
-                                        e.currentTarget.style.backgroundColor = '#b3d9ff';
-                                      }
-                                    }}
-                                    onMouseLeave={(e) => {
-                                      if (milestone.progress < value) {
-                                        e.currentTarget.style.backgroundColor = '#e9ecef';
-                                      }
-                                    }}
-                                    title={`${value}%`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Dates Row */}
-                            <div style={{ 
-                              fontSize: '12px', 
-                              color: '#6c757d',
-                              borderTop: '1px solid #e9ecef',
-                              paddingTop: '10px',
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
-                            }}>
-                              <div style={{ 
-                                color: '#007acc',
-                                fontWeight: '500'
-                              }}>
-                                {i18n.language === 'he' ? (
-                                  <>
-                                    {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')} : {t('patientDetail.targetDate')}
-                                  </>
-                                ) : (
-                                  <>
-                                    {t('patientDetail.targetDate')}: {milestone.targetDate ? new Date(milestone.targetDate).toLocaleDateString('en-GB') : t('patientDetail.notSet')}
-                                  </>
-                                )}
-                              </div>
-                              <div>
-                                {i18n.language === 'he' ? (
-                                  <>
-                                    {new Date(milestone.createdAt).toLocaleDateString('en-GB')} :{t('patientDetail.created')}
-                                  </>
-                                ) : (
-                                  <>
-                                    {t('patientDetail.created')}: {new Date(milestone.createdAt).toLocaleDateString('en-GB')}
-                                  </>
-                                )}
-                              </div>
-                            </div>
                           </div>
-                        ))}
+                        </div>
+
+                        {/* Occupational Column */}
+                        <div>
+                          <h4 style={{ 
+                            textAlign: 'center', 
+                            padding: '12px', 
+                            background: '#3498db', 
+                            color: 'white', 
+                            borderRadius: '8px 8px 0 0',
+                            margin: '0 0 0 0',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}>
+                            תעסוקתי
+                          </h4>
+                          <div 
+                            style={{ 
+                              border: '2px solid #3498db', 
+                              borderTop: 'none', 
+                              borderRadius: '0 0 8px 8px', 
+                              minHeight: '400px', 
+                              padding: '15px',
+                              background: '#fafafa',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, 'occupational')}
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              if (draggedMilestone && draggedMilestone.axis !== 'occupational') {
+                                e.currentTarget.style.backgroundColor = '#e3f2fd';
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              e.currentTarget.style.backgroundColor = '#fafafa';
+                            }}
+                          >
+                            {milestones.filter(m => m.axis === 'occupational').map((milestone) => (
+                              <MilestoneCard 
+                                key={milestone.id} 
+                                milestone={milestone} 
+                                onEdit={handleEditMilestone}
+                                onDragStart={handleDragStart}
+                                isSelected={milestone.status === 'achieved'}
+                                onSelect={(checked) => handleMilestoneSelect(milestone.id, checked)}
+                              />
+                            ))}
+                            {milestones.filter(m => m.axis === 'occupational').length === 0 && (
+                              <div style={{ textAlign: 'center', color: '#666', padding: '40px 20px' }}>
+                                אין אבני דרך תעסוקתיות
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Rights Column */}
+                        <div>
+                          <h4 style={{ 
+                            textAlign: 'center', 
+                            padding: '12px', 
+                            background: '#2ecc71', 
+                            color: 'white', 
+                            borderRadius: '8px 8px 0 0',
+                            margin: '0 0 0 0',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}>
+                            זכויות
+                          </h4>
+                          <div 
+                            style={{ 
+                              border: '2px solid #2ecc71', 
+                              borderTop: 'none', 
+                              borderRadius: '0 0 8px 8px', 
+                              minHeight: '400px', 
+                              padding: '15px',
+                              background: '#fafafa',
+                              transition: 'background-color 0.2s ease'
+                            }}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, 'rights')}
+                            onDragEnter={(e) => {
+                              e.preventDefault();
+                              if (draggedMilestone && draggedMilestone.axis !== 'rights') {
+                                e.currentTarget.style.backgroundColor = '#e8f5e8';
+                              }
+                            }}
+                            onDragLeave={(e) => {
+                              e.preventDefault();
+                              e.currentTarget.style.backgroundColor = '#fafafa';
+                            }}
+                          >
+                            {milestones.filter(m => m.axis === 'rights').map((milestone) => (
+                              <MilestoneCard 
+                                key={milestone.id} 
+                                milestone={milestone} 
+                                onEdit={handleEditMilestone}
+                                onDragStart={handleDragStart}
+                                isSelected={milestone.status === 'achieved'}
+                                onSelect={(checked) => handleMilestoneSelect(milestone.id, checked)}
+                              />
+                            ))}
+                            {milestones.filter(m => m.axis === 'rights').length === 0 && (
+                              <div style={{ textAlign: 'center', color: '#666', padding: '40px 20px' }}>
+                                אין אבני דרך זכויות
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Empty State */}
-                      {milestones.length === 0 && (
-                        <div style={{
-                          textAlign: 'center',
-                          padding: '60px 20px',
-                          color: '#6c757d'
-                        }}>
-                          <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎯</div>
-                          <h4 style={{ color: '#000000', marginBottom: '8px' }}>{t('patientDetail.noMilestonesYet')}</h4>
-                          <p>{t('patientDetail.addFirstMilestone')}</p>
+                      {/* Completed Milestones Section */}
+                      {milestones.filter(m => m.status === 'achieved').length > 0 && (
+                        <div style={{ marginTop: '30px' }}>
+                          <h4 style={{ 
+                            textAlign: 'center', 
+                            padding: '12px', 
+                            background: '#28a745', 
+                            color: 'white', 
+                            borderRadius: '8px 8px 0 0',
+                            margin: '0 0 0 0',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}>
+                            ✅ אבני דרך שהושגו
+                          </h4>
+                          <div 
+                            style={{ 
+                              border: '2px solid #28a745', 
+                              borderTop: 'none', 
+                              borderRadius: '0 0 8px 8px', 
+                              minHeight: '200px', 
+                              padding: '15px',
+                              background: '#f8fff8',
+                              display: 'grid',
+                              gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+                              gap: '15px'
+                            }}
+                          >
+                            {milestones.filter(m => m.status === 'achieved').map((milestone) => (
+                              <div
+                                key={milestone.id}
+                                style={{
+                                  background: 'white',
+                                  border: '2px solid #28a745',
+                                  borderRadius: '8px',
+                                  padding: '15px',
+                                  boxShadow: '0 2px 4px rgba(40, 167, 69, 0.2)',
+                                  transition: 'all 0.2s ease',
+                                  opacity: '0.9'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', gap: '6px' }}>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      handleEditMilestone(milestone);
+                                    }}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      cursor: 'pointer',
+                                      padding: '4px',
+                                      borderRadius: '4px',
+                                      color: '#666',
+                                      fontSize: '14px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      transition: 'all 0.2s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.currentTarget.style.backgroundColor = '#f8f9fa';
+                                      e.currentTarget.style.color = '#007bff';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.currentTarget.style.backgroundColor = 'transparent';
+                                      e.currentTarget.style.color = '#666';
+                                    }}
+                                    title="ערוך אבן דרך"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+                                    {milestone.title}
+                                  </h5>
+                                  <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <span style={{ color: '#28a745', fontSize: '12px', fontWeight: 'bold' }}>
+                                      {milestone.axis === 'emotional' ? 'רגשי' : 
+                                       milestone.axis === 'occupational' ? 'תעסוקתי' : 
+                                       milestone.axis === 'rights' ? 'זכויות' : ''}
+                                    </span>
+                                    <span
+                                      style={{
+                                        padding: '3px 8px',
+                                        borderRadius: '12px',
+                                        fontSize: '11px',
+                                        background: '#28a745',
+                                        color: 'white',
+                                        fontWeight: 'bold'
+                                      }}
+                                    >
+                                      הושג ✓
+                                    </span>
+                                  </div>
+                                </div>
+
+                                {/* Progress Bar - Full for completed */}
+                                <div style={{ marginBottom: '10px' }}>
+                                  <div style={{ 
+                                    width: '100%', 
+                                    height: '6px', 
+                                    background: '#e9ecef', 
+                                    borderRadius: '3px',
+                                    overflow: 'hidden'
+                                  }}>
+                                    <div
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        background: '#28a745',
+                                        transition: 'width 0.3s ease'
+                                      }}
+                                    />
+                                  </div>
+                                  <div style={{ fontSize: '11px', color: '#28a745', marginTop: '3px', fontWeight: 'bold' }}>
+                                    100% הושלם ✓
+                                  </div>
+                                </div>
+
+                                {/* Description */}
+                                {milestone.description && (
+                                  <div style={{ 
+                                    fontSize: '12px', 
+                                    color: '#666', 
+                                    marginBottom: '8px',
+                                    lineHeight: '1.4'
+                                  }}>
+                                    {milestone.description}
+                                  </div>
+                                )}
+
+                                {/* Success Metric */}
+                                {milestone.successMetric && (
+                                  <div style={{ 
+                                    fontSize: '11px', 
+                                    color: '#28a745', 
+                                    marginBottom: '6px',
+                                    fontWeight: 'bold'
+                                  }}>
+                                    🎯 {milestone.successMetric}
+                                  </div>
+                                )}
+
+                                {/* Target Date */}
+                                {milestone.targetDate && (
+                                  <div style={{ fontSize: '11px', color: '#6c757d', marginBottom: '6px' }}>
+                                    📅 יעד: {new Date(milestone.targetDate).toLocaleDateString('he-IL')}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
+
+                      {/* Legacy milestones without axis - show separately */}
+                      {milestones.filter(m => !m.axis).length > 0 && (
+                        <div style={{ marginTop: '30px' }}>
+                          <h4 style={{ color: '#666', marginBottom: '15px' }}>אבני דרך ללא ציר</h4>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
+                            gap: '20px'
+                          }}>
+                            {milestones.filter(m => !m.axis).map((milestone) => (
+                              <div
+                                key={milestone.id}
+                                style={{
+                                  background: 'white',
+                                  border: '2px solid #e9ecef',
+                                  borderRadius: '12px',
+                                  padding: '20px',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                  transition: 'all 0.3s ease',
+                                  cursor: 'pointer',
+                                  position: 'relative'
+                                }}
+                                onClick={() => handleEditMilestone(milestone)}
+                              >
+                                <h4 style={{ color: '#000000', marginBottom: '8px' }}>{milestone.title}</h4>
+                                <p style={{ color: '#666', marginBottom: '12px' }}>{milestone.description}</p>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ color: '#007bff' }}>Progress: {milestone.progress}%</span>
+                                  <span style={{ color: '#28a745' }}>Status: {milestone.status}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeDetailTab === 'patient-info' && (
+                    <div className="tab-panel">
+                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                          {!isEditing ? (
+                            <button
+                              onClick={handleEditClick}
+                              className="edit-patient-btn"
+                              style={{
+                                background: '#007acc',
+                                color: 'white',
+                                border: 'none',
+                                padding: '8px 16px',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: '500'
+                              }}
+                            >
+                              {t('patientDetail.editInformation')}
+                            </button>
+                          ) : (
+                            <>
+                              <button
+                                onClick={handleSaveClick}
+                                style={{
+                                  background: '#28a745',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                {t('patientDetail.saveChanges')}
+                              </button>
+                              <button
+                                onClick={handleCancelClick}
+                                style={{
+                                  background: '#6c757d',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '8px 16px',
+                                  borderRadius: '6px',
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  fontWeight: '500'
+                                }}
+                              >
+                                {t('patientDetail.cancel')}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
+                      </div>
+                      {/* Patient information content will continue here */}
+                    </div>
+                  )}
+
+                  {activeDetailTab === 'documents' && (
+                    <div className="tab-panel">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📄 {t('patientDetail.documents')}</h3>
+                      </div>
+                      <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                        Documents functionality coming soon...
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1920,7 +2397,7 @@ export function PatientDetailPage() {
           ) : (
             <div style={{ textAlign: 'center', padding: '40px' }}>
               <div style={{ fontSize: '18px', color: '#666666' }}>
-                {i18n.language === 'he' ? 'טוען נתוני מטופל...' : 'Loading patient data...'}
+                {t('patientDetail.noPatientData')}
               </div>
             </div>
           )}
@@ -1940,179 +2417,97 @@ export function PatientDetailPage() {
               zIndex: 1000
             }}>
               <div style={{
-                backgroundColor: 'white',
+                background: 'white',
                 borderRadius: '12px',
                 padding: '30px',
-                width: '500px',
-                maxWidth: '90vw',
-                maxHeight: '90vh',
-                overflow: 'auto',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
-                position: 'relative'
+                width: '90%',
+                maxWidth: '500px',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
               }}>
-                {/* Close Button */}
-                <button
-                  onClick={() => {
-                    setShowAddMeetingModal(false);
-                    setEditingMeeting(null);
-                    setNewMeeting({ description: '', date: '', notes: '' });
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '15px',
-                    right: '15px',
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer',
-                    color: '#666',
-                    width: '30px',
-                    height: '30px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderRadius: '50%',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8f9fa';
-                    e.currentTarget.style.color = '#000';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.color = '#666';
-                  }}
-                  title={t('patientDetail.close')}
-                >
-                  ×
-                </button>
-                
-                <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
-                  📊 {editingMeeting ? t('patientDetail.editMeetingRecord') : t('patientDetail.addMeetingRecord')}
+                <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
+                  {editingMeeting ? t('patientDetail.editMeeting') : t('patientDetail.addNewMeeting')}
                 </h3>
                 
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ color: '#000000', display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('patientDetail.meetingDate')} *
-                  </label>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.meetingDescription')}</label>
+                  <input
+                    type="text"
+                    value={newMeeting.description}
+                    onChange={(e) => setNewMeeting({...newMeeting, description: e.target.value})}
+                    placeholder={t('patientDetail.enterMeetingDescription')}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.meetingDate')}</label>
                   <input
                     type="date"
                     value={newMeeting.date}
-                    onChange={(e) => setNewMeeting({ ...newMeeting, date: e.target.value })}
+                    onChange={(e) => setNewMeeting({...newMeeting, date: e.target.value})}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '14px'
+                    }}
+                  />
+                </div>
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.meetingNotes')}</label>
+                  <textarea
+                    value={newMeeting.notes}
+                    onChange={(e) => setNewMeeting({...newMeeting, notes: e.target.value})}
+                    placeholder={t('patientDetail.enterMeetingNotes')}
+                    rows={4}
                     style={{
                       width: '100%',
                       padding: '10px 12px',
                       border: '1px solid #ced4da',
                       borderRadius: '6px',
                       fontSize: '14px',
-                      boxSizing: 'border-box'
+                      resize: 'vertical'
                     }}
                   />
                 </div>
                 
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ color: '#000000', display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('patientDetail.meetingDescription')} *
-                  </label>
-                  <textarea
-                    value={newMeeting.description}
-                    onChange={(e) => setNewMeeting({...newMeeting, description: e.target.value})}
-                    placeholder={t('patientDetail.meetingDescriptionPlaceholder')}
-                    rows={3}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ced4da',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      boxSizing: 'border-box',
-                      resize: 'vertical',
-                      fontFamily: 'inherit'
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button
+                    onClick={() => {
+                      setShowAddMeetingModal(false);
+                      setEditingMeeting(null);
+                      setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
                     }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '30px' }}>
-                  <label style={{ color: '#000000', display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('patientDetail.meetingNotes')}
-                  </label>
-                  <textarea
-                    value={newMeeting.notes}
-                    onChange={(e) => setNewMeeting({...newMeeting, notes: e.target.value})}
-                    placeholder={t('patientDetail.meetingNotesPlaceholder')}
-                    rows={4}
                     style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ced4da',
+                      background: '#6c757d',
+                      color: 'white',
+                      border: 'none',
+                      padding: '10px 20px',
                       borderRadius: '6px',
-                      fontSize: '14px',
-                      resize: 'vertical',
-                      boxSizing: 'border-box'
+                      cursor: 'pointer',
+                      fontSize: '14px'
                     }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-                  {editingMeeting && (
-                    <button
-                      onClick={() => {
-                        if (editingMeeting) {
-                          handleDeleteActivityLog(editingMeeting.id);
-                          setShowAddMeetingModal(false);
-                          setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
-                          setEditingMeeting(null);
-                        }
-                      }}
-                      style={{
-                        background: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        padding: '12px 24px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {t('patientDetail.deleteActivityLog')}
-                    </button>
-                  )}
-                  {editingMeeting && (
-                    <button
-                      onClick={() => {
-                        if (editingMeeting) {
-                          handleArchiveMeeting(editingMeeting.id, !editingMeeting.archived);
-                          setShowAddMeetingModal(false);
-                          setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
-                          setEditingMeeting(null);
-                        }
-                      }}
-                      style={{
-                        background: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        padding: '12px 24px',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '14px',
-                        fontWeight: '500'
-                      }}
-                    >
-                      {editingMeeting?.archived ? `📤 ${t('patientDetail.unarchive')}` : `📦 ${t('patientDetail.archive')}`}
-                    </button>
-                  )}
+                  >
+                    {t('patientDetail.cancel')}
+                  </button>
                   <button
                     onClick={handleAddMeeting}
                     style={{
-                      background: '#007bff',
+                      background: '#007acc',
                       color: 'white',
                       border: 'none',
-                      padding: '12px 24px',
+                      padding: '10px 20px',
                       borderRadius: '6px',
                       cursor: 'pointer',
-                      fontSize: '14px',
-                      fontWeight: '500'
+                      fontSize: '14px'
                     }}
                   >
                     {editingMeeting ? t('patientDetail.saveChanges') : t('patientDetail.addMeetingButton')}
@@ -2121,13 +2516,6 @@ export function PatientDetailPage() {
               </div>
             </div>
           )}
-
-        </div>
-      </div>
-    </div>
-          </div>
-        </div>
-      </div>
 
       {/* Add Milestone Modal */}
       {showAddMilestoneModal && (
@@ -2158,7 +2546,19 @@ export function PatientDetailPage() {
             <button
               onClick={() => {
                 setShowAddMilestoneModal(false);
-                setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+                setNewMilestone({ 
+                  title: '', 
+                  description: '', 
+                  progress: 0, 
+                  targetDate: '', 
+                  status: 'in_progress',
+                  axis: 'emotional',
+                  successMetric: '',
+                  resources: '',
+                  barriers: '',
+                  notes: '',
+                  therapistNotes: ''
+                });
               }}
               style={{
                 position: 'absolute',
@@ -2229,7 +2629,98 @@ export function PatientDetailPage() {
               />
             </div>
             
-            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>ציר</label>
+              <select
+                value={newMilestone.axis}
+                onChange={(e) => setNewMilestone({...newMilestone, axis: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="emotional">רגשי</option>
+                <option value="occupational">תעסוקתי</option>
+                <option value="rights">זכויות</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>מדד הצלחה</label>
+              <input
+                type="text"
+                value={newMilestone.successMetric}
+                onChange={(e) => setNewMilestone({...newMilestone, successMetric: e.target.value})}
+                placeholder="למשל: הורדה של חרדה מ8 פעמים בשבוע ל4 פעמים בשבוע"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>משאבים</label>
+              <textarea
+                value={newMilestone.resources}
+                onChange={(e) => setNewMilestone({...newMilestone, resources: e.target.value})}
+                placeholder="חוזקות/משאבים זמינים"
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>חסמים אפשריים</label>
+              <textarea
+                value={newMilestone.barriers}
+                onChange={(e) => setNewMilestone({...newMilestone, barriers: e.target.value})}
+                placeholder="חסמים פוטנציאליים"
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>סטטוס</label>
+              <select
+                value={newMilestone.status}
+                onChange={(e) => setNewMilestone({...newMilestone, status: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="in_progress">בתהליך</option>
+                <option value="achieved">הושג</option>
+                <option value="frozen">בהקפאה</option>
+                <option value="maintenance">שימור</option>
+                <option value="stuck">נתקע</option>
+              </select>
+            </div>
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
@@ -2246,8 +2737,6 @@ export function PatientDetailPage() {
                 }}
               />
             </div>
-
-            
 
             
             
@@ -2301,7 +2790,19 @@ export function PatientDetailPage() {
               onClick={() => {
                 setShowEditMilestoneModal(false);
                 setEditingMilestone(null);
-                setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
+                setNewMilestone({ 
+                  title: '', 
+                  description: '', 
+                  progress: 0, 
+                  targetDate: '', 
+                  status: 'in_progress',
+                  axis: 'emotional',
+                  successMetric: '',
+                  resources: '',
+                  barriers: '',
+                  notes: '',
+                  therapistNotes: ''
+                });
               }}
               style={{
                 position: 'absolute',
@@ -2373,35 +2874,10 @@ export function PatientDetailPage() {
             </div>
             
             <div style={{ marginBottom: '15px' }}>
-              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.progress')}</label>
-              <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
-                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
-                  <div
-                    key={value}
-                    onClick={() => setNewMilestone({...newMilestone, progress: value})}
-                    style={{
-                      flex: 1,
-                      height: '20px',
-                      backgroundColor: newMilestone.progress >= value ? '#007acc' : '#e9ecef',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      transition: 'background-color 0.2s ease',
-                      border: newMilestone.progress >= value ? '2px solid #0056b3' : '2px solid transparent'
-                    }}
-                    title={`${value}%`}
-                  />
-                ))}
-              </div>
-              <div style={{ textAlign: 'center', fontSize: '14px', color: '#666' }}>
-                {newMilestone.progress}%
-              </div>
-            </div>
-            
-            <div style={{ marginBottom: '20px' }}>
-              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.milestoneStatus')}</label>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>ציר</label>
               <select
-                value={newMilestone.status}
-                onChange={(e) => setNewMilestone({ ...newMilestone, status: e.target.value })}
+                value={newMilestone.axis}
+                onChange={(e) => setNewMilestone({...newMilestone, axis: e.target.value})}
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -2410,10 +2886,141 @@ export function PatientDetailPage() {
                   fontSize: '14px'
                 }}
               >
-                <option value="new">{t('patientDetail.statusNew')}</option>
-                <option value="easy">{t('patientDetail.statusEasy')}</option>
-                <option value="medium">{t('patientDetail.statusMedium')}</option>
-                <option value="critical">{t('patientDetail.statusCritical')}</option>
+                <option value="emotional">רגשי</option>
+                <option value="occupational">תעסוקתי</option>
+                <option value="rights">זכויות</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>מדד הצלחה</label>
+              <input
+                type="text"
+                value={newMilestone.successMetric}
+                onChange={(e) => setNewMilestone({...newMilestone, successMetric: e.target.value})}
+                placeholder="למשל: הורדה של חרדה מ8 פעמים בשבוע ל4 פעמים בשבוע"
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>משאבים</label>
+              <textarea
+                value={newMilestone.resources}
+                onChange={(e) => setNewMilestone({...newMilestone, resources: e.target.value})}
+                placeholder="חוזקות/משאבים זמינים"
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>חסמים אפשריים</label>
+              <textarea
+                value={newMilestone.barriers}
+                onChange={(e) => setNewMilestone({...newMilestone, barriers: e.target.value})}
+                placeholder="חסמים פוטנציאליים"
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>הערות מטפל</label>
+              <textarea
+                value={newMilestone.therapistNotes}
+                onChange={(e) => setNewMilestone({...newMilestone, therapistNotes: e.target.value})}
+                placeholder="הערות ומחשבות מטפל"
+                rows={2}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+            
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.progress')}</label>
+              <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
+                {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+                  <div
+                    key={value}
+                    onClick={() => setNewMilestone({...newMilestone, progress: value})}
+                    style={{
+                      flex: 1,
+                      height: '30px',
+                      backgroundColor: newMilestone.progress >= value ? '#007acc' : '#e9ecef',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: newMilestone.progress >= value ? 'white' : '#666',
+                      borderRadius: value === 0 ? '4px 0 0 4px' : value === 100 ? '0 4px 4px 0' : '0',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (newMilestone.progress < value) {
+                        e.currentTarget.style.backgroundColor = '#cce7ff';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (newMilestone.progress < value) {
+                        e.currentTarget.style.backgroundColor = '#e9ecef';
+                      }
+                    }}
+                  >
+                    {value}
+                  </div>
+                ))}
+              </div>
+              <div style={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+                {t('patientDetail.currentProgress')}: {newMilestone.progress}%
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.status')}</label>
+              <select
+                value={newMilestone.status}
+                onChange={(e) => setNewMilestone({...newMilestone, status: e.target.value})}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="in_progress">בתהליך</option>
+                <option value="achieved">הושג</option>
+                <option value="frozen">בהקפאה</option>
+                <option value="maintenance">שימור</option>
+                <option value="stuck">נתקע</option>
               </select>
             </div>
 
@@ -2432,17 +3039,10 @@ export function PatientDetailPage() {
                 }}
               />
             </div>
-            
+
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => {
-                  if (editingMilestone) {
-                    handleDeleteMilestone(editingMilestone.id);
-                    setShowEditMilestoneModal(false);
-                    setEditingMilestone(null);
-                    setNewMilestone({ title: '', description: '', progress: 0, targetDate: '', status: 'new' });
-                  }
-                }}
+                onClick={() => editingMilestone && handleDeleteMilestone(editingMilestone.id)}
                 style={{
                   background: '#dc3545',
                   color: 'white',
@@ -2473,7 +3073,277 @@ export function PatientDetailPage() {
           </div>
         </div>
       )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <DialogComponent />
     </>
+  );
+}
+
+// Milestone Card Component for 3-column layout
+function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }: { 
+  milestone: any; 
+  onEdit: (milestone: any) => void;
+  onDragStart?: (milestone: any) => void;
+  isSelected?: boolean;
+  onSelect?: (checked: boolean) => void;
+}) {
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'achieved': return '#28a745';
+      case 'in_progress': return '#007bff';
+      case 'frozen': return '#6c757d';
+      case 'maintenance': return '#17a2b8';
+      case 'stuck': return '#dc3545';
+      default: return '#6c757d';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'in_progress': return 'בתהליך';
+      case 'achieved': return 'הושג';
+      case 'frozen': return 'בהקפאה';
+      case 'maintenance': return 'שימור';
+      case 'stuck': return 'נתקע';
+      default: return status;
+    }
+  };
+
+  return (
+    <div
+      draggable
+      style={{
+        background: 'white',
+        border: '1px solid #e9ecef',
+        borderRadius: '8px',
+        padding: '15px',
+        marginBottom: '12px',
+        cursor: 'grab',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s ease'
+      }}
+      onDragStart={(e) => {
+        e.currentTarget.style.cursor = 'grabbing';
+        e.currentTarget.style.opacity = '0.7';
+        if (onDragStart) {
+          onDragStart(milestone);
+        }
+        e.dataTransfer.setData('text/plain', JSON.stringify(milestone));
+        e.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragEnd={(e) => {
+        e.currentTarget.style.cursor = 'grab';
+        e.currentTarget.style.opacity = '1';
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+      }}
+      onMouseEnter={(e) => {
+        if (!e.currentTarget.style.opacity || e.currentTarget.style.opacity === '1') {
+          e.currentTarget.style.transform = 'translateY(-2px)';
+          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+        }
+      }}
+      onMouseLeave={(e) => {
+        if (!e.currentTarget.style.opacity || e.currentTarget.style.opacity === '1') {
+          e.currentTarget.style.transform = 'translateY(0)';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        }
+      }}
+    >
+      {/* Card Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {onSelect && (
+            <input
+              type="checkbox"
+              checked={isSelected || false}
+              onChange={(e) => {
+                e.stopPropagation();
+                onSelect(e.target.checked);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              style={{ 
+                margin: 0,
+                cursor: 'pointer',
+                transform: 'scale(1.1)'
+              }}
+            />
+          )}
+          <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+            {milestone.title}
+          </h5>
+        </div>
+      </div>
+
+      {/* Progress Bar */}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ 
+          width: '100%', 
+          height: '6px', 
+          background: '#e9ecef', 
+          borderRadius: '3px',
+          overflow: 'hidden'
+        }}>
+          <div
+            style={{
+              width: `${milestone.progress || 0}%`,
+              height: '100%',
+              background: getStatusColor(milestone.status),
+              transition: 'width 0.3s ease'
+            }}
+          />
+        </div>
+        <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '3px' }}>
+          {milestone.progress || 0}% הושלם
+        </div>
+      </div>
+
+      {/* Description */}
+      {milestone.description && (
+        <div style={{ 
+          fontSize: '12px', 
+          color: '#666', 
+          marginBottom: '8px',
+          lineHeight: '1.4',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical'
+        }}>
+          {milestone.description}
+        </div>
+      )}
+
+      {/* Success Metric */}
+      {milestone.successMetric && (
+        <div style={{ 
+          fontSize: '11px', 
+          color: '#28a745', 
+          marginBottom: '6px',
+          fontWeight: 'bold'
+        }}>
+          🎯 {milestone.successMetric}
+        </div>
+      )}
+
+      {/* Target Date */}
+      {milestone.targetDate && (
+        <div style={{ fontSize: '11px', color: '#6c757d', marginBottom: '6px' }}>
+          📅 יעד: {new Date(milestone.targetDate).toLocaleDateString('he-IL')}
+        </div>
+      )}
+
+      {/* Resources */}
+      {milestone.resources && (
+        <div style={{ 
+          fontSize: '11px', 
+          color: '#17a2b8', 
+          marginBottom: '6px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          💪 {milestone.resources}
+        </div>
+      )}
+
+      {/* Barriers */}
+      {milestone.barriers && (
+        <div style={{ 
+          fontSize: '11px', 
+          color: '#dc3545', 
+          marginBottom: '6px',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          ⚠️ {milestone.barriers}
+        </div>
+      )}
+
+      {/* Bottom Row: Edit Button, Drag Handle, Status */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: '10px',
+        paddingTop: '8px',
+        borderTop: '1px solid #e9ecef'
+      }}>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+            onEdit(milestone);
+          }}
+          onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking edit
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            color: '#666',
+            fontSize: '14px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f8f9fa';
+            e.currentTarget.style.color = '#007bff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#666';
+          }}
+          title="ערוך אבן דרך"
+        >
+          ✏️
+        </button>
+
+        <span
+          style={{
+            color: '#999',
+            fontSize: '14px',
+            cursor: 'grab',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            transition: 'all 0.2s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = '#f8f9fa';
+            e.currentTarget.style.color = '#666';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent';
+            e.currentTarget.style.color = '#999';
+          }}
+          title="גרור לעמודה אחרת"
+        >
+          ⋮⋮
+        </span>
+
+        <span
+          style={{
+            padding: '3px 8px',
+            borderRadius: '12px',
+            fontSize: '11px',
+            background: getStatusColor(milestone.status),
+            color: 'white',
+            fontWeight: 'bold'
+          }}
+        >
+          {getStatusLabel(milestone.status)}
+        </span>
+      </div>
+    </div>
   );
 }

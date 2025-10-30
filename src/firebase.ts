@@ -808,7 +808,7 @@ export const checkForUnauthorizedUsers = async (): Promise<{authorized: number, 
 // Blocked user interface - allows account creation but blocks access
 export const signInWithGoogleSecure = async () => {
   try {
-    // Allow account creation but check authorization
+    // Allow account creation; enforce access via blocked flag
     const result = await signInWithPopup(auth, googleProvider);
     const userEmail = result.user.email;
     const userUid = result.user.uid;
@@ -821,15 +821,36 @@ export const signInWithGoogleSecure = async () => {
     // Check if this email is authorized (admin-only access)
     const isRegistered = await isUserRegistered(userEmail);
     
-    if (!isRegistered) {
-      // Unauthorized email - sign out immediately and prevent access
-      console.log('Unauthorized email detected, signing out user...');
-      await signOutUser();
-      throw new Error('ACCESS DENIED: This email is not authorized. This is an admin-only application. Please contact an administrator to create an account.');
+    // Ensure user document exists; if unauthorized, create as blocked
+    const userRef = doc(db, 'users', userUid);
+    const userSnap = await getDoc(userRef);
+    if (!userSnap.exists()) {
+      const now = serverTimestamp();
+      const newUserData: FirebaseUserData = {
+        userId: userUid,
+        email: userEmail,
+        name: result.user.displayName || 'User',
+        role: isRegistered ? 'admin' : 'blocked',
+        createdAt: now,
+        lastLoginAt: now,
+        loginCount: 1,
+        hasPiiData: false,
+        blocked: !isRegistered,
+        restricted: false,
+        blockedReason: !isRegistered ? 'Awaiting administrator approval' : ''
+      };
+      await setDoc(userRef, newUserData);
+    } else if (!isRegistered) {
+      // If user doc exists but not registered, ensure blocked flag is set
+      await updateDoc(userRef, { blocked: true, restricted: false, blockedReason: 'Awaiting administrator approval' });
+    } else {
+      // Authorized: update last login metadata
+      await updateDoc(userRef, { lastLoginAt: serverTimestamp(), loginCount: (userSnap.data().loginCount || 0) + 1 });
     }
     
-    console.log('✅ Authorized user signed in successfully');
-    return { ...result, isBlocked: false };
+    // If unauthorized, return flag to show blocked screen (do not sign out)
+    const isBlocked = !isRegistered;
+    return { ...result, isBlocked };
     
   } catch (error: any) {
     // Clean up any partial authentication

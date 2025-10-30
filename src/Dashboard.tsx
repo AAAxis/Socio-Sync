@@ -1010,9 +1010,7 @@ export default function MainDashboard() {
     if (userStatusFilter === 'active') {
       filtered = filtered.filter(u => !u.blocked && !u.restricted);
     } else if (userStatusFilter === 'blocked') {
-      filtered = filtered.filter(u => u.blocked);
-    } else if (userStatusFilter === 'restricted') {
-      filtered = filtered.filter(u => u.restricted);
+      filtered = filtered.filter(u => u.blocked || u.restricted);
     }
     // 'all' shows all users (no filtering)
     
@@ -1037,9 +1035,7 @@ export default function MainDashboard() {
     if (filter === 'active') {
       filtered = filtered.filter(u => !u.blocked && !u.restricted);
     } else if (filter === 'blocked') {
-      filtered = filtered.filter(u => u.blocked);
-    } else if (filter === 'restricted') {
-      filtered = filtered.filter(u => u.restricted);
+      filtered = filtered.filter(u => u.blocked || u.restricted);
     }
     // 'all' shows all users (no filtering)
     
@@ -1189,9 +1185,7 @@ export default function MainDashboard() {
       if (userStatusFilter === 'active') {
         filtered = filtered.filter(u => !u.blocked && !u.restricted);
       } else if (userStatusFilter === 'blocked') {
-        filtered = filtered.filter(u => u.blocked);
-      } else if (userStatusFilter === 'restricted') {
-        filtered = filtered.filter(u => u.restricted);
+        filtered = filtered.filter(u => u.blocked || u.restricted);
       }
       // 'all' shows all users (no filtering)
       
@@ -1324,16 +1318,22 @@ export default function MainDashboard() {
     return filtered.slice(startIndex, startIndex + activitiesPerPage);
   }, [getFilteredActivityLogs, activityCurrentPage, activitiesPerPage]);
 
-  const handleSignOut = async () => {
-    showConfirm(t('navigation.confirmSignOut'), async () => {
+  const handleSignOut = async (skipConfirm?: boolean) => {
+    const doSignOut = async () => {
       try {
         await signOutUser();
         setUser(null);
         localStorage.removeItem('user');
+        navigate('/login');
       } catch (error) {
         console.error('Error signing out:', error);
       }
-    });
+    };
+    if (skipConfirm) {
+      await doSignOut();
+      return;
+    }
+    showConfirm(t('navigation.confirmSignOut'), doSignOut);
   };
 
   // Check for existing user session on component mount
@@ -1894,7 +1894,7 @@ export default function MainDashboard() {
                   </li>
                   <li className="signout-nav-item">
                     <button 
-                      onClick={handleSignOut}
+                      onClick={() => handleSignOut()}
                       className="sign-out-nav-btn"
                     >
                       <span className="nav-icon">🚪</span>
@@ -2124,7 +2124,7 @@ export default function MainDashboard() {
                     <div className="blocked-popup-footer">
                       <button 
                         onClick={() => {
-                          handleSignOut();
+                          handleSignOut(true);
                         }}
                         className="blocked-signout-btn"
                       >

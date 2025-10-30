@@ -52,6 +52,7 @@ export function PatientDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<string[]>([]);
+  const [intakeStatus, setIntakeStatus] = useState<{ rights?: boolean; emotional?: boolean; professional?: boolean }>({});
   const [activeDetailTab, setActiveDetailTab] = useState<'documents' | 'activity' | 'patient-info' | 'notes' | 'progress'>('progress');
   const [isEditing, setIsEditing] = useState(false);
   const [editedPatientData, setEditedPatientData] = useState<any>(null);
@@ -109,6 +110,29 @@ export function PatientDetailPage() {
     }
     setIsLoading(false);
   }, []);
+
+  // Load intake completion flags
+  useEffect(() => {
+    const loadIntakes = async () => {
+      if (!caseId) return;
+      try {
+        const { db } = await import('../firebase');
+        const { doc, getDoc } = await import('firebase/firestore');
+        const rightsRef = doc(db, 'patients', String(caseId), 'intakes', 'rights');
+        const emotionalRef = doc(db, 'patients', String(caseId), 'intakes', 'emotional');
+        const professionalRef = doc(db, 'patients', String(caseId), 'intakes', 'professional');
+        const [r, e, p] = await Promise.all([getDoc(rightsRef), getDoc(emotionalRef), getDoc(professionalRef)]);
+        setIntakeStatus({
+          rights: r.exists() && !!r.data()?.completed,
+          emotional: e.exists() && !!e.data()?.completed,
+          professional: p.exists() && !!p.data()?.completed
+        });
+      } catch (err) {
+        console.log('Failed to load intake flags', err);
+      }
+    };
+    loadIntakes();
+  }, [caseId]);
 
   // Function to handle tab change and close mobile menu
   const handleTabChange = (tab: string) => {
@@ -1281,7 +1305,7 @@ export function PatientDetailPage() {
                             padding: '8px 16px',
                             backgroundColor: '#007acc',
                             color: 'white',
-                            border: 'none',
+                            
                             borderRadius: '6px',
                             cursor: 'pointer',
                             fontSize: '14px',
@@ -1446,20 +1470,7 @@ export function PatientDetailPage() {
                             <div className="patient-detail-value">{formatDate(patientPII.date_of_birth)}</div>
                           )}
                         </div>
-                        <div className="form-group">
-                          <label style={{ color: '#000000' }}>{t('patientDetail.governmentId')}</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              value={editedPatientData?.government_id || ''}
-                              onChange={(e) => handleFieldChange('government_id', e.target.value)}
-                              className="patient-edit-input"
-                              placeholder={t('intakeForm.enterGovernmentId')}
-                            />
-                          ) : (
-                            <div className="patient-detail-value">{patientPII.government_id || 'N/A'}</div>
-                          )}
-                        </div>
+                        {/* Government ID field removed per request */}
                         <div className="form-group">
                           <label style={{ color: '#000000' }}>{t('patientDetail.gender')}</label>
                           {isEditing ? (
@@ -1477,23 +1488,7 @@ export function PatientDetailPage() {
                             <div className="patient-detail-value">{translateValue('gender', patientPII.gender)}</div>
                           )}
                         </div>
-                        <div className="form-group">
-                          <label style={{ color: '#000000' }}>{t('patientDetail.maritalStatus')}</label>
-                          {isEditing ? (
-                            <select
-                              value={editedPatientData?.marital_status || ''}
-                              onChange={(e) => handleFieldChange('marital_status', e.target.value)}
-                              className="patient-edit-input"
-                              style={{ padding: '12px', borderRadius: '6px', border: '1px solid #ced4da', backgroundColor: '#ffffff', color: '#000000', fontSize: '14px' }}
-                            >
-                              <option value="">{t('patientDetail.selectStatus')}</option>
-                              <option value="single">{t('patientDetail.single')}</option>
-                              <option value="married">{t('patientDetail.married')}</option>
-                            </select>
-                          ) : (
-                            <div className="patient-detail-value">{translateValue('marital_status', patientPII.marital_status)}</div>
-                          )}
-                        </div>
+                        {/* Marital Status field removed per request */}
                         <div className="form-group">
                           <label style={{ color: '#000000' }}>{t('patientDetail.education')}</label>
                           {isEditing ? (
@@ -1565,118 +1560,112 @@ export function PatientDetailPage() {
 
                   {activeDetailTab === 'notes' && (
                     <div className="tab-panel">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div style={{ marginBottom: '20px' }}>
                         <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📝 {t('patientDetail.intakeForm')}</h3>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          {!isEditingNotes ? (
-                            <button
-                              onClick={handleEditNotesClick}
-                              className="edit-notes-btn"
-                              style={{
-                                background: '#007acc',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '6px'
-                              }}
-                            >
-                              ✏️ {t('patientDetail.editNotes')}
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={handleCancelNotesEdit}
-                                className="cancel-edit-btn"
-                                style={{
-                                  background: '#6c757d',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}
-                              >
-                                {t('patientDetail.cancel')}
-                              </button>
-                              <button
-                                onClick={handleSaveNotesEdit}
-                                className="save-edit-btn"
-                                style={{
-                                  background: '#28a745',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}
-                              >
-                                {t('patientDetail.saveChanges')}
-                              </button>
-                            </>
-                          )}
-                        </div>
                       </div>
-                      <div className="form-fields-vertical">
-                        <div className="form-group">
-                          <label style={{ color: '#000000' }}>{t('patientDetail.obstacles')}</label>
-                          {isEditingNotes ? (
-                            <textarea
-                              value={editedNotesData?.obstacles || ''}
-                              onChange={(e) => handleNotesFieldChange('obstacles', e.target.value)}
-                              className="patient-edit-textarea"
-                              rows={6}
-                              placeholder={t('intakeForm.describeObstacles')}
-                            />
-                          ) : (
-                            <div className="patient-detail-value" style={{ minHeight: '100px', padding: '16px' }}>
-                              {patientPII.obstacles || t('patientDetail.noObstacles')}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="form-group">
-                          <label style={{ color: '#000000' }}>{t('patientDetail.strengths')}</label>
-                          {isEditingNotes ? (
-                            <textarea
-                              value={editedNotesData?.strengths || ''}
-                              onChange={(e) => handleNotesFieldChange('strengths', e.target.value)}
-                              className="patient-edit-textarea"
-                              rows={6}
-                              placeholder={t('intakeForm.describeStrengths')}
-                            />
-                          ) : (
-                            <div className="patient-detail-value" style={{ minHeight: '100px', padding: '16px' }}>
-                              {patientPII.strengths || t('patientDetail.noStrengths')}
-                            </div>
-                          )}
-                        </div>
-                        
-                        <div className="form-group">
-                          <label style={{ color: '#000000' }}>{t('patientDetail.notes')}</label>
-                          {isEditingNotes ? (
-                            <textarea
-                              value={editedNotesData?.notes || ''}
-                              onChange={(e) => handleNotesFieldChange('notes', e.target.value)}
-                              className="patient-edit-textarea"
-                              rows={8}
-                              placeholder={t('intakeForm.enterNotes')}
-                            />
-                          ) : (
-                            <div className="patient-detail-value" style={{ minHeight: '120px', padding: '16px' }}>
-                              {patientPII.notes || 'No additional notes available.'}
-                            </div>
-                          )}
-                        </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', width: '100%', maxWidth: '900px', margin: '0 auto' }}>
+                        <button
+                          onClick={() => { if (caseId) navigate(`/${i18n.language}/intake-rights/${caseId}`); }}
+                          style={{
+                            background: '#ffffff',
+                            color: '#000000',
+                            
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid #e9ecef',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            aspectRatio: '1 / 1',
+                            minHeight: '160px',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{ fontSize: '28px' }}>📄</span>
+                          <span style={{ fontSize: '16px' }}>{t('patientDetail.intakeRights')}</span>
+                          {intakeStatus.rights && <span style={{ position: 'absolute', top: 8, left: 8 }}>✅</span>}
+                          <span
+                            onClick={(e) => { e.stopPropagation(); if (caseId) navigate(`/${i18n.language}/intake-rights/${caseId}`); }}
+                            title={t('patientDetail.edit') || 'Edit'}
+                            style={{ position: 'absolute', top: 8, right: 8, background: '#f1f3f5', border: '1px solid #e9ecef', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '14px', color: '#000000' }}
+                          >
+                            ✏️
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => { if (caseId) navigate(`/${i18n.language}/intake-emotional/${caseId}`); }}
+                          style={{
+                            background: '#ffffff',
+                            color: '#000000',
+                            
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid #e9ecef',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            aspectRatio: '1 / 1',
+                            minHeight: '160px',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{ fontSize: '28px' }}>📄</span>
+                          <span style={{ fontSize: '16px' }}>{t('patientDetail.intakeEmotional')}</span>
+                          {intakeStatus.emotional && <span style={{ position: 'absolute', top: 8, left: 8 }}>✅</span>}
+                          <span
+                            onClick={(e) => { e.stopPropagation(); if (caseId) navigate(`/${i18n.language}/intake-emotional/${caseId}`); }}
+                            title={t('patientDetail.edit') || 'Edit'}
+                            style={{ position: 'absolute', top: 8, right: 8, background: '#f1f3f5', border: '1px solid #e9ecef', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '14px', color: '#000000' }}
+                          >
+                            ✏️
+                          </span>
+                        </button>
+                        <button
+                          onClick={() => { if (caseId) navigate(`/${i18n.language}/intake-profesional/${caseId}`); }}
+                          style={{
+                            background: '#ffffff',
+                            color: '#000000',
+                            
+                            padding: '12px 16px',
+                            borderRadius: '8px',
+                            border: '1px solid #e9ecef',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: 500,
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '8px',
+                            justifyContent: 'center',
+                            aspectRatio: '1 / 1',
+                            minHeight: '160px',
+                            position: 'relative'
+                          }}
+                        >
+                          <span style={{ fontSize: '28px' }}>📄</span>
+                          <span style={{ fontSize: '16px' }}>{t('patientDetail.intakeProfessional')}</span>
+                          {intakeStatus.professional && <span style={{ position: 'absolute', top: 8, left: 8 }}>✅</span>}
+                          <span
+                            onClick={(e) => { e.stopPropagation(); if (caseId) navigate(`/${i18n.language}/intake-profesional/${caseId}`); }}
+                            title={t('patientDetail.edit') || 'Edit'}
+                            style={{ position: 'absolute', top: 8, right: 8, background: '#f1f3f5', border: '1px solid #e9ecef', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: '14px', color: '#000000' }}
+                          >
+                            ✏️
+                          </span>
+                        </button>
                       </div>
                     </div>
                   )}
@@ -1769,19 +1758,16 @@ export function PatientDetailPage() {
                               {milestone.title}
                             </h4>
 
-                            {/* Milestone Status - Clickable Dropdown */}
+                            {/* Milestone Status - Shown as badge; editable inside dialog */}
                             <div style={{ 
                               position: 'absolute',
                               top: '10px',
                               right: '10px',
                               zIndex: 10
                             }}>
-                              <select
-                                value={milestone.status}
-                                onChange={(e) => {
-                                  handleUpdateMilestoneStatus(milestone.id, e.target.value);
-                                }}
+                              <span
                                 style={{
+                                  display: 'inline-block',
                                   padding: '4px 8px',
                                   borderRadius: '12px',
                                   fontSize: '12px',
@@ -1790,16 +1776,14 @@ export function PatientDetailPage() {
                                                  milestone.status === 'medium' ? '#ffc107' : 
                                                  milestone.status === 'easy' ? '#28a745' : '#007acc',
                                   color: 'white',
-                                  border: 'none',
-                                  cursor: 'pointer',
-                                  outline: 'none'
+                                  border: 'none'
                                 }}
                               >
-                                <option value="new">{t('patientDetail.statusNew')}</option>
-                                <option value="easy">{t('patientDetail.statusEasy')}</option>
-                                <option value="medium">{t('patientDetail.statusMedium')}</option>
-                                <option value="critical">{t('patientDetail.statusCritical')}</option>
-                              </select>
+                                {milestone.status === 'new' ? t('patientDetail.statusNew') :
+                                 milestone.status === 'easy' ? t('patientDetail.statusEasy') :
+                                 milestone.status === 'medium' ? t('patientDetail.statusMedium') :
+                                 milestone.status === 'critical' ? t('patientDetail.statusCritical') : milestone.status}
+                              </span>
                             </div>
 
                             {/* Milestone Description */}
@@ -1840,7 +1824,7 @@ export function PatientDetailPage() {
                                 </span>
                               </div>
 
-                              {/* Progress Blocks */}
+                              {/* Progress Blocks - Editable in Treatment Plan tab */}
                               <div style={{
                                 display: 'flex',
                                 gap: '2px',
@@ -2006,6 +1990,25 @@ export function PatientDetailPage() {
                 <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
                   📊 {editingMeeting ? t('patientDetail.editMeetingRecord') : t('patientDetail.addMeetingRecord')}
                 </h3>
+                
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ color: '#000000', display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                    {t('patientDetail.meetingDate')} *
+                  </label>
+                  <input
+                    type="date"
+                    value={newMeeting.date}
+                    onChange={(e) => setNewMeeting({ ...newMeeting, date: e.target.value })}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
                 
                 <div style={{ marginBottom: '20px' }}>
                   <label style={{ color: '#000000', display: 'block', marginBottom: '8px', fontWeight: '500' }}>
@@ -2226,6 +2229,8 @@ export function PatientDetailPage() {
               />
             </div>
             
+            
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
               <input
@@ -2241,6 +2246,10 @@ export function PatientDetailPage() {
                 }}
               />
             </div>
+
+            
+
+            
             
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
@@ -2388,6 +2397,26 @@ export function PatientDetailPage() {
               </div>
             </div>
             
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.milestoneStatus')}</label>
+              <select
+                value={newMilestone.status}
+                onChange={(e) => setNewMilestone({ ...newMilestone, status: e.target.value })}
+                style={{
+                  width: '100%',
+                  padding: '10px 12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              >
+                <option value="new">{t('patientDetail.statusNew')}</option>
+                <option value="easy">{t('patientDetail.statusEasy')}</option>
+                <option value="medium">{t('patientDetail.statusMedium')}</option>
+                <option value="critical">{t('patientDetail.statusCritical')}</option>
+              </select>
+            </div>
+
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
               <input

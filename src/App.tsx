@@ -12,8 +12,10 @@ import MainDashboard from './Dashboard';
 import { EditUserPage } from './components/EditUserPage';
 import { CreatePatientPage } from './components/CreatePatientPage';
 import { PatientDetailPage } from './components/PatientDetailPage';
-import { IntakeFormPage } from './components/IntakeFormPage';
 import { CreateEventPage } from './components/CreateEventPage';
+import { IntakeRightsPage } from './components/IntakeRightsPage';
+import { IntakeEmotionalPage } from './components/IntakeEmotionalPage';
+import { IntakeProfesionalPage } from './components/IntakeProfesionalPage';
 
 // Language wrapper component to handle language from URL
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
@@ -52,7 +54,9 @@ function AppRoutes() {
       <Route path="/:lang/edit-user/:userId" element={<EditUserPage />} />
       <Route path="/:lang/create-patient" element={<CreatePatientPage />} />
       <Route path="/:lang/patient/:caseId" element={<PatientDetailPage />} />
-      <Route path="/:lang/intake/:caseId" element={<IntakeFormPage />} />
+      <Route path="/:lang/intake-rights/:caseId" element={<IntakeRightsPage />} />
+      <Route path="/:lang/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
+      <Route path="/:lang/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/:lang/create-event" element={<CreateEventPage />} />
       
       {/* Fallback routes without language prefix - will be redirected */}
@@ -64,7 +68,9 @@ function AppRoutes() {
       <Route path="/edit-user/:userId" element={<EditUserPage />} />
       <Route path="/create-patient" element={<CreatePatientPage />} />
       <Route path="/patient/:caseId" element={<PatientDetailPage />} />
-      <Route path="/intake/:caseId" element={<IntakeFormPage />} />
+      <Route path="/intake-rights/:caseId" element={<IntakeRightsPage />} />
+      <Route path="/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
+      <Route path="/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/create-event" element={<CreateEventPage />} />
       
       {/* Catch all */}

@@ -18,7 +18,7 @@ export function EditUserPage() {
     name: '',
     email: '',
     role: 'admin' as 'super_admin' | 'admin',
-    status: 'active' as 'active' | 'blocked' | 'restricted',
+    status: 'active' as 'active' | 'blocked',
     password: ''
   });
   const [isUserLoading, setIsUserLoading] = useState(false);
@@ -55,7 +55,7 @@ export function EditUserPage() {
           name: userToEdit.name,
           email: userToEdit.email,
           role: userToEdit.role === 'super_admin' ? 'super_admin' : 'admin',
-          status: userToEdit.blocked ? 'blocked' : (userToEdit.restricted ? 'restricted' : 'active'),
+          status: userToEdit.blocked || userToEdit.restricted ? 'blocked' : 'active',
           password: ''
         });
       } else {
@@ -185,7 +185,6 @@ export function EditUserPage() {
               >
                 <option value="active">{t('editUser.statusActive')}</option>
                 <option value="blocked">{t('editUser.statusBlocked')}</option>
-                <option value="restricted">{t('editUser.statusRestricted')}</option>
               </select>
             </div>
             

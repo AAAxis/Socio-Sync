@@ -488,17 +488,7 @@ export default function Patients({
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <button 
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/intake/${dropdownPosition.caseId}`);
-              setShowPatientMenu(null);
-              setDropdownPosition(null);
-            }}
-            className="dropdown-item start-intake"
-          >
-            📝 {t('patients.startIntake')}
-          </button>
+          
           <button 
             onClick={(e) => {
               e.stopPropagation();

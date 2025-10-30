@@ -4558,10 +4558,7 @@ a.sidebar-nav.active {
   direction: rtl;
 }
 
-/* RTL support for intake form blocks */
-[dir="rtl"] .form-block {
-  direction: rtl;
-}
+/* removed legacy intake-specific RTL block */
 
 [dir="rtl"] .form-blocks-three {
   direction: rtl;
@@ -6660,15 +6657,7 @@ a.sidebar-nav.active,
     sans-serif, 'Noto Sans Hebrew', 'Arial Hebrew', 'David', 'Miriam', 'FrankRuehl';
 }
 
-/* Intake Form dropdown item styling */
-.user-dropdown-item.intake-form {
-  background-color: #e3f2fd;
-  color: #1976d2;
-}
-
-.user-dropdown-item.intake-form:hover {
-  background-color: #bbdefb;
-}
+/* removed legacy intake form dropdown styling */
 
 /* RTL support for Create Event Page */
 [dir="rtl"] .create-event-container,

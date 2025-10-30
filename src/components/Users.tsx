@@ -72,7 +72,6 @@ export default function Users({
               <option value="all">{t('users.allUsers')}</option>
               <option value="active">{t('users.statusActive')}</option>
               <option value="blocked">{t('users.statusBlocked')}</option>
-              <option value="restricted">{t('users.statusRestricted')}</option>
             </select>
           </div>
           <button
@@ -135,8 +134,8 @@ export default function Users({
                   </span>
                 </td>
                 <td className="user-status-cell">
-                  <span className={`status-badge ${userItem.blocked ? 'blocked' : (userItem.restricted ? 'restricted' : 'active')}`}>
-                    {userItem.blocked ? t('users.statusBlocked') : (userItem.restricted ? t('users.statusRestricted') : t('users.statusActive'))}
+                  <span className={`status-badge ${userItem.blocked || userItem.restricted ? 'blocked' : 'active'}`}>
+                    {userItem.blocked || userItem.restricted ? t('users.statusBlocked') : t('users.statusActive')}
                   </span>
                 </td>
                 <td className="user-login-cell">

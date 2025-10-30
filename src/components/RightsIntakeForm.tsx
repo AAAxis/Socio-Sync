@@ -13,23 +13,23 @@ export interface RightsFieldDefinition {
 }
 
 export const RIGHTS_FIELDS: RightsFieldDefinition[] = [
-  { field_name: 'id_number', label: 'ID Number', type: 'text', description: 'For cross-checking eligibility (optional)' },
-  { field_name: 'household_status', label: 'Marital Status', type: 'select', options: ['Single', 'Married', 'Divorced', 'Widowed', 'Single Parent'], rule: 'If Single Parent → Income tax credit points' },
-  { field_name: 'children_count', label: 'Number of Children', type: 'number' },
-  { field_name: 'children_ages', label: 'Children’s Ages (details)', type: 'text', rule: 'If any child <3 → Daycare/childcare subsidy' },
-  { field_name: 'employment_status_now', label: 'Current Employment Status', type: 'select', options: ['Unemployed', 'Job Seeking', 'In Training', 'Part-Time', 'Full-Time', 'Self-Employed'], rule: 'If unemployed → Check unemployment benefits' },
-  { field_name: 'monthly_income_gross', label: 'Monthly Income (Gross)', type: 'number', rule: 'If <5000 → Check income support eligibility' },
-  { field_name: 'spouse_income', label: 'Spouse Monthly Income (Gross)', type: 'number' },
-  { field_name: 'unemployment_status', label: 'Registered for Unemployment / Benefits', type: 'select', options: ['Yes', 'No', 'In Process'], rule: 'If No → Refer to Employment Service registration' },
-  { field_name: 'employment_injury', label: 'Work Injury / Recognized Accident', type: 'select', options: ['Yes', 'No'], rule: 'If Yes → Work injury compensation check' },
-  { field_name: 'housing_status', label: 'Housing Situation', type: 'select', options: ['Renting', 'Homeowner', 'No Permanent Housing', 'Public Housing'], rule: 'If Renting → Check rent assistance eligibility' },
-  { field_name: 'rent_amount', label: 'Monthly Rent Amount', type: 'number' },
-  { field_name: 'health_condition', label: 'Health Condition', type: 'select', options: ['Healthy', 'Chronic Illness', 'Disability', 'Mental Diagnosis', 'Recognized Disability'], rule: 'If Disability → Check disability allowances' },
-  { field_name: 'mental_health_support', label: 'Receiving Mental Health Support', type: 'select', options: ['Yes', 'No', 'In Process'], rule: 'If No → Refer for mental health support' },
-  { field_name: 'education_level', label: 'Formal Education Level', type: 'select', options: ['None', '12 Years', 'Vocational Certificate', 'Bachelor’s', 'Master’s+'] },
-  { field_name: 'training_interest', label: 'Interested in Professional Training', type: 'select', options: ['Yes', 'No', 'Not Sure'], rule: 'If Yes → Refer to suitable training programs' },
-  { field_name: 'debt_status', label: 'Active Debts / Enforcement Cases', type: 'select', options: ['Yes', 'No', 'Not Sure'], rule: 'If Yes → Refer to debt counseling services' },
-  { field_name: 'transport_access', label: 'Transport Accessibility', type: 'select', options: ['Private Car', 'Public Transport', 'None'], rule: 'If None → Check for transport assistance / nearby jobs' }
+  { field_name: 'id_number', label: 'מספר מזהה', type: 'text' },
+  { field_name: 'household_status', label: 'מצב משפחתי', type: 'select', options: ['רווק/ה', 'נשוי/אה', 'גרוש/ה', 'אלמן/ה', 'הורה יחיד/ה'] },
+  { field_name: 'children_count', label: 'מספר ילדים', type: 'number' },
+  { field_name: 'children_ages', label: 'גילאי הילדים (פירוט)', type: 'text' },
+  { field_name: 'employment_status_now', label: 'מצב תעסוקתי נוכחי', type: 'select', options: ['מחוסר עבודה', 'מחפש/ת עבודה', 'בהכשרה', 'משרה חלקית', 'משרה מלאה', 'עצמאי/ת'] },
+  { field_name: 'monthly_income_gross', label: 'הכנסה חודשית (ברוטו)', type: 'number' },
+  { field_name: 'spouse_income', label: 'הכנסה חודשית של בן/בת זוג (ברוטו)', type: 'number' },
+  { field_name: 'unemployment_status', label: 'רישום לאבטלה / זכאות', type: 'select', options: ['כן', 'לא', 'בתהליך'] },
+  { field_name: 'employment_injury', label: 'פגיעה בעבודה / תאונה מוכרת', type: 'select', options: ['כן', 'לא'] },
+  { field_name: 'housing_status', label: 'מצב דיור', type: 'select', options: ['שוכר/ת', 'בעל/ת דירה', 'ללא דיור קבוע', 'דיור ציבורי'] },
+  { field_name: 'rent_amount', label: 'גובה שכר דירה חודשי', type: 'number' },
+  { field_name: 'health_condition', label: 'מצב בריאותי', type: 'select', options: ['בריא/ה', 'מחלה כרונית', 'נכות', 'אבחנה נפשית', 'נכות מוכרת'] },
+  { field_name: 'mental_health_support', label: 'קבלת תמיכה נפשית', type: 'select', options: ['כן', 'לא', 'בתהליך'] },
+  { field_name: 'education_level', label: 'השכלה פורמלית', type: 'select', options: ['ללא', '12 שנות לימוד', 'תעודה מקצועית', 'תואר ראשון', 'תואר שני ומעלה'] },
+  { field_name: 'training_interest', label: 'מעוניין/ת בהכשרה מקצועית', type: 'select', options: ['כן', 'לא', 'לא בטוח/ה'] },
+  { field_name: 'debt_status', label: 'חובות פעילים / תיקים בהוצל"פ', type: 'select', options: ['כן', 'לא', 'לא בטוח/ה'] },
+  { field_name: 'transport_access', label: 'נגישות תחבורתית', type: 'select', options: ['רכב פרטי', 'תחבורה ציבורית', 'אין'] }
 ];
 
 export type RightsIntakeData = {
@@ -126,7 +126,7 @@ export function RightsIntakeForm({ initialValues = {}, onSubmit }: RightsIntakeF
   const [values, setValues] = useState<RightsIntakeData>(() => ({ ...initialValues }));
   const { t } = useTranslation();
 
-  const recommendations = useMemo(() => evaluateRightsRecommendations(values), [values]);
+
 
   const handleChange = (name: string, value: string) => {
     const def = RIGHTS_FIELDS.find((f) => f.field_name === name);
@@ -140,7 +140,7 @@ export function RightsIntakeForm({ initialValues = {}, onSubmit }: RightsIntakeF
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { values, recommendations };
+    const payload = { values, recommendations: [] };
     if (onSubmit) onSubmit(payload);
     // Default no-op submit handling if no callback supplied
     // Consumers can attach their own persistence or navigation logic
@@ -164,7 +164,9 @@ export function RightsIntakeForm({ initialValues = {}, onSubmit }: RightsIntakeF
         const value = values[field.field_name] ?? '';
         return (
           <div key={field.field_name} style={fieldStyle}>
-            <label htmlFor={field.field_name} style={{ fontWeight: 500 }}>{field.label}</label>
+            <label htmlFor={field.field_name} style={{ fontWeight: 500 }}>
+              {field.label}
+            </label>
             {field.type === 'select' ? (
               <select
                 id={field.field_name}
@@ -174,7 +176,7 @@ export function RightsIntakeForm({ initialValues = {}, onSubmit }: RightsIntakeF
               >
                 <option value="">--</option>
                 {(field.options || []).map((opt) => (
-                  <option key={opt} value={opt}>{opt}</option>
+                  <option key={opt} value={opt}>{String(opt)}</option>
                 ))}
               </select>
             ) : (
@@ -187,26 +189,12 @@ export function RightsIntakeForm({ initialValues = {}, onSubmit }: RightsIntakeF
                 style={inputStyle}
               />
             )}
-            {field.description && <small>{field.description}</small>}
-            {field.rule && <small>{field.rule}</small>}
+            {field.description && (t as any).i18n?.language !== 'he' && <small>{field.description}</small>}
+            {field.rule && (t as any).i18n?.language !== 'he' && <small>{field.rule}</small>}
           </div>
         );
       })}
 
-      <div>
-        <h4>Suggested Next Steps</h4>
-        {recommendations.length === 0 ? (
-          <div>No current suggestions</div>
-        ) : (
-          <ul>
-            {recommendations.map((r) => (
-              <li key={r.id}>
-                <strong>{r.title}</strong>: {r.reason}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
         <button type="submit" style={{ background: '#007acc', color: '#fff', border: 'none', padding: '10px 16px', borderRadius: 6, cursor: 'pointer' }}>

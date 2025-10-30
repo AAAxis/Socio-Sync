@@ -46,14 +46,22 @@ export function IntakeRightsPage() {
             initialValues={initialValues}
             onSubmit={async ({ values, recommendations }) => {
               if (!caseId) return;
-              const ref = doc(db, 'patients', String(caseId), 'intakes', 'rights');
-              await setDoc(ref, {
-                answers: values,
-                recommendations,
-                completed: true,
-                updatedAt: serverTimestamp()
-              }, { merge: true });
-              console.log('Rights Intake saved');
+              try {
+                const ref = doc(db, 'patients', String(caseId), 'intakes', 'rights');
+                await setDoc(ref, {
+                  answers: values,
+                  recommendations,
+                  completed: true,
+                  updatedAt: serverTimestamp()
+                }, { merge: true });
+                
+                // Navigate back to patient detail page with intake tab
+                const targetUrl = lang ? `/${lang}/patient/${caseId}` : `/patient/${caseId}`;
+                navigate(targetUrl + '#intake');
+              } catch (error) {
+                console.error('Error saving rights intake:', error);
+                alert('שגיאה בשמירה. אנא נסה שוב.');
+              }
             }}
           />
         )}

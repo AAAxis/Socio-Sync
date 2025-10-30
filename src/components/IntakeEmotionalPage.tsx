@@ -31,67 +31,25 @@ export function IntakeEmotionalPage() {
 
   const visible = useMemo(() => getVisibleQuestions(answers), [answers]);
 
-  const tr = (s: string) => {
-    if (!s) return s;
-    if ((t as any).i18n?.language !== 'he') return s;
-    const map: Record<string, string> = {
-      'Yes': 'כן',
-      'No': 'לא',
-      '--': '--',
-      'Always': 'תמיד',
-      'Most of the day': 'רוב היום',
-      'Part of the day': 'חלק מהיום',
-      'Rarely': 'לעיתים רחוקות',
-      'Never': 'אף פעם',
-      'Anxiety': 'חרדה',
-      'Depression': 'דיכאון',
-      'Emotional regulation difficulty': 'קושי בוויסות רגשי',
-      'Crisis': 'משבר',
-      'Trauma': 'טראומה',
-      'Low self-esteem': 'דימוי עצמי נמוך',
-      'Self-criticism': 'ביקורת עצמית',
-      'Loneliness': 'בדידות',
-      'Lack of support': 'חוסר תמיכה',
-      'Relationship issues': 'קשיים בזוגיות/יחסים',
-      'Fatigue': 'עייפות',
-      'Burnout': 'שחיקה',
-      'Low self-awareness': 'מודעות עצמית נמוכה',
-      'Other': 'אחר',
-      'At home': 'בבית',
-      'At work': 'בעבודה',
-      'In social situations': 'בסיטואציות חברתיות',
-      'While driving': 'בנהיגה',
-      'Medication': 'תרופות',
-      'Breathing/relaxation': 'נשימות/הרפיה',
-      'Talking': 'שיחה',
-      'Avoidance': 'הימנעות',
-      'Therapy': 'טיפול',
-      'Work': 'עבודה',
-      'Parenting': 'הורות',
-      'Relationship': 'זוגיות',
-      'Alone': 'לבד',
-      'Confusion': 'בלבול',
-      'Despair': 'ייאוש',
-      'Fear': 'פחד',
-      'Loss of control': 'אובדן שליטה',
-      'Anger': 'כעס',
-      'Emotional support': 'תמיכה רגשית',
-      'Practical tools': 'כלים מעשיים',
-      'Both': 'גם וגם'
-    };
-    return map[s] || s;
-  };
-
   const onChange = (field: string, value: any) => {
     const { answers: updated } = handleAnswerChange(answers, field, value);
     setAnswers(updated);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!caseId) return;
-    const ref = doc(db, 'patients', String(caseId), 'intakes', 'emotional');
-    setDoc(ref, { answers, completed: true, updatedAt: serverTimestamp() }, { merge: true });
+    try {
+      const ref = doc(db, 'patients', String(caseId), 'intakes', 'emotional');
+      await setDoc(ref, { answers, completed: true, updatedAt: serverTimestamp() }, { merge: true });
+      
+      // Navigate back to patient detail page with intake tab
+      const targetUrl = lang ? `/${lang}/patient/${caseId}` : `/patient/${caseId}`;
+      navigate(targetUrl + '#intake');
+    } catch (error) {
+      console.error('Error saving emotional intake:', error);
+      alert('שגיאה בשמירה. אנא נסה שוב.');
+    }
   };
 
   return (
@@ -111,7 +69,7 @@ export function IntakeEmotionalPage() {
       <form onSubmit={handleSubmit} style={{ background: '#fff', border: '1px solid #e9ecef', borderRadius: 10, padding: 20 }}>
         {visible.map((q) => (
           <div key={q.field_name} style={{ marginBottom: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label style={{ fontWeight: 500 }}>{tr(q.question_text)}</label>
+            <label style={{ fontWeight: 500 }}>{q.question_text}</label>
             {q.input_type === 'text' && (
               <input
                 type="text"
@@ -126,9 +84,9 @@ export function IntakeEmotionalPage() {
                 onChange={(e) => onChange(q.field_name, e.target.value)}
                 style={{ padding: '10px 12px', border: '1px solid #ced4da', borderRadius: 6 }}
               >
-                <option value="">{tr('--')}</option>
-                <option value="yes">{tr('Yes')}</option>
-                <option value="no">{tr('No')}</option>
+                <option value="">--</option>
+                <option value="כן">כן</option>
+                <option value="לא">לא</option>
               </select>
             )}
             {q.input_type === 'scale' && (
@@ -137,9 +95,9 @@ export function IntakeEmotionalPage() {
                 onChange={(e) => onChange(q.field_name, e.target.value)}
                 style={{ padding: '10px 12px', border: '1px solid #ced4da', borderRadius: 6 }}
               >
-                <option value="">{tr('--')}</option>
+                <option value="">--</option>
                 {(q.options || []).map((opt) => (
-                  <option key={opt} value={opt}>{tr(String(opt))}</option>
+                  <option key={opt} value={opt}>{String(opt)}</option>
                 ))}
               </select>
             )}
@@ -156,7 +114,7 @@ export function IntakeEmotionalPage() {
                 style={{ padding: '10px 12px', border: '1px solid #ced4da', borderRadius: 6 }}
               >
                 {(q.options || []).map((opt) => (
-                  <option key={opt} value={opt}>{tr(String(opt))}</option>
+                  <option key={opt} value={opt}>{String(opt)}</option>
                 ))}
               </select>
             )}

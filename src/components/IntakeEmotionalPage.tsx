@@ -57,7 +57,10 @@ export function IntakeEmotionalPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <h2 style={{ margin: 0 }}>{t('intake.emotionalTitle')}</h2>
         <button
-          onClick={() => navigate(`/${lang || 'en'}/patient/${caseId}`)}
+          onClick={() => {
+            const targetUrl = lang ? `/${lang}/patient/${caseId}` : `/patient/${caseId}`;
+            navigate(targetUrl + '#intake');
+          }}
           style={{ background: '#6c757d', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 6, cursor: 'pointer' }}
         >
           ← {t('intake.back')}

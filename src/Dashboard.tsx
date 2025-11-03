@@ -145,7 +145,9 @@ export default function MainDashboard() {
   // New state for tasks and notifications
   const [todayTasks, setTodayTasks] = useState<Task[]>([]);
   const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
+  const [allTasks, setAllTasks] = useState<Task[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [inactivePatients, setInactivePatients] = useState<Patient[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(false);
   const [isNotificationsLoading, setIsNotificationsLoading] = useState(false);
 
@@ -705,19 +707,22 @@ export default function MainDashboard() {
           }
           return task.status === 'pending' || isOverdue;
         }));
+        setAllTasks(sampleTasks); // Store all sample tasks
       } else {
         // Filter tasks for today and pending
         const today = new Date();
         const todayString = today.toISOString().split('T')[0];
         
-        const todayTasksFiltered = allTasks.filter(task => {
+        // Filter out completed tasks first
+        const activeTasks = allTasks.filter(task => task.status !== 'completed');
+        
+        const todayTasksFiltered = activeTasks.filter(task => {
           if (!task.dueDate) {
             console.log('Task has no dueDate:', task.title);
             return false;
           }
           const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
           const matchesToday = taskDate === todayString;
-          const notCompleted = task.status !== 'completed';
           console.log('Task filtering:', {
             title: task.title,
             dueDate: task.dueDate,
@@ -725,13 +730,12 @@ export default function MainDashboard() {
             todayString,
             matchesToday,
             status: task.status,
-            notCompleted,
-            willShow: matchesToday && notCompleted
+            willShow: matchesToday
           });
-          return matchesToday && notCompleted;
+          return matchesToday;
         });
         
-        const pendingTasksFiltered = allTasks.filter(task => {
+        const pendingTasksFiltered = activeTasks.filter(task => {
           if (!task.dueDate) return task.status === 'pending';
           const taskDate = new Date(task.dueDate);
           const isOverdue = taskDate < today && task.status !== 'completed';
@@ -743,6 +747,8 @@ export default function MainDashboard() {
         
         setTodayTasks(todayTasksFiltered);
         setPendingTasks(pendingTasksFiltered);
+        // Store all active (non-completed) tasks sorted by latest
+        setAllTasks(activeTasks);
       }
       
       // Load notifications
@@ -1541,11 +1547,14 @@ export default function MainDashboard() {
         const oneMonthAgo = new Date();
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
         
-        const inactiveCases = filteredPatients.filter(patient => {
+        const inactivePatientsList = filteredPatients.filter(patient => {
           if (!patient.updatedAt) return true; // If no update date, consider inactive
           const updatedDate = patient.updatedAt.toDate ? patient.updatedAt.toDate() : new Date(patient.updatedAt);
           return updatedDate < oneMonthAgo;
-        }).length;
+        });
+        
+        setInactivePatients(inactivePatientsList);
+        const inactiveCases = inactivePatientsList.length;
         
         // Calculate treatment completion percentage from all milestones
         const allMilestones = await loadAllMilestones();
@@ -1954,7 +1963,9 @@ export default function MainDashboard() {
                     // New props for tasks and notifications
                     todayTasks={todayTasks}
                     pendingTasks={pendingTasks}
+                    allTasks={allTasks}
                     notifications={notifications}
+                    inactivePatients={inactivePatients}
                     isTasksLoading={isTasksLoading}
                     isNotificationsLoading={isNotificationsLoading}
                     handleTaskStatusChange={handleTaskStatusChange}

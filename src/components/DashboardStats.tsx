@@ -40,6 +40,7 @@ interface DashboardStatsProps {
   // New props for tasks and notifications
   todayTasks?: Task[];
   pendingTasks?: Task[];
+  allTasks?: Task[];
   notifications?: Notification[];
   isTasksLoading?: boolean;
   isNotificationsLoading?: boolean;
@@ -49,6 +50,8 @@ interface DashboardStatsProps {
   // Events props
   events?: any[];
   isEventsLoading?: boolean;
+  // Inactive patients
+  inactivePatients?: any[];
 }
 
 export function DashboardStats({
@@ -76,6 +79,7 @@ export function DashboardStats({
   // New props for tasks and notifications
   todayTasks = [],
   pendingTasks = [],
+  allTasks = [],
   notifications = [],
   isTasksLoading = false,
   isNotificationsLoading = false,
@@ -84,7 +88,9 @@ export function DashboardStats({
   refreshTasks,
   // Events props
   events = [],
-  isEventsLoading = false
+  isEventsLoading = false,
+  // Inactive patients
+  inactivePatients = []
 }: DashboardStatsProps) {
   const { showConfirm, DialogComponent } = useCustomDialog();
   
@@ -92,7 +98,7 @@ export function DashboardStats({
   const [activeTab, setActiveTab] = useState<'notifications' | 'todayTasks' | 'pendingTasks' | 'milestones' | 'upcomingMeetings' | 'inactiveCases'>('notifications');
   
   // Task filter state
-  const [taskFilter, setTaskFilter] = useState<'all' | 'done' | 'undone'>('all');
+  const [taskFilter, setTaskFilter] = useState<'all' | 'today'>('all');
   
   // Create task state
   const [showCreateTaskForm, setShowCreateTaskForm] = useState(false);
@@ -685,36 +691,20 @@ export function DashboardStats({
                     {i18n.language === 'he' ? 'הכל' : 'All'}
                   </button>
                   <button
-                    onClick={() => setTaskFilter('done')}
+                    onClick={() => setTaskFilter('today')}
                     style={{
                       padding: '8px 16px',
                       border: '1px solid #ddd',
                       borderRadius: '6px',
-                      backgroundColor: taskFilter === 'done' ? '#28a745' : 'white',
-                      color: taskFilter === 'done' ? 'white' : '#666',
+                      backgroundColor: taskFilter === 'today' ? '#007acc' : 'white',
+                      color: taskFilter === 'today' ? 'white' : '#666',
                       cursor: 'pointer',
                       fontSize: '12px',
                       fontWeight: '500',
                       transition: 'all 0.2s ease'
                     }}
                   >
-                    {i18n.language === 'he' ? 'הושלמו' : 'Done'}
-                  </button>
-                  <button
-                    onClick={() => setTaskFilter('undone')}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      backgroundColor: taskFilter === 'undone' ? '#dc3545' : 'white',
-                      color: taskFilter === 'undone' ? 'white' : '#666',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    {i18n.language === 'he' ? 'לא הושלמו' : 'Undone'}
+                    {i18n.language === 'he' ? 'משימות שצריך לעשות היום' : 'Today'}
                   </button>
                 </div>
                 {isTasksLoading ? (
@@ -723,14 +713,28 @@ export function DashboardStats({
                       {i18n.language === 'he' ? 'טוען משימות...' : 'Loading tasks...'}
                     </div>
                   </div>
-                ) : todayTasks.length > 0 ? (
+                ) : (allTasks.length > 0 || todayTasks.length > 0) ? (
                   <div style={{ maxHeight: '500px', overflowY: 'auto' }}>
-                    {todayTasks
+                    {(allTasks.length > 0 ? allTasks : todayTasks)
                       .filter(task => {
+                        // Always remove completed tasks from the list
+                        if (task.status === 'completed') return false;
+                        
                         if (taskFilter === 'all') return true;
-                        if (taskFilter === 'done') return task.status === 'completed';
-                        if (taskFilter === 'undone') return task.status !== 'completed';
+                        if (taskFilter === 'today') {
+                          if (!task.dueDate) return false;
+                          const today = new Date();
+                          const todayString = today.toISOString().split('T')[0];
+                          const taskDate = new Date(task.dueDate).toISOString().split('T')[0];
+                          return taskDate === todayString;
+                        }
                         return true;
+                      })
+                      .sort((a, b) => {
+                        // Sort by createdAt descending (newest first)
+                        const aDate = new Date(a.createdAt || 0).getTime();
+                        const bDate = new Date(b.createdAt || 0).getTime();
+                        return bDate - aDate;
                       })
                       .map((task) => (
                       <div
@@ -898,6 +902,9 @@ export function DashboardStats({
                             console.log('Task created successfully:', result.taskId);
                             setShowCreateTaskForm(false);
                             setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
+                            // Switch to showing all tasks tab and refresh
+                            setActiveTab('todayTasks');
+                            setTaskFilter('all');
                             // Refresh the tasks list
                             if (refreshTasks) {
                               refreshTasks();
@@ -1528,53 +1535,67 @@ export function DashboardStats({
                     gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                     gap: '15px'
                   }}>
-                    {/* This will be populated with inactive patients data */}
-                    {dashboardStats.inactiveCases > 0 ? (
-                      // Placeholder card showing the style - replace with actual patient data
-                      <div style={{
-                        background: 'white',
-                        border: '2px solid #dc3545',
-                        borderRadius: '12px',
-                        padding: '15px',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                        transition: 'all 0.3s ease',
-                        cursor: 'pointer',
-                        position: 'relative'
-                      }}>
-                        <h4 style={{ 
-                          color: '#000000', 
-                          marginBottom: '8px',
-                          fontSize: '16px',
-                          fontWeight: '600',
-                          textAlign: i18n.language === 'he' ? 'right' : 'left',
-                          direction: i18n.language === 'he' ? 'rtl' : 'ltr'
-                        }}>
-                          {t('dashboard.inactiveCases')}
-                        </h4>
-                        
-                        {/* Progress Bar - Same style as patient detail page */}
-                        <div style={{ marginBottom: '10px' }}>
-                          <div style={{ 
-                            width: '100%', 
-                            height: '6px', 
-                            background: '#e9ecef', 
-                            borderRadius: '3px',
-                            overflow: 'hidden'
+                    {inactivePatients.length > 0 ? (
+                      inactivePatients.map((patient) => (
+                        <div
+                          key={patient.id}
+                          onClick={() => handlePatientSelect(patient.id)}
+                          style={{
+                            background: 'white',
+                            border: '2px solid #dc3545',
+                            borderRadius: '12px',
+                            padding: '15px',
+                            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer',
+                            position: 'relative'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.transform = 'translateY(-2px)';
+                            e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.transform = 'translateY(0)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }}
+                        >
+                          <h4 style={{ 
+                            color: '#000000', 
+                            marginBottom: '8px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            textAlign: i18n.language === 'he' ? 'right' : 'left',
+                            direction: i18n.language === 'he' ? 'rtl' : 'ltr'
                           }}>
-                            <div
-                              style={{
-                                width: `50%`,
-                                height: '100%',
-                                background: '#000000',
-                                transition: 'width 0.3s ease'
-                              }}
-                            />
-                          </div>
-                          <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '3px', textAlign: i18n.language === 'he' ? 'right' : 'left', direction: i18n.language === 'he' ? 'rtl' : 'ltr' }}>
-                            50% {i18n.language === 'he' ? 'הושלם' : 'completed'}
-                          </div>
+                            {patient.caseId || patient.id}
+                          </h4>
+                          {patient.name && (
+                            <p style={{
+                              color: '#666',
+                              fontSize: '14px',
+                              marginBottom: '8px',
+                              textAlign: i18n.language === 'he' ? 'right' : 'left',
+                              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                            }}>
+                              {patient.name}
+                            </p>
+                          )}
+                          {patient.updatedAt && (
+                            <p style={{
+                              color: '#999',
+                              fontSize: '12px',
+                              textAlign: i18n.language === 'he' ? 'right' : 'left',
+                              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                            }}>
+                              {i18n.language === 'he' ? 'עודכן לאחרונה: ' : 'Last updated: '}
+                              {patient.updatedAt.toDate ? 
+                                patient.updatedAt.toDate().toLocaleDateString('he-IL') :
+                                new Date(patient.updatedAt).toLocaleDateString('he-IL')
+                              }
+                            </p>
+                          )}
                         </div>
-                      </div>
+                      ))
                     ) : (
                       <div style={{
                         textAlign: 'center',

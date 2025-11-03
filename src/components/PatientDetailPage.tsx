@@ -6,6 +6,11 @@ import { getActivityNotes, deletePatientCase, deleteActivityLog, onAuthStateChan
 import { User, ActivityNote } from '../types';
 import { formatDate } from '../utils';
 import { getApiUrl } from '../config';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { RIGHTS_FIELDS } from './RightsIntakeForm';
+import { emotionalQuestions } from './EmotionalIntakeLogic';
+import { careerQuestions } from './CareerIntakeLogic';
 
 // Patient Detail Page Component
 export function PatientDetailPage() {
@@ -283,6 +288,26 @@ export function PatientDetailPage() {
     }
   }, [caseId, user]);
 
+  // Check URL hash on mount and when location changes to set active tab
+  useEffect(() => {
+    const checkHash = () => {
+      const hash = window.location.hash;
+      if (hash === '#intake' || hash === '#notes') {
+        setActiveDetailTab('notes');
+      }
+    };
+    
+    // Check on mount
+    checkHash();
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', checkHash);
+    
+    return () => {
+      window.removeEventListener('hashchange', checkHash);
+    };
+  }, []);
+
   // Close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -534,6 +559,473 @@ export function PatientDetailPage() {
   const handleCancelNotesEdit = () => {
     setIsEditingNotes(false);
     setEditedNotesData(null);
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!patientPII || !caseId) return;
+
+    // Fetch all intake forms data
+    let rightsIntakeData: any = null;
+    let emotionalIntakeData: any = null;
+    let professionalIntakeData: any = null;
+
+    try {
+      const { db } = await import('../firebase');
+      const { doc, getDoc } = await import('firebase/firestore');
+      
+      const rightsRef = doc(db, 'patients', String(caseId), 'intakes', 'rights');
+      const emotionalRef = doc(db, 'patients', String(caseId), 'intakes', 'emotional');
+      const professionalRef = doc(db, 'patients', String(caseId), 'intakes', 'professional');
+      
+      const [rightsDoc, emotionalDoc, professionalDoc] = await Promise.all([
+        getDoc(rightsRef),
+        getDoc(emotionalRef),
+        getDoc(professionalRef)
+      ]);
+      
+      if (rightsDoc.exists()) {
+        rightsIntakeData = rightsDoc.data().answers || {};
+      }
+      if (emotionalDoc.exists()) {
+        emotionalIntakeData = emotionalDoc.data().answers || {};
+      }
+      if (professionalDoc.exists()) {
+        professionalIntakeData = professionalDoc.data().answers || {};
+      }
+    } catch (error) {
+      console.error('Error loading intake forms:', error);
+    }
+
+    // Create a hidden div with all patient data in Hebrew
+    const pdfContent = document.createElement('div');
+    pdfContent.style.position = 'absolute';
+    pdfContent.style.left = '-9999px';
+    pdfContent.style.width = '210mm'; // A4 width
+    pdfContent.style.padding = '10mm';
+    pdfContent.style.margin = '0';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.fontFamily = 'Arial, sans-serif';
+    pdfContent.style.direction = 'rtl';
+    pdfContent.style.textAlign = 'right';
+    pdfContent.style.fontSize = '11px';
+    pdfContent.style.lineHeight = '1.4';
+    pdfContent.style.boxSizing = 'border-box';
+    
+    // Add print styles for page breaks
+    const style = document.createElement('style');
+    style.textContent = `
+      @media print {
+        .page-break {
+          page-break-before: always;
+          break-before: page;
+        }
+        .page-break-inside-avoid {
+          page-break-inside: avoid;
+          break-inside: avoid;
+        }
+        .page-break-after {
+          page-break-after: always;
+          break-after: page;
+        }
+      }
+      .section {
+        margin-bottom: 30px;
+      }
+      .subsection {
+        margin-bottom: 20px;
+        page-break-inside: avoid;
+        break-inside: avoid;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Build HTML content
+    let htmlContent = `
+      <div class="section" style="text-align: center; margin: 0; padding: 0;">
+        <h1 style="font-size: 18px; margin: 0 0 5px 0; padding: 0;">${t('patientDetail.patientDetails')}</h1>
+        <p style="font-size: 12px; color: #666; margin: 2px 0; padding: 0;">${t('patientDetail.caseId')}: ${caseId}</p>
+        <p style="font-size: 11px; color: #999; margin: 2px 0 0 0; padding: 0;">${t('patientDetail.generated')}: ${new Date().toLocaleDateString('he-IL')}</p>
+      </div>
+      
+      <div class="section" style="margin: 0; padding: 15px;">
+        <h2 style="font-size: 16px; margin: 0 0 15px 0; padding: 0 0 10px 0; border-bottom: 2px solid #333; font-weight: bold;">${t('patientDetail.information')}</h2>
+        <table style="width: 100%; border-collapse: separate; border-spacing: 0 8px; margin: 0; padding: 0;">
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; width: 35%; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.firstName')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${patientPII.first_name || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.lastName')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${patientPII.last_name || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.email')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${patientPII.email || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.phone')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${patientPII.phone || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.address')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${patientPII.address || 'N/A'}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('intakeForm.gender')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${translateValue('gender', patientPII.gender || '')}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.education')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${translateValue('education', patientPII.education || '')}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 12px; font-weight: bold; font-size: 13px; border-right: 2px solid #e0e0e0; vertical-align: middle;">${t('patientDetail.maritalStatus')}:</td>
+            <td style="padding: 8px 12px; font-size: 13px; vertical-align: middle;">${translateValue('marital_status', patientPII.maritalStatus || patientPII.marital_status || '')}</td>
+          </tr>
+        </table>
+    `;
+
+    if (patientPII.notes) {
+      htmlContent += `
+        <div class="subsection" style="margin: 15px 0 0 0; padding: 12px;">
+          <h3 style="font-size: 13px; margin: 0 0 8px 0; padding: 0; font-weight: bold; color: #333;">${t('patientDetail.notes')}:</h3>
+          <p style="margin: 0; padding: 8px; font-size: 12px; line-height: 1.5;">${patientPII.notes}</p>
+        </div>
+      `;
+    }
+
+    if (patientPII.strengths) {
+      htmlContent += `
+        <div class="subsection" style="margin: 15px 0 0 0; padding: 12px;">
+          <h3 style="font-size: 13px; margin: 0 0 8px 0; padding: 0; font-weight: bold; color: #333;">${t('patientDetail.strengths')}:</h3>
+          <p style="margin: 0; padding: 8px; font-size: 12px; line-height: 1.5;">${patientPII.strengths}</p>
+        </div>
+      `;
+    }
+
+    if (patientPII.obstacles) {
+      htmlContent += `
+        <div class="subsection" style="margin: 15px 0 0 0; padding: 12px;">
+          <h3 style="font-size: 13px; margin: 0 0 8px 0; padding: 0; font-weight: bold; color: #333;">${t('patientDetail.obstacles')}:</h3>
+          <p style="margin: 0; padding: 8px; font-size: 12px; line-height: 1.5;">${patientPII.obstacles}</p>
+        </div>
+      `;
+    }
+
+    htmlContent += `</div>`;
+
+    // Rights Intake Form (separate page)
+    if (rightsIntakeData && Object.keys(rightsIntakeData).length > 0) {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <h3 style="font-size: 12px; margin: 0 0 3px 0; padding: 0; color: #333;">${t('patientDetail.intakeRights')}</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+      `;
+      
+      RIGHTS_FIELDS.forEach(field => {
+        const value = rightsIntakeData[field.field_name];
+        if (value !== undefined && value !== null && value !== '') {
+          const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+          const label = t(`intakeRights.fields.${field.field_name}`) || field.label;
+          htmlContent += `
+            <tr>
+              <td style="padding: 3px 5px; font-weight: bold; width: 40%; vertical-align: top; font-size: 11px; margin: 0;">${label}:</td>
+              <td style="padding: 3px 5px; vertical-align: top; font-size: 11px; margin: 0;">${displayValue}</td>
+            </tr>
+          `;
+        }
+      });
+      
+      htmlContent += `
+          </table>
+        </div>
+      `;
+    } else {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <p style="color: #999; margin: 0; padding: 0;">${t('patientDetail.intakeRights')}: ${t('patientDetail.notCompleted')}</p>
+        </div>
+      `;
+    }
+
+    // Emotional Intake Form (separate page)
+    if (emotionalIntakeData && Object.keys(emotionalIntakeData).length > 0) {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <h3 style="font-size: 12px; margin: 0 0 3px 0; padding: 0; color: #333;">${t('patientDetail.intakeEmotional')}</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+      `;
+      
+      emotionalQuestions.forEach(question => {
+        const value = emotionalIntakeData[question.field_name];
+        if (value !== undefined && value !== null && value !== '') {
+          const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+          const label = t(`intakeEmotional.questions.${question.field_name}`) || question.question_text;
+          htmlContent += `
+            <tr>
+              <td style="padding: 3px 5px; font-weight: bold; width: 40%; vertical-align: top; font-size: 11px; margin: 0;">${label}:</td>
+              <td style="padding: 3px 5px; vertical-align: top; font-size: 11px; margin: 0;">${displayValue}</td>
+            </tr>
+          `;
+        }
+      });
+      
+      htmlContent += `
+          </table>
+        </div>
+      `;
+    } else {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <p style="color: #999; margin: 0; padding: 0;">${t('patientDetail.intakeEmotional')}: ${t('patientDetail.notCompleted')}</p>
+        </div>
+      `;
+    }
+
+    // Professional Intake Form (separate page)
+    if (professionalIntakeData && Object.keys(professionalIntakeData).length > 0) {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <h3 style="font-size: 12px; margin: 0 0 3px 0; padding: 0; color: #333;">${t('patientDetail.intakeProfessional')}</h3>
+          <table style="width: 100%; border-collapse: collapse; margin: 0; padding: 0;">
+      `;
+      
+      careerQuestions.forEach(question => {
+        const value = professionalIntakeData[question.field_name];
+        if (value !== undefined && value !== null && value !== '') {
+          const displayValue = Array.isArray(value) ? value.join(', ') : String(value);
+          const label = t(`intakeProfessional.questions.${question.field_name}`) || question.field_label;
+          htmlContent += `
+            <tr>
+              <td style="padding: 3px 5px; font-weight: bold; width: 40%; vertical-align: top; font-size: 11px; margin: 0;">${label}:</td>
+              <td style="padding: 3px 5px; vertical-align: top; font-size: 11px; margin: 0;">${displayValue}</td>
+            </tr>
+          `;
+        }
+      });
+      
+      htmlContent += `
+          </table>
+        </div>
+      `;
+    } else {
+      htmlContent += `
+        <div class="section intake-form-section" style="margin: 10px 0 0 0; padding: 0;">
+          <p style="color: #999; margin: 0; padding: 0;">${t('patientDetail.intakeProfessional')}: ${t('patientDetail.notCompleted')}</p>
+        </div>
+      `;
+    }
+
+    // Milestones Section
+    if (milestones && milestones.length > 0) {
+      htmlContent += `
+        <div class="section" style="margin: 10px 0 0 0; padding: 0;">
+          <h2 style="font-size: 14px; margin: 0 0 5px 0; padding: 0;">${t('patientDetail.treatmentPlan')}</h2>
+      `;
+
+      milestones.forEach((milestone, index) => {
+        const axisLabel = milestone.axis === 'emotional' ? t('patientDetail.axisEmotional') : 
+                          milestone.axis === 'occupational' ? t('patientDetail.axisOccupational') : 
+                          t('patientDetail.axisRights');
+        
+        htmlContent += `
+          <div class="subsection" style="margin: 3px 0; padding: 5px; border: 1px solid #ddd;">
+            <h3 style="font-size: 12px; margin: 0 0 3px 0; padding: 0;">${index + 1}. ${milestone.title || t('patientDetail.untitledMilestone')}</h3>
+            <p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.axis')}:</strong> ${axisLabel}</p>
+            ${milestone.description ? `<p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.description')}:</strong> ${milestone.description}</p>` : ''}
+            <p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.progress')}:</strong> ${milestone.progress || 0}%</p>
+            ${milestone.targetDate ? `<p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.targetDate')}:</strong> ${new Date(milestone.targetDate).toLocaleDateString('he-IL')}</p>` : ''}
+            ${milestone.successMetric ? `<p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.successMetric')}:</strong> ${milestone.successMetric}</p>` : ''}
+            ${milestone.resources ? `<p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.resources')}:</strong> ${milestone.resources}</p>` : ''}
+            ${milestone.barriers ? `<p style="margin: 0 0 2px 0; padding: 0; font-size: 11px;"><strong>${t('patientDetail.barriers')}:</strong> ${milestone.barriers}</p>` : ''}
+          </div>
+        `;
+      });
+
+      htmlContent += `</div>`;
+    }
+
+    // Activities/Meetings Section
+    if (activities && activities.length > 0) {
+      htmlContent += `
+        <div class="section" style="margin: 10px 0 0 0; padding: 0;">
+          <h2 style="font-size: 14px; margin: 0 0 5px 0; padding: 0;">${t('patientDetail.meetings')}</h2>
+      `;
+
+      activities.slice(0, 50).forEach((activity, index) => {
+        let activityDate = 'N/A';
+        if (activity.timestamp) {
+          const timestamp = activity.timestamp as any;
+          if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp && typeof timestamp.toDate === 'function') {
+            activityDate = timestamp.toDate().toLocaleDateString('he-IL');
+          } else if (timestamp) {
+            activityDate = new Date(timestamp).toLocaleDateString('he-IL');
+          }
+        }
+        
+        // Translate activity action
+        const translatedAction = t(`actions.${activity.action}`) || activity.action;
+        // Add archived indicator if needed
+        const archivedLabel = activity.archived ? '📦 ' + t('patientDetail.archive') : '';
+        
+        htmlContent += `
+          <div class="subsection" style="margin: 3px 0; padding: 5px; border: 1px solid #eee;">
+            <p style="margin: 0 0 2px 0; padding: 0; font-weight: bold; font-size: 11px;">${activityDate} - ${archivedLabel ? archivedLabel + ' ' : ''}${translatedAction}</p>
+            ${activity.note ? `<p style="margin: 0; padding: 0; color: #666; font-size: 11px;">${activity.note}</p>` : ''}
+          </div>
+        `;
+      });
+
+      htmlContent += `</div>`;
+    }
+
+    htmlContent += `</div>`;
+    
+    pdfContent.innerHTML = htmlContent;
+    document.body.appendChild(pdfContent);
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const margin = 15; // top/bottom margin in mm
+      const usablePageHeight = pageHeight - 2 * margin; // usable height per page
+      const linesPerPage = 20; // Target lines per page
+      const lineHeight = usablePageHeight / linesPerPage; // Height per line in mm
+
+      // Get all sections
+      const sections = pdfContent.querySelectorAll('.section');
+      let currentY = margin; // Current Y position on page
+      let linesUsed = 0; // Track lines used on current page
+
+      for (let i = 0; i < sections.length; i++) {
+        const section = sections[i] as HTMLElement;
+        
+        // Create a temporary container for this section
+        const sectionContainer = document.createElement('div');
+        sectionContainer.style.width = '210mm';
+        sectionContainer.style.padding = '10mm';
+        sectionContainer.style.margin = '0';
+        sectionContainer.style.backgroundColor = 'white';
+        sectionContainer.style.fontFamily = 'Arial, sans-serif';
+        sectionContainer.style.direction = 'rtl';
+        sectionContainer.style.textAlign = 'right';
+        sectionContainer.style.fontSize = '11px';
+        sectionContainer.style.lineHeight = '1.4';
+        sectionContainer.style.boxSizing = 'border-box';
+        sectionContainer.appendChild(section.cloneNode(true) as Node);
+        document.body.appendChild(sectionContainer);
+
+        try {
+          // Wait a bit for rendering
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+          // Render this section to canvas
+          const canvas = await html2canvas(sectionContainer, {
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            backgroundColor: '#ffffff',
+            width: sectionContainer.offsetWidth,
+            height: sectionContainer.offsetHeight
+          });
+
+          const imgHeight = (canvas.height * imgWidth) / canvas.width;
+          const sectionHeight = imgHeight;
+          const imgData = canvas.toDataURL('image/png');
+          
+          // Calculate estimated lines for this section
+          const estimatedLines = Math.ceil(sectionHeight / lineHeight);
+          
+          // Check if this is an intake form section - always start on new page
+          const isIntakeForm = section.classList.contains('intake-form-section');
+
+          // Check if we need a new page - always for intake forms, or based on line count
+          if (isIntakeForm && linesUsed > 0) {
+            // Always start a new page for intake forms
+            pdf.addPage();
+            currentY = margin;
+            linesUsed = 0;
+          } else if (linesUsed + estimatedLines > linesPerPage && linesUsed > 0) {
+            // Start a new page if we exceed line limit
+            pdf.addPage();
+            currentY = margin;
+            linesUsed = 0;
+          }
+
+          // Calculate lines available on current page
+          const linesAvailable = linesPerPage - linesUsed;
+          const maxHeightForPage = linesAvailable * lineHeight;
+
+          // If section is taller than available space, split it
+          if (sectionHeight > maxHeightForPage) {
+            let sourceY = 0;
+            let remainingSectionHeight = sectionHeight;
+
+            while (remainingSectionHeight > 0) {
+              // Check if we need a new page
+              if (linesUsed >= linesPerPage) {
+                pdf.addPage();
+                currentY = margin;
+                linesUsed = 0;
+              }
+
+              // Calculate how much fits on current page (in lines)
+              const linesAvailableOnPage = linesPerPage - linesUsed;
+              const heightForThisPage = linesAvailableOnPage * lineHeight;
+              const renderHeight = Math.min(heightForThisPage, remainingSectionHeight);
+              const sourceHeight = (renderHeight / sectionHeight) * canvas.height;
+              const linesForThisPortion = Math.ceil(renderHeight / lineHeight);
+
+              // Create a cropped canvas for this portion
+              const pageCanvas = document.createElement('canvas');
+              pageCanvas.width = canvas.width;
+              pageCanvas.height = sourceHeight;
+              const pageCtx = pageCanvas.getContext('2d');
+              
+              if (pageCtx) {
+                pageCtx.drawImage(
+                  canvas,
+                  0, sourceY,
+                  canvas.width, sourceHeight,
+                  0, 0,
+                  canvas.width, sourceHeight
+                );
+                
+                const croppedImgData = pageCanvas.toDataURL('image/png');
+                const croppedImgHeight = (sourceHeight * imgWidth) / canvas.width;
+                
+                pdf.addImage(croppedImgData, 'PNG', 0, currentY, imgWidth, croppedImgHeight);
+                currentY += croppedImgHeight;
+                linesUsed += linesForThisPortion;
+              }
+
+              sourceY += sourceHeight;
+              remainingSectionHeight -= renderHeight;
+            }
+          } else {
+            // Section fits on current page
+            pdf.addImage(imgData, 'PNG', 0, currentY, imgWidth, sectionHeight);
+            currentY += sectionHeight;
+            linesUsed += estimatedLines;
+          }
+
+        } finally {
+          document.body.removeChild(sectionContainer);
+        }
+      }
+
+      pdf.save(`${t('patientDetail.patient')}_${caseId}_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert(t('patientDetail.pdfError') || 'שגיאה ביצירת PDF');
+    } finally {
+      document.body.removeChild(pdfContent);
+      // Remove the style we added
+      if (document.head.contains(style)) {
+        document.head.removeChild(style);
+      }
+    }
   };
 
   const handleNotesFieldChange = (field: string, value: string) => {
@@ -1231,6 +1723,33 @@ export function PatientDetailPage() {
                     <div className="header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="header-left">
                         <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#333' }}>{caseId}</p>
+                      </div>
+                      <div className="header-right">
+                        <button
+                          onClick={handleDownloadPDF}
+                          style={{
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            padding: '8px 16px',
+                            borderRadius: '6px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#218838';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = '#28a745';
+                          }}
+                        >
+                          📥 {i18n.language === 'he' ? 'הורד PDF' : 'Download PDF'}
+                        </button>
                       </div>
             </div>
           </div>

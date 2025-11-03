@@ -70,7 +70,10 @@ export function IntakeProfesionalPage() {
     <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
       <div style={{ marginBottom: 20 }}>
         <button
-          onClick={() => navigate(lang ? `/${lang}/patient/${caseId}` : `/patient/${caseId}`)}
+          onClick={() => {
+            const targetUrl = lang ? `/${lang}/patient/${caseId}` : `/patient/${caseId}`;
+            navigate(targetUrl + '#intake');
+          }}
           style={{ background: '#6c757d', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: 6, cursor: 'pointer' }}
         >
           ← {t('intake.back', 'חזרה')}

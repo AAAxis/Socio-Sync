@@ -59,6 +59,7 @@ function AppRoutes() {
       <Route path="/:lang/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
       <Route path="/:lang/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/:lang/create-event" element={<CreateEventPage />} />
+      <Route path="/:lang/verify-email" element={<EmailVerificationPage />} />
       <Route path="/verify-email" element={<EmailVerificationPage />} />
       
       {/* Fallback routes without language prefix - will be redirected */}

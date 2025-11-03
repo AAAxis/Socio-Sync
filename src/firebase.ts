@@ -910,7 +910,8 @@ export const sendOTPEmail = async (email: string, userName: string, otpCode: str
 export const sendVerificationEmail = async (email: string, userName: string, userId: string) => {
   try {
     // Construct the verification link with userId using the production domain
-    const verificationLink = `https://socio-sync-sepia.vercel.app/verify-email?userId=${userId}`;
+    // Using /en/verify-email to ensure proper routing
+    const verificationLink = `https://socio-sync-sepia.vercel.app/en/verify-email?userId=${userId}`;
     
     // Construct the API URL with parameters (matching the API format)
     const apiUrl = new URL('https://smtp.roamjet.net/api/email/send');

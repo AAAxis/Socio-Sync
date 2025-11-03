@@ -28,17 +28,23 @@ function LanguageWrapper({ children }: { children: React.ReactNode }) {
     const path = location.pathname;
     const langMatch = path.match(/^\/(he|en)(\/|$)/);
     
+    // Don't redirect verify-email paths as they need to work without language prefix
+    if (path === '/verify-email' || path.startsWith('/verify-email')) {
+      return;
+    }
+    
     if (langMatch) {
       const lang = langMatch[1];
       if (i18n.language !== lang) {
         i18n.changeLanguage(lang);
       }
     } else {
-      // No language prefix - redirect to current language version
+      // No language prefix - redirect to current language version, preserving search params
       const currentLang = i18n.language === 'he' ? 'he' : 'en';
-      navigate(`/${currentLang}${path}`, { replace: true });
+      const search = location.search; // Preserve query parameters
+      navigate(`/${currentLang}${path}${search}`, { replace: true });
     }
-  }, [location.pathname, i18n, navigate]);
+  }, [location.pathname, location.search, i18n, navigate]);
 
   return <>{children}</>;
 }
@@ -46,6 +52,10 @@ function LanguageWrapper({ children }: { children: React.ReactNode }) {
 function AppRoutes() {
   return (
     <Routes>
+      {/* Email verification route - must be before catch-all routes */}
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
+      <Route path="/:lang/verify-email" element={<EmailVerificationPage />} />
+      
       {/* Routes with language prefix */}
       <Route path="/:lang" element={<LoginPage />} />
       <Route path="/:lang/login" element={<PasswordLoginPage />} />
@@ -59,8 +69,6 @@ function AppRoutes() {
       <Route path="/:lang/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
       <Route path="/:lang/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/:lang/create-event" element={<CreateEventPage />} />
-      <Route path="/:lang/verify-email" element={<EmailVerificationPage />} />
-      <Route path="/verify-email" element={<EmailVerificationPage />} />
       
       {/* Fallback routes without language prefix - will be redirected */}
       <Route path="/" element={<LoginPage />} />

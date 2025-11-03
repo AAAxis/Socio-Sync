@@ -16,6 +16,7 @@ import { CreateEventPage } from './components/CreateEventPage';
 import { IntakeRightsPage } from './components/IntakeRightsPage';
 import { IntakeEmotionalPage } from './components/IntakeEmotionalPage';
 import { IntakeProfesionalPage } from './components/IntakeProfesionalPage';
+import { EmailVerificationPage } from './components/EmailVerificationPage';
 
 // Language wrapper component to handle language from URL
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
@@ -58,6 +59,7 @@ function AppRoutes() {
       <Route path="/:lang/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
       <Route path="/:lang/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/:lang/create-event" element={<CreateEventPage />} />
+      <Route path="/verify-email" element={<EmailVerificationPage />} />
       
       {/* Fallback routes without language prefix - will be redirected */}
       <Route path="/" element={<LoginPage />} />

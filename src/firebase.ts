@@ -1,6 +1,6 @@
 // Import the functions you need from the SDKs you need
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider as GoogleProvider, sendEmailVerification, updateProfile, linkWithCredential, unlink } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged, User, createUserWithEmailAndPassword, signInWithEmailAndPassword, GoogleAuthProvider as GoogleProvider, updateProfile, linkWithCredential, unlink } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";
 import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, collection, getDocs, deleteDoc, addDoc, query, where, orderBy } from "firebase/firestore";
 import { getApiUrl } from './config';
@@ -127,8 +127,8 @@ export const signUpWithEmail = async (email: string, password: string, name?: st
     console.log('Display name set successfully:', result.user.displayName);
   }
   
-  // Send email verification
-  await sendEmailVerification(result.user);
+  // Send custom verification email via API
+  await sendVerificationEmail(email, name || result.user.displayName || 'User', result.user.uid);
   
   return result;
 };
@@ -903,6 +903,46 @@ export const sendOTPEmail = async (email: string, userName: string, otpCode: str
     });
   } catch (err) {
     console.error('2FA OTP sending error:', err);
+    throw err;
+  }
+};
+
+export const sendVerificationEmail = async (email: string, userName: string, userId: string) => {
+  try {
+    // Construct the verification link with userId using the production domain
+    const verificationLink = `https://socio-sync-sepia.vercel.app/verify-email?userId=${userId}`;
+    
+    // Construct the API URL with parameters (matching the API format)
+    const apiUrl = new URL('https://smtp.roamjet.net/api/email/send');
+    apiUrl.searchParams.set('email', email);
+    apiUrl.searchParams.set('project_id', 'fZNC6AUBzG6vPGNULbfI');
+    apiUrl.searchParams.set('template_id', 'kTaUoVCbrfgZ6NKkeo36');
+    apiUrl.searchParams.set('link', verificationLink);
+
+    console.log('Sending verification email to:', email);
+    console.log('Verification Link:', verificationLink);
+
+    // Use hidden iframe to bypass CORS and actually send the email
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = apiUrl.toString();
+    
+    return new Promise<void>((resolve, reject) => {
+      iframe.onload = () => {
+        console.log('Verification email sent successfully!');
+        document.body.removeChild(iframe);
+        resolve();
+      };
+      
+      iframe.onerror = () => {
+        document.body.removeChild(iframe);
+        reject(new Error('Failed to send verification email'));
+      };
+      
+      document.body.appendChild(iframe);
+    });
+  } catch (err) {
+    console.error('Verification email sending error:', err);
     throw err;
   }
 };

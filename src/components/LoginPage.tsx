@@ -96,6 +96,20 @@ export function LoginPage() {
             )}
           </div>
 
+          <div style={{
+            background: '#e3f2fd',
+            border: '1px solid #2196f3',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            margin: '20px 0',
+            textAlign: 'center',
+            color: '#1565c0',
+            fontSize: '14px',
+            direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+          }}>
+            📧 {t('login.invitationRequired')}
+          </div>
+
           {error && (
             <div className="error-message">
               {error}

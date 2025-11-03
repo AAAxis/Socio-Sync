@@ -1142,7 +1142,7 @@ export function PatientDetailPage() {
                       )}
                       <div className="welcome-text">
                         <span className="welcome-label">{t('navigation.welcome')},</span>
-                        <span className="user-name">{user?.name || 'User'}!</span>
+                        <span className="user-name">{user?.name || 'User'}</span>
                       </div>
                     </div>
                   </li>
@@ -1607,7 +1607,8 @@ export function PatientDetailPage() {
 
                   {activeDetailTab === 'patient-info' && (
                     <div className="tab-panel">
-                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
+                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
                         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                           {!isEditing ? (
                             <button
@@ -1666,7 +1667,6 @@ export function PatientDetailPage() {
                             </>
                           )}
                         </div>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
                       </div>
                       <div className="form-fields-vertical">
                         <div className="form-group">
@@ -1917,25 +1917,6 @@ export function PatientDetailPage() {
                           <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>🏥 {t('patientDetail.progressMilestones')}</h3>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <select
-                            value={milestoneStatusFilter}
-                            onChange={(e) => setMilestoneStatusFilter(e.target.value as any)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '6px',
-                              border: '1px solid #ddd',
-                              fontSize: '14px',
-                              backgroundColor: 'white',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <option value="all">הכל</option>
-                            <option value="in_progress">בתהליך</option>
-                            <option value="achieved">הושג</option>
-                            <option value="frozen">בהקפאה</option>
-                            <option value="maintenance">שימור</option>
-                            <option value="stuck">נתקע</option>
-                          </select>
                           <button
                             onClick={() => setShowAddMilestoneModal(true)}
                             style={{
@@ -1958,9 +1939,15 @@ export function PatientDetailPage() {
                       </div>
 
                       {/* Three Column Layout */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                      <div style={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: '1fr 1fr 1fr', 
+                        gap: '20px', 
+                        marginBottom: '20px',
+                        minWidth: 0 // Allow columns to shrink below content size
+                      }}>
                         {/* Emotional Column */}
-                        <div>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
                           <h4 style={{ 
                             textAlign: 'center', 
                             padding: '12px', 
@@ -2015,7 +2002,7 @@ export function PatientDetailPage() {
                         </div>
 
                         {/* Occupational Column */}
-                        <div>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
                           <h4 style={{ 
                             textAlign: 'center', 
                             padding: '12px', 
@@ -2070,7 +2057,7 @@ export function PatientDetailPage() {
                         </div>
 
                         {/* Rights Column */}
-                        <div>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
                           <h4 style={{ 
                             textAlign: 'center', 
                             padding: '12px', 
@@ -2164,67 +2151,6 @@ export function PatientDetailPage() {
                     </div>
                   )}
 
-                  {activeDetailTab === 'patient-info' && (
-                    <div className="tab-panel">
-                      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '12px' }}>
-                        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                          {!isEditing ? (
-                            <button
-                              onClick={handleEditClick}
-                              className="edit-patient-btn"
-                              style={{
-                                background: '#007acc',
-                                color: 'white',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                fontSize: '14px',
-                                fontWeight: '500'
-                              }}
-                            >
-                              {t('patientDetail.editInformation')}
-                            </button>
-                          ) : (
-                            <>
-                              <button
-                                onClick={handleSaveClick}
-                                style={{
-                                  background: '#28a745',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}
-                              >
-                                {t('patientDetail.saveChanges')}
-                              </button>
-                              <button
-                                onClick={handleCancelClick}
-                                style={{
-                                  background: '#6c757d',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}
-                              >
-                                {t('patientDetail.cancel')}
-                              </button>
-                            </>
-                          )}
-                        </div>
-                        <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>👤 {t('patientDetail.information')}</h3>
-                      </div>
-                      {/* Patient information content will continue here */}
-                    </div>
-                  )}
 
                   {activeDetailTab === 'documents' && (
                     <div className="tab-panel">
@@ -2232,7 +2158,7 @@ export function PatientDetailPage() {
                         <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📄 {t('patientDetail.documents')}</h3>
                       </div>
                       <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                        Documents functionality coming soon...
+                        {t('patientDetail.documentsComingSoon')}
                       </div>
                     </div>
                   )}
@@ -2622,66 +2548,88 @@ export function PatientDetailPage() {
           <div style={{
             background: 'white',
             borderRadius: '12px',
-            padding: '30px',
             width: '90%',
             maxWidth: '500px',
             maxHeight: '90vh',
-            overflowY: 'auto',
             boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
-            position: 'relative'
+            position: 'relative',
+            display: 'flex',
+            flexDirection: 'column'
           }}>
-            {/* Close Button */}
-            <button
-              onClick={() => {
-                setShowEditMilestoneModal(false);
-                setEditingMilestone(null);
-                setNewMilestone({ 
-                  title: '', 
-                  description: '', 
-                  progress: 0, 
-                  targetDate: '', 
-                  status: 'in_progress',
-                  axis: 'emotional',
-                  successMetric: '',
-                  resources: '',
-                  barriers: '',
-                  notes: '',
-                  therapistNotes: ''
-                });
-              }}
-              style={{
-                position: 'absolute',
-                top: '15px',
-                right: '15px',
-                background: 'none',
-                border: 'none',
-                fontSize: '24px',
-                cursor: 'pointer',
-                color: '#666',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: '50%',
-                transition: 'all 0.2s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#f8f9fa';
-                e.currentTarget.style.color = '#000';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#666';
-              }}
-              title={t('patientDetail.close')}
-            >
-              ×
-            </button>
+            {/* Fixed Header: Title and Close Button on same row */}
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '20px 30px 15px 30px',
+              borderBottom: '1px solid #e9ecef',
+              background: 'white',
+              borderRadius: '12px 12px 0 0',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
+            }}>
+              <h3 style={{ 
+                color: '#000000', 
+                margin: 0,
+                textAlign: 'center',
+                flex: 1
+              }}>
+                {t('patientDetail.editMilestone')}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowEditMilestoneModal(false);
+                  setEditingMilestone(null);
+                  setNewMilestone({ 
+                    title: '', 
+                    description: '', 
+                    progress: 0, 
+                    targetDate: '', 
+                    status: 'in_progress',
+                    axis: 'emotional',
+                    successMetric: '',
+                    resources: '',
+                    barriers: '',
+                    notes: '',
+                    therapistNotes: ''
+                  });
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.color = '#000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#666';
+                }}
+                title={t('patientDetail.close')}
+              >
+                ×
+              </button>
+            </div>
             
-            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
-              {t('patientDetail.editMilestone')}
-            </h3>
+            {/* Scrollable Content */}
+            <div style={{
+              padding: '30px',
+              overflowY: 'auto',
+              flex: 1
+            }}>
             
             <div style={{ marginBottom: '15px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.title')}</label>
@@ -2915,6 +2863,7 @@ export function PatientDetailPage() {
                 {t('patientDetail.saveChanges')}
               </button>
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -2964,43 +2913,26 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
 
   return (
     <div
-      draggable
+      onClick={() => onEdit(milestone)}
       style={{
         background: 'white',
         border: '1px solid #e9ecef',
         borderRadius: '8px',
         padding: '15px',
         marginBottom: '12px',
-        cursor: 'grab',
+        cursor: 'pointer',
         boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease'
-      }}
-      onDragStart={(e) => {
-        e.currentTarget.style.cursor = 'grabbing';
-        e.currentTarget.style.opacity = '0.7';
-        if (onDragStart) {
-          onDragStart(milestone);
-        }
-        e.dataTransfer.setData('text/plain', JSON.stringify(milestone));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
-      onDragEnd={(e) => {
-        e.currentTarget.style.cursor = 'grab';
-        e.currentTarget.style.opacity = '1';
-        e.currentTarget.style.transform = 'translateY(0)';
-        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+        transition: 'all 0.2s ease',
+        minWidth: 0, // Allow card to shrink
+        overflow: 'hidden' // Prevent content overflow
       }}
       onMouseEnter={(e) => {
-        if (!e.currentTarget.style.opacity || e.currentTarget.style.opacity === '1') {
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-        }
+        e.currentTarget.style.transform = 'translateY(-2px)';
+        e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
       }}
       onMouseLeave={(e) => {
-        if (!e.currentTarget.style.opacity || e.currentTarget.style.opacity === '1') {
-          e.currentTarget.style.transform = 'translateY(0)';
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-        }
+        e.currentTarget.style.transform = 'translateY(0)';
+        e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
       }}
     >
       {/* Card Header */}
@@ -3022,41 +2954,26 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
               }}
             />
           )}
-          <h5 style={{ margin: 0, fontSize: '14px', fontWeight: 'bold', color: '#333' }}>
+          <h5 style={{ 
+            margin: 0, 
+            fontSize: '14px', 
+            fontWeight: 'bold', 
+            color: '#000000',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap'
+          }}>
             {milestone.title}
           </h5>
         </div>
       </div>
 
-      {/* Progress Bar */}
-      <div style={{ marginBottom: '10px' }}>
-        <div style={{ 
-          width: '100%', 
-          height: '6px', 
-          background: '#e9ecef', 
-          borderRadius: '3px',
-          overflow: 'hidden'
-        }}>
-          <div
-            style={{
-              width: `${milestone.progress || 0}%`,
-              height: '100%',
-              background: '#000000',
-              transition: 'width 0.3s ease'
-            }}
-          />
-        </div>
-        <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '3px' }}>
-          {milestone.progress || 0}% הושלם
-        </div>
-      </div>
-
-      {/* Description */}
+      {/* Description - Second position */}
       {milestone.description && (
         <div style={{ 
           fontSize: '12px', 
-          color: '#666', 
-          marginBottom: '8px',
+          color: '#000000',
+          marginBottom: '10px',
           lineHeight: '1.4',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -3064,26 +2981,53 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
           WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical'
         }}>
-          {milestone.description}
+          <span style={{ color: '#000000' }}>
+            {milestone.description}
+          </span>
         </div>
       )}
+
+      {/* Progress - Same style as edit dialog */}
+      <div style={{ marginBottom: '10px' }}>
+        <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
+          {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+            <div
+              key={value}
+              style={{
+                flex: 1,
+                height: '30px',
+                backgroundColor: milestone.progress >= value ? '#007acc' : '#e9ecef',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                color: milestone.progress >= value ? 'white' : '#000000',
+                borderRadius: value === 0 ? '4px 0 0 4px' : value === 100 ? '0 4px 4px 0' : '0',
+                transition: 'background-color 0.2s ease'
+              }}
+            >
+              {value}
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: '14px', color: '#000000', textAlign: 'center' }}>
+          {t('patientDetail.currentProgress')}: {milestone.progress || 0}%
+        </div>
+      </div>
 
       {/* Success Metric */}
       {milestone.successMetric && (
         <div style={{ 
           fontSize: '11px', 
-          color: '#28a745', 
+          color: '#000000', 
           marginBottom: '6px',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
         }}>
           🎯 {milestone.successMetric}
-        </div>
-      )}
-
-      {/* Target Date */}
-      {milestone.targetDate && (
-        <div style={{ fontSize: '11px', color: '#6c757d', marginBottom: '6px' }}>
-          📅 יעד: {new Date(milestone.targetDate).toLocaleDateString('he-IL')}
         </div>
       )}
 
@@ -3091,7 +3035,7 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
       {milestone.resources && (
         <div style={{ 
           fontSize: '11px', 
-          color: '#17a2b8', 
+          color: '#000000', 
           marginBottom: '6px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -3105,7 +3049,7 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
       {milestone.barriers && (
         <div style={{ 
           fontSize: '11px', 
-          color: '#dc3545', 
+          color: '#000000', 
           marginBottom: '6px',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -3115,57 +3059,63 @@ function MilestoneCard({ milestone, onEdit, onDragStart, isSelected, onSelect }:
         </div>
       )}
 
-      {/* Bottom Row: Edit Button, Drag Handle, Status */}
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginTop: '10px',
-        paddingTop: '8px',
-        borderTop: '1px solid #e9ecef'
-      }}>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            onEdit(milestone);
-          }}
-          onMouseDown={(e) => e.stopPropagation()} // Prevent drag when clicking edit
+      {/* Bottom Row: Date, Drag Handle, Status */}
+      <div 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginTop: '10px',
+          paddingTop: '8px',
+          borderTop: '1px solid #e9ecef'
+        }}
+        onClick={(e) => e.stopPropagation()} // Prevent card click when clicking bottom area
+      >
+        <div
           style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '4px 8px',
-            borderRadius: '4px',
-            color: '#666',
-            fontSize: '14px',
+            color: '#000000',
+            fontSize: '11px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s ease'
+            gap: '4px'
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#f8f9fa';
-            e.currentTarget.style.color = '#007bff';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = 'transparent';
-            e.currentTarget.style.color = '#666';
-          }}
-          title="ערוך אבן דרך"
         >
-          ✏️
-        </button>
+          {milestone.targetDate ? (
+            <>
+              📅 {new Date(milestone.targetDate).toLocaleDateString('he-IL')}
+            </>
+          ) : milestone.createdAt ? (
+            <>
+              📅 {new Date(milestone.createdAt).toLocaleDateString('he-IL')}
+            </>
+          ) : (
+            <span style={{ color: '#000000' }}>אין תאריך</span>
+          )}
+        </div>
 
         <span
+          draggable
+          onDragStart={(e) => {
+            e.stopPropagation();
+            if (onDragStart) {
+              onDragStart(milestone);
+            }
+            e.dataTransfer.setData('text/plain', JSON.stringify(milestone));
+            e.dataTransfer.effectAllowed = 'move';
+          }}
+          onDragEnd={(e) => {
+            e.currentTarget.style.opacity = '1';
+          }}
           style={{
             color: '#999',
             fontSize: '14px',
             cursor: 'grab',
             padding: '4px 8px',
             borderRadius: '4px',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            userSelect: 'none'
           }}
+          onMouseDown={(e) => e.stopPropagation()} // Prevent card click
           onMouseEnter={(e) => {
             e.currentTarget.style.backgroundColor = '#f8f9fa';
             e.currentTarget.style.color = '#666';

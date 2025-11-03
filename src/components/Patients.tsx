@@ -181,7 +181,9 @@ export default function Patients({
               borderRadius: '6px',
               cursor: 'pointer',
               fontSize: '14px',
-              fontWeight: '500'
+              fontWeight: '500',
+              minWidth: '200px',
+              flex: '1 1 auto'
             }}
           >
             + {t('patients.createPatient')}

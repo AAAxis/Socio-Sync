@@ -49,11 +49,63 @@ export function CreateAccountPage() {
   }
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return (
+      <div className="app">
+        <div className="container">
+          <div className="login-card">
+            <div className="login-header">
+              <img src="/logo.png" alt="SocioSync" className="login-logo" />
+            </div>
+            <div style={{
+              background: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '8px',
+              padding: '16px',
+              margin: '20px 0',
+              textAlign: 'center',
+              color: '#856404',
+              fontSize: '14px',
+              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+            }}>
+              ⚠️ {t('login.invitationRequired')}
+            </div>
+            <button onClick={() => navigate('/')} className="signin-btn" style={{ marginTop: '20px' }}>
+              {i18n.language === 'he' ? 'חזור לדף הכניסה' : 'Back to Login'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (user.role !== 'super_admin') {
-    return <Navigate to="/dashboard" replace />;
+    return (
+      <div className="app">
+        <div className="container">
+          <div className="login-card">
+            <div className="login-header">
+              <img src="/logo.png" alt="SocioSync" className="login-logo" />
+            </div>
+            <div style={{
+              background: '#fff3cd',
+              border: '1px solid #ffc107',
+              borderRadius: '8px',
+              padding: '16px',
+              margin: '20px 0',
+              textAlign: 'center',
+              color: '#856404',
+              fontSize: '14px',
+              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+            }}>
+              ⚠️ {t('login.invitationRequired')}
+            </div>
+            <button onClick={() => navigate('/dashboard')} className="signin-btn" style={{ marginTop: '20px' }}>
+              {i18n.language === 'he' ? 'חזור לדף הבית' : 'Back to Dashboard'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handlePasswordSignUp = async () => {

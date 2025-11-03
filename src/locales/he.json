@@ -7,7 +7,8 @@
     "signInWithGoogle": "התחבר עם גוגל",
     "signingIn": "מתחבר...",
     "forgotPassword": "שכחת/י את הסיסמה?",
-    "createAdminAccount": "יצירת חשבון למטפל/ת"
+    "createAdminAccount": "יצירת חשבון למטפל/ת",
+    "invitationRequired": "על מנת להיכנס למערכת יש לקבל הזמנה"
   },
   "blocked": {
     "accessDenied": "הגישה נדחתה",
@@ -253,6 +254,7 @@
     "back": "חזור",
     "patientDetails": "פרטי מטופל",
     "documents": "מסמכים",
+    "documentsComingSoon": "תכונת מסמכים תגיע בקרוב...",
     "meetings": "תיעוד הפגישה",
     "information": "מידע אישי",
     "notes": "טופס אינטייק",
@@ -264,6 +266,7 @@
     "clickToUpload": "ליחצו להעלאת קבצים או גררו ושחררו לכאן",
     "addMeeting": "פגישה חדשה",
     "noActivityHistory": "לא נמצאה היסטוריית פעילות עבור תיק זה.",
+    "noPatientData": "אין נתוני מטופל זמינים.",
     "deleteActivityLog": "מחיקת רשומת פעילות",
     "by": "על ידי",
     "editPatient": "עריכת מטופל/ת",

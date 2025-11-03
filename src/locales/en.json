@@ -7,7 +7,8 @@
     "signInWithGoogle": "Sign in with Google",
     "signingIn": "Signing in...",
     "forgotPassword": "Forgot your password?",
-    "createAdminAccount": "Create Admin Account"
+    "createAdminAccount": "Create Admin Account",
+    "invitationRequired": "To access the system, you need to receive an invitation"
   },
   "blocked": {
     "accessDenied": "Access Denied",
@@ -258,6 +259,7 @@
     "back": "Back",
     "patientDetails": "Patient Details",
     "documents": "Documents",
+    "documentsComingSoon": "Documents functionality coming soon...",
     "meetings": "Meetings",
     "information": "Information",
     "notes": "Intake Form",
@@ -269,6 +271,7 @@
     "clickToUpload": "Click to upload files or drag and drop",
     "addMeeting": "Add Meeting",
     "noActivityHistory": "No activity history found for this case.",
+    "noPatientData": "No patient data available.",
     "deleteActivityLog": "Delete Activity Log",
     "by": "By",
     "editPatient": "Edit Patient",

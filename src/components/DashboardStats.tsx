@@ -101,7 +101,8 @@ export function DashboardStats({
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent'
+    priority: 'medium' as 'low' | 'medium' | 'high' | 'urgent',
+    dueDate: ''
   });
   const translateTaskStatus = (status: string) => {
     const statusTranslations: { [key: string]: string } = {
@@ -880,13 +881,15 @@ export function DashboardStats({
                             title: newTask.title,
                             description: newTask.description,
                             priority: newTask.priority,
+                            dueDate: newTask.dueDate,
                             createdBy: user.email
                           });
                           
                           const result = await createTask({
                             title: newTask.title,
                             description: newTask.description,
-                            priority: newTask.priority
+                            priority: newTask.priority,
+                            dueDate: newTask.dueDate || undefined
                           }, user.email);
                           
                           console.log('Create task result:', result);
@@ -894,7 +897,7 @@ export function DashboardStats({
                           if (result.success) {
                             console.log('Task created successfully:', result.taskId);
                             setShowCreateTaskForm(false);
-                            setNewTask({ title: '', description: '', priority: 'medium' });
+                            setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
                             // Refresh the tasks list
                             if (refreshTasks) {
                               refreshTasks();
@@ -949,6 +952,23 @@ export function DashboardStats({
                           />
                         </div>
                         
+                        <div style={{ marginBottom: '16px' }}>
+                          <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
+                            {i18n.language === 'he' ? 'תאריך יעד' : 'Due Date'}
+                          </label>
+                          <input
+                            type="date"
+                            value={newTask.dueDate}
+                            onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                            style={{
+                              width: '100%',
+                              padding: '12px',
+                              border: '1px solid #ddd',
+                              borderRadius: '6px',
+                              fontSize: '14px'
+                            }}
+                          />
+                        </div>
                         
                         <div style={{ marginBottom: '20px' }}>
                           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
@@ -992,7 +1012,7 @@ export function DashboardStats({
                             type="button"
                             onClick={() => {
                               setShowCreateTaskForm(false);
-                              setNewTask({ title: '', description: '', priority: 'medium' });
+                              setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
                             }}
                             style={{
                               padding: '10px 20px',
@@ -1257,42 +1277,33 @@ export function DashboardStats({
                     {milestone.caseId}
                   </div>
 
-                  {/* Progress */}
-                  <div style={{ marginBottom: '8px' }}>
-                    <div style={{ 
-                      display: 'flex', 
-                      justifyContent: 'space-between', 
-                      alignItems: 'center',
-                      marginBottom: '6px'
-                    }}>
-                      <label style={{ 
-                        color: '#000000', 
-                        fontSize: '12px',
-                        fontWeight: '500'
-                      }}>
-                        {t('patientDetail.milestoneProgress')}
-                      </label>
-                      <span style={{ 
-                        color: '#007acc', 
-                        fontSize: '12px',
-                        fontWeight: '600'
-                      }}>
-                        {milestone.progress}%
-                      </span>
+                  {/* Progress - Same style as edit dialog */}
+                  <div style={{ marginBottom: '10px' }}>
+                    <label style={{ color: '#000000', display: 'block', marginBottom: '5px', fontSize: '12px' }}>{t('patientDetail.progress')}</label>
+                    <div style={{ display: 'flex', gap: '2px', marginBottom: '10px' }}>
+                      {[0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100].map((value) => (
+                        <div
+                          key={value}
+                          style={{
+                            flex: 1,
+                            height: '30px',
+                            backgroundColor: milestone.progress >= value ? '#007acc' : '#e9ecef',
+                            cursor: 'default',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: milestone.progress >= value ? 'white' : '#666',
+                            borderRadius: value === 0 ? '4px 0 0 4px' : value === 100 ? '0 4px 4px 0' : '0',
+                            transition: 'background-color 0.2s ease'
+                          }}
+                        >
+                          {value}
+                        </div>
+                      ))}
                     </div>
-                    <div style={{
-                      width: '100%',
-                      height: '8px',
-                      backgroundColor: '#e9ecef',
-                      borderRadius: '4px',
-                      overflow: 'hidden'
-                    }}>
-                      <div style={{
-                        width: `${milestone.progress}%`,
-                        height: '100%',
-                        backgroundColor: '#007acc',
-                        transition: 'width 0.3s ease'
-                      }} />
+                    <div style={{ fontSize: '14px', color: '#666', textAlign: 'center' }}>
+                      {t('patientDetail.currentProgress')}: {milestone.progress}%
                     </div>
                   </div>
 
@@ -1518,20 +1529,68 @@ export function DashboardStats({
                     gap: '15px'
                   }}>
                     {/* This will be populated with inactive patients data */}
-                    <div style={{
-                      textAlign: 'center',
-                      padding: '60px 20px',
-                      color: '#6c757d',
-                      gridColumn: '1 / -1'
-                    }}>
-                      <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
-                      <h4 style={{ color: '#000000', marginBottom: '8px' }}>
-                        {t('dashboard.noInactiveCases')}
-                      </h4>
-                      <p style={{ fontSize: '14px', color: '#6c757d' }}>
-                        {t('dashboard.allCasesUpToDate')}
-                      </p>
-                    </div>
+                    {dashboardStats.inactiveCases > 0 ? (
+                      // Placeholder card showing the style - replace with actual patient data
+                      <div style={{
+                        background: 'white',
+                        border: '2px solid #dc3545',
+                        borderRadius: '12px',
+                        padding: '15px',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        position: 'relative'
+                      }}>
+                        <h4 style={{ 
+                          color: '#000000', 
+                          marginBottom: '8px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          textAlign: i18n.language === 'he' ? 'right' : 'left',
+                          direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                        }}>
+                          {t('dashboard.inactiveCases')}
+                        </h4>
+                        
+                        {/* Progress Bar - Same style as patient detail page */}
+                        <div style={{ marginBottom: '10px' }}>
+                          <div style={{ 
+                            width: '100%', 
+                            height: '6px', 
+                            background: '#e9ecef', 
+                            borderRadius: '3px',
+                            overflow: 'hidden'
+                          }}>
+                            <div
+                              style={{
+                                width: `50%`,
+                                height: '100%',
+                                background: '#000000',
+                                transition: 'width 0.3s ease'
+                              }}
+                            />
+                          </div>
+                          <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '3px', textAlign: i18n.language === 'he' ? 'right' : 'left', direction: i18n.language === 'he' ? 'rtl' : 'ltr' }}>
+                            50% {i18n.language === 'he' ? 'הושלם' : 'completed'}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{
+                        textAlign: 'center',
+                        padding: '60px 20px',
+                        color: '#6c757d',
+                        gridColumn: '1 / -1'
+                      }}>
+                        <div style={{ fontSize: '48px', marginBottom: '16px' }}>📁</div>
+                        <h4 style={{ color: '#000000', marginBottom: '8px' }}>
+                          {t('dashboard.noInactiveCases')}
+                        </h4>
+                        <p style={{ fontSize: '14px', color: '#6c757d' }}>
+                          {t('dashboard.allCasesUpToDate')}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

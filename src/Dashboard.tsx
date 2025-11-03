@@ -1841,7 +1841,7 @@ export default function MainDashboard() {
                       )}
                       <div className="welcome-text">
                         <span className="welcome-label">{t('navigation.welcome')},</span>
-                        <span className="user-name">{user.name}!</span>
+                        <span className="user-name">{user.name}</span>
         </div>
       </div>
                   </li>

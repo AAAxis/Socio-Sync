@@ -47,13 +47,15 @@ export function EmailVerificationPage() {
         }
 
         setStatus('success');
-        setMessage(i18n.language === 'he' ? 'אימייל אומת בהצלחה!' : 'Email verified successfully!');
+        setMessage(i18n.language === 'he' 
+          ? 'אימייל אומת בהצלחה! כעת תוכל להתחבר למערכת.' 
+          : 'Email verified successfully! You can now login.');
         
-        // Redirect to dashboard after 2 seconds
+        // Redirect to login page after 3 seconds (instead of dashboard)
         setTimeout(() => {
           const lang = i18n.language === 'he' ? 'he' : 'en';
-          navigate(`/${lang}/dashboard`);
-        }, 2000);
+          navigate(`/${lang}/login`);
+        }, 3000);
 
       } catch (error: any) {
         console.error('Email verification error:', error);
@@ -83,15 +85,36 @@ export function EmailVerificationPage() {
             
             {status === 'success' && (
               <>
-                <div style={{ fontSize: '24px', color: '#4CAF50', marginBottom: '20px' }}>
+                <div style={{ fontSize: '48px', color: '#4CAF50', marginBottom: '20px' }}>
                   ✓
                 </div>
-                <div style={{ fontSize: '18px', color: '#333', marginBottom: '10px' }}>
+                <div style={{ fontSize: '20px', color: '#333', marginBottom: '15px', fontWeight: 'bold' }}>
+                  {i18n.language === 'he' ? 'אימייל אומת בהצלחה!' : 'Email Verified Successfully!'}
+                </div>
+                <div style={{ fontSize: '16px', color: '#666', marginBottom: '20px', lineHeight: '1.6' }}>
                   {message}
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
-                  {i18n.language === 'he' ? 'מעבר לדשבורד...' : 'Redirecting to dashboard...'}
+                <div style={{ fontSize: '14px', color: '#999', marginBottom: '20px' }}>
+                  {i18n.language === 'he' ? 'מעבר לעמוד ההתחברות...' : 'Redirecting to login page...'}
                 </div>
+                <button
+                  onClick={() => {
+                    const lang = i18n.language === 'he' ? 'he' : 'en';
+                    navigate(`/${lang}/login`);
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '16px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {i18n.language === 'he' ? 'התחבר עכשיו' : 'Login Now'}
+                </button>
               </>
             )}
             

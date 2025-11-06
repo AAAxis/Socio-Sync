@@ -138,7 +138,41 @@ export function CreateEventPage() {
     <div className="dashboard-container">
       <div className="dashboard-header">
         <div>
-          <h2 className="dashboard-title">{t('createEvent.title')}</h2>
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <button
+              onClick={() => navigate('/dashboard')}
+              style={{
+                position: 'absolute',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                ...(i18n.language === 'he' ? { left: '0' } : { right: '0' }),
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('patientDetail.close')}
+            >
+              ×
+            </button>
+            <h2 className="dashboard-title">{t('createEvent.title')}</h2>
+          </div>
           <p className="dashboard-subtitle">{t('createEvent.subtitle')}</p>
         </div>
       </div>
@@ -183,9 +217,41 @@ export function CreateEventPage() {
               
               <div className="form-group">
                 <label>{t('createEvent.eventDate')} *</label>
-                <div className="input-with-icon">
-                  <span 
-                    className="field-icon" 
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <input
+                    type="date"
+                    className="date-picker-input"
+                    value={eventFormData.date}
+                    onChange={(e) => handleEventFormChange('date', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                      paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      const dateInput = document.querySelector('.date-picker-input') as HTMLInputElement;
+                      if (dateInput) {
+                        dateInput.showPicker();
+                      }
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                      pointerEvents: 'auto',
+                      fontSize: '18px',
+                      cursor: 'pointer',
+                      zIndex: 1
+                    }}
                     onClick={() => {
                       const dateInput = document.querySelector('.date-picker-input') as HTMLInputElement;
                       if (dateInput) {
@@ -193,22 +259,49 @@ export function CreateEventPage() {
                       }
                     }}
                     title={t('createEvent.eventDate')}
-                  >📅</span>
-                  <input
-                    type="date"
-                    className="date-picker-input"
-                    value={eventFormData.date}
-                    onChange={(e) => handleEventFormChange('date', e.target.value)}
-                    required
-                  />
+                  >
+                    📅
+                  </span>
                 </div>
               </div>
               
               <div className="form-group">
                 <label>{t('createEvent.eventTime')} *</label>
-                <div className="input-with-icon">
-                  <span 
-                    className="field-icon" 
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <input
+                    type="time"
+                    className="time-picker-input"
+                    value={eventFormData.time}
+                    onChange={(e) => handleEventFormChange('time', e.target.value)}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                      paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                      border: '1px solid #ced4da',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      const timeInput = document.querySelector('.time-picker-input') as HTMLInputElement;
+                      if (timeInput) {
+                        timeInput.showPicker();
+                      }
+                    }}
+                  />
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                      pointerEvents: 'auto',
+                      fontSize: '18px',
+                      cursor: 'pointer',
+                      zIndex: 1
+                    }}
                     onClick={() => {
                       const timeInput = document.querySelector('.time-picker-input') as HTMLInputElement;
                       if (timeInput) {
@@ -216,14 +309,9 @@ export function CreateEventPage() {
                       }
                     }}
                     title={t('createEvent.eventTime')}
-                  >🕐</span>
-                  <input
-                    type="time"
-                    className="time-picker-input"
-                    value={eventFormData.time}
-                    onChange={(e) => handleEventFormChange('time', e.target.value)}
-                    required
-                  />
+                  >
+                    🕐
+                  </span>
                 </div>
               </div>
               
@@ -239,9 +327,6 @@ export function CreateEventPage() {
               </div>
             
               <div className="form-actions">
-                <button type="button" onClick={() => navigate('/dashboard')} className="cancel-btn">
-                  {t('createEvent.cancel')}
-                </button>
                 <button type="submit" disabled={isEventSaving} className="submit-btn">
                   {isEventSaving ? t('createEvent.creatingEvent') : t('createEvent.createEvent')}
                 </button>
@@ -372,23 +457,6 @@ export function CreateEventPage() {
                   {t('events.searchHint')}
                 </div>
               )}
-            </div>
-            <div className="patient-search-modal-footer" style={{ marginTop: '20px', textAlign: 'right' }}>
-              <button 
-                onClick={() => setShowPatientSearchModal(false)}
-                className="cancel-btn"
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#6c757d',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                {t('events.cancel')}
-              </button>
             </div>
           </div>
         </div>

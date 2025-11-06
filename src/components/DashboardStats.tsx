@@ -865,15 +865,76 @@ export function DashboardStats({
                     <div style={{
                       backgroundColor: 'white',
                       borderRadius: '12px',
-                      padding: '24px',
                       width: '90%',
                       maxWidth: '500px',
                       maxHeight: '80vh',
-                      overflowY: 'auto'
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                      position: 'relative',
+                      display: 'flex',
+                      flexDirection: 'column'
                     }}>
-                      <h3 style={{ marginBottom: '20px', color: '#333' }}>
-                        {i18n.language === 'he' ? 'הוסף משימה חדשה' : 'Add New Task'}
-                      </h3>
+                      {/* Fixed Header: Title and Close Button on same row */}
+                      <div style={{ 
+                        display: 'flex', 
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '20px 24px 15px 24px',
+                        borderBottom: '1px solid #e9ecef',
+                        background: 'white',
+                        borderRadius: '12px 12px 0 0',
+                        position: 'sticky',
+                        top: 0,
+                        zIndex: 10,
+                        direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                      }}>
+                        <h3 style={{ 
+                          margin: 0,
+                          color: '#333',
+                          textAlign: 'center',
+                          flex: 1
+                        }}>
+                          {i18n.language === 'he' ? 'הוסף משימה חדשה' : 'Add New Task'}
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setShowCreateTaskForm(false);
+                            setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
+                          }}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '24px',
+                            cursor: 'pointer',
+                            color: '#666',
+                            width: '30px',
+                            height: '30px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderRadius: '50%',
+                            transition: 'all 0.2s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = '#f8f9fa';
+                            e.currentTarget.style.color = '#000';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                            e.currentTarget.style.color = '#666';
+                          }}
+                          title={i18n.language === 'he' ? 'סגור' : 'Close'}
+                        >
+                          ×
+                        </button>
+                      </div>
+                      
+                      {/* Scrollable Content */}
+                      <div style={{
+                        padding: '24px',
+                        overflowY: 'auto',
+                        flex: 1
+                      }}>
                       
                       <form onSubmit={async (e) => {
                         e.preventDefault();
@@ -963,18 +1024,50 @@ export function DashboardStats({
                           <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500', color: '#333' }}>
                             {i18n.language === 'he' ? 'תאריך יעד' : 'Due Date'}
                           </label>
-                          <input
-                            type="date"
-                            value={newTask.dueDate}
-                            onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
-                            style={{
-                              width: '100%',
-                              padding: '12px',
-                              border: '1px solid #ddd',
-                              borderRadius: '6px',
-                              fontSize: '14px'
-                            }}
-                          />
+                          <div style={{ position: 'relative', width: '100%' }}>
+                            <input
+                              type="date"
+                              value={newTask.dueDate}
+                              onChange={(e) => setNewTask(prev => ({ ...prev, dueDate: e.target.value }))}
+                              style={{
+                                width: '100%',
+                                padding: '12px',
+                                paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                                paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                                border: '1px solid #ddd',
+                                borderRadius: '6px',
+                                fontSize: '14px',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => {
+                                const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+                                if (dateInput) {
+                                  dateInput.showPicker();
+                                }
+                              }}
+                            />
+                            <span
+                              style={{
+                                position: 'absolute',
+                                top: '50%',
+                                transform: 'translateY(-50%)',
+                                ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                                pointerEvents: 'auto',
+                                fontSize: '18px',
+                                cursor: 'pointer',
+                                zIndex: 1
+                              }}
+                              onClick={(e) => {
+                                const input = (e.target as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                                if (input) {
+                                  input.showPicker();
+                                }
+                              }}
+                              title={i18n.language === 'he' ? 'תאריך יעד' : 'Due Date'}
+                            >
+                              📅
+                            </span>
+                          </div>
                         </div>
                         
                         <div style={{ marginBottom: '20px' }}>
@@ -1016,24 +1109,6 @@ export function DashboardStats({
                         
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                           <button
-                            type="button"
-                            onClick={() => {
-                              setShowCreateTaskForm(false);
-                              setNewTask({ title: '', description: '', priority: 'medium', dueDate: '' });
-                            }}
-                            style={{
-                              padding: '10px 20px',
-                              border: '1px solid #ddd',
-                              borderRadius: '6px',
-                              backgroundColor: 'white',
-                              color: '#666',
-                              cursor: 'pointer',
-                              fontSize: '14px'
-                            }}
-                          >
-                            {i18n.language === 'he' ? 'ביטול' : 'Cancel'}
-                          </button>
-                          <button
                             type="submit"
                             disabled={isCreatingTask}
                             style={{
@@ -1055,6 +1130,7 @@ export function DashboardStats({
                           </button>
                         </div>
                       </form>
+                      </div>
                     </div>
                   </div>
                 )}

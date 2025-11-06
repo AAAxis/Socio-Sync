@@ -73,46 +73,98 @@ const EventsList: React.FC<EventsListProps> = ({
           </div>
           
           <div className="events-date-filter" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <div className="input-with-icon">
-              <span 
-                className="field-icon" 
-                onClick={() => {
-                  const fromInput = document.querySelector('.events-date-filter .input-with-icon:first-child input') as HTMLInputElement;
-                  if (fromInput) {
-                    fromInput.showPicker();
-                  }
-                }}
-                title="From date"
-              >📅</span>
+            <div style={{ position: 'relative', width: '140px' }}>
               <input
                 type="date"
                 value={dateRangeFilter.from}
                 onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, from: e.target.value })}
                 className="date-picker-input"
                 placeholder="From date"
-                style={{ width: '140px' }}
-              />
-            </div>
-            <span style={{ color: '#666' }}>→</span>
-            <div className="input-with-icon">
-              <span 
-                className="field-icon" 
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  paddingRight: i18n.language === 'he' ? '12px' : '35px',
+                  paddingLeft: i18n.language === 'he' ? '35px' : '12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
                 onClick={() => {
-                  const toInput = document.querySelector('.events-date-filter .input-with-icon:last-child input') as HTMLInputElement;
-                  if (toInput) {
-                    toInput.showPicker();
+                  const fromInput = document.querySelector('.events-date-filter input[type="date"]:first-of-type') as HTMLInputElement;
+                  if (fromInput) {
+                    fromInput.showPicker();
                   }
                 }}
-                title="To date"
-              >📅</span>
+              />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  ...(i18n.language === 'he' ? { left: '8px' } : { right: '8px' }),
+                  pointerEvents: 'auto',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  zIndex: 1
+                }}
+                onClick={() => {
+                  const fromInput = document.querySelector('.events-date-filter input[type="date"]:first-of-type') as HTMLInputElement;
+                  if (fromInput) {
+                    fromInput.showPicker();
+                  }
+                }}
+                title="From date"
+              >
+                📅
+              </span>
+            </div>
+            <span style={{ color: '#666' }}>→</span>
+            <div style={{ position: 'relative', width: '140px' }}>
               <input
                 type="date"
                 value={dateRangeFilter.to}
                 onChange={(e) => setDateRangeFilter({ ...dateRangeFilter, to: e.target.value })}
                 className="date-picker-input"
                 placeholder="To date"
-                style={{ width: '140px' }}
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  paddingRight: i18n.language === 'he' ? '12px' : '35px',
+                  paddingLeft: i18n.language === 'he' ? '35px' : '12px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  const toInput = document.querySelector('.events-date-filter input[type="date"]:last-of-type') as HTMLInputElement;
+                  if (toInput) {
+                    toInput.showPicker();
+                  }
+                }}
               />
+              <span
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  ...(i18n.language === 'he' ? { left: '8px' } : { right: '8px' }),
+                  pointerEvents: 'auto',
+                  fontSize: '16px',
+                  cursor: 'pointer',
+                  zIndex: 1
+                }}
+                onClick={() => {
+                  const toInput = document.querySelector('.events-date-filter input[type="date"]:last-of-type') as HTMLInputElement;
+                  if (toInput) {
+                    toInput.showPicker();
+                  }
+                }}
+                title="To date"
+              >
+                📅
+              </span>
             </div>
             {(dateRangeFilter.from || dateRangeFilter.to) && (
               <button

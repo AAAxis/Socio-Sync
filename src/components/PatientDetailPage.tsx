@@ -1722,7 +1722,14 @@ export function PatientDetailPage() {
           <div className="login-header">
                     <div className="header-top-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div className="header-left">
-                        <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#333' }}>{caseId}</p>
+                        <p style={{ margin: 0, fontSize: '18px', fontWeight: '600', color: '#333' }}>
+                          {caseId}
+                          {patientPII && patientPII.first_name && patientPII.last_name && (
+                            <span style={{ marginLeft: '12px', fontWeight: '400', color: '#666' }}>
+                              - {patientPII.first_name} {patientPII.last_name}
+                            </span>
+                          )}
+                        </p>
                       </div>
                       <div className="header-right">
                         <button
@@ -2152,22 +2159,6 @@ export function PatientDetailPage() {
                           ) : (
                             <>
                               <button
-                                onClick={handleCancelEdit}
-                                className="cancel-edit-btn"
-                                style={{
-                                  background: '#6c757d',
-                                  color: 'white',
-                                  border: 'none',
-                                  padding: '8px 16px',
-                                  borderRadius: '6px',
-                                  cursor: 'pointer',
-                                  fontSize: '14px',
-                                  fontWeight: '500'
-                                }}
-                              >
-                                {t('patientDetail.cancel')}
-                              </button>
-                              <button
                                 onClick={handleSaveEdit}
                                 className="save-edit-btn"
                                 style={{
@@ -2219,12 +2210,30 @@ export function PatientDetailPage() {
                         <div className="form-group">
                           <label style={{ color: '#000000' }}>{t('patientDetail.dateOfBirth')}</label>
                           {isEditing ? (
-                            <input
-                              type="date"
-                              value={editedPatientData?.date_of_birth || ''}
-                              onChange={(e) => handleFieldChange('date_of_birth', e.target.value)}
-                              className="patient-edit-input"
-                            />
+                            <div style={{ position: 'relative', width: '100%' }}>
+                              <input
+                                type="date"
+                                value={editedPatientData?.date_of_birth || ''}
+                                onChange={(e) => handleFieldChange('date_of_birth', e.target.value)}
+                                className="patient-edit-input"
+                                style={{
+                                  paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                                  paddingLeft: i18n.language === 'he' ? '40px' : '12px'
+                                }}
+                              />
+                              <span
+                                style={{
+                                  position: 'absolute',
+                                  top: '50%',
+                                  transform: 'translateY(-50%)',
+                                  ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                                  pointerEvents: 'none',
+                                  fontSize: '18px'
+                                }}
+                              >
+                                📅
+                              </span>
+                            </div>
                           ) : (
                             <div className="patient-detail-value">{formatDate(patientPII.date_of_birth)}</div>
                           )}
@@ -2709,15 +2718,77 @@ export function PatientDetailPage() {
               <div style={{
                 background: 'white',
                 borderRadius: '12px',
-                padding: '30px',
                 width: '90%',
                 maxWidth: '500px',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                maxHeight: '90vh',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column'
               }}>
-                <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center' }}>
-                  {editingMeeting ? t('patientDetail.editMeeting') : t('patientDetail.addNewMeeting')}
-                </h3>
+                {/* Fixed Header: Title and Close Button on same row */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '20px 30px 15px 30px',
+                  borderBottom: '1px solid #e9ecef',
+                  background: 'white',
+                  borderRadius: '12px 12px 0 0',
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 10,
+                  direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                }}>
+                  <h3 style={{ 
+                    color: '#000000', 
+                    margin: 0,
+                    textAlign: 'center',
+                    flex: 1
+                  }}>
+                    {editingMeeting ? t('patientDetail.editMeeting') : t('patientDetail.addNewMeeting')}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setShowAddMeetingModal(false);
+                      setEditingMeeting(null);
+                      setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer',
+                      color: '#666',
+                      width: '30px',
+                      height: '30px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderRadius: '50%',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8f9fa';
+                      e.currentTarget.style.color = '#000';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#666';
+                    }}
+                    title={t('patientDetail.close')}
+                  >
+                    ×
+                  </button>
+                </div>
                 
+                {/* Scrollable Content */}
+                <div style={{
+                  padding: '30px',
+                  overflowY: 'auto',
+                  flex: 1
+                }}>
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.meetingDescription')}</label>
                   <input
@@ -2737,18 +2808,50 @@ export function PatientDetailPage() {
                 
                 <div style={{ marginBottom: '15px' }}>
                   <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.meetingDate')}</label>
-                  <input
-                    type="date"
-                    value={newMeeting.date}
-                    onChange={(e) => setNewMeeting({...newMeeting, date: e.target.value})}
-                    style={{
-                      width: '100%',
-                      padding: '10px 12px',
-                      border: '1px solid #ced4da',
-                      borderRadius: '6px',
-                      fontSize: '14px'
-                    }}
-                  />
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type="date"
+                      value={newMeeting.date}
+                      onChange={(e) => setNewMeeting({...newMeeting, date: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                        paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                        border: '1px solid #ced4da',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (dateInput) {
+                          dateInput.showPicker();
+                        }
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                        pointerEvents: 'auto',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        zIndex: 1
+                      }}
+                      onClick={(e) => {
+                        const input = (e.target as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (input) {
+                          input.showPicker();
+                        }
+                      }}
+                      title={t('patientDetail.meetingDate')}
+                    >
+                      📅
+                    </span>
+                  </div>
                 </div>
                 
                 <div style={{ marginBottom: '20px' }}>
@@ -2771,24 +2874,6 @@ export function PatientDetailPage() {
                 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
                   <button
-                    onClick={() => {
-                      setShowAddMeetingModal(false);
-                      setEditingMeeting(null);
-                      setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
-                    }}
-                    style={{
-                      background: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      padding: '10px 20px',
-                      borderRadius: '6px',
-                      cursor: 'pointer',
-                      fontSize: '14px'
-                    }}
-                  >
-                    {t('patientDetail.cancel')}
-                  </button>
-                  <button
                     onClick={handleAddMeeting}
                     style={{
                       background: '#007acc',
@@ -2802,6 +2887,7 @@ export function PatientDetailPage() {
                   >
                     {editingMeeting ? t('patientDetail.saveChanges') : t('patientDetail.addMeetingButton')}
                   </button>
+                </div>
                 </div>
               </div>
             </div>
@@ -2853,7 +2939,7 @@ export function PatientDetailPage() {
               style={{
                 position: 'absolute',
                 top: '15px',
-                right: '15px',
+                ...(i18n.language === 'he' ? { left: '15px' } : { right: '15px' }),
                 background: 'none',
                 border: 'none',
                 fontSize: '24px',
@@ -2880,7 +2966,13 @@ export function PatientDetailPage() {
               ×
             </button>
             
-            <h3 style={{ color: '#000000', marginBottom: '20px', textAlign: 'center', paddingRight: '40px' }}>
+            <h3 style={{ 
+              color: '#000000', 
+              marginBottom: '20px', 
+              textAlign: 'center', 
+              paddingRight: i18n.language === 'he' ? '40px' : '0',
+              paddingLeft: i18n.language === 'he' ? '0' : '40px'
+            }}>
               {t('patientDetail.addNewMilestone')}
             </h3>
             
@@ -3014,18 +3106,51 @@ export function PatientDetailPage() {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
-              <input
-                type="date"
-                value={newMilestone.targetDate}
-                onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type="date"
+                  className="date-picker-input add-milestone-target-date"
+                  value={newMilestone.targetDate}
+                  onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                    paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    const dateInput = document.querySelector('.add-milestone-target-date') as HTMLInputElement;
+                    if (dateInput) {
+                      dateInput.showPicker();
+                    }
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                    pointerEvents: 'auto',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    zIndex: 1
+                  }}
+                  onClick={() => {
+                    const dateInput = document.querySelector('.add-milestone-target-date') as HTMLInputElement;
+                    if (dateInput) {
+                      dateInput.showPicker();
+                    }
+                  }}
+                  title={t('patientDetail.targetDate')}
+                >
+                  📅
+                </span>
+              </div>
             </div>
 
             
@@ -3087,7 +3212,8 @@ export function PatientDetailPage() {
               borderRadius: '12px 12px 0 0',
               position: 'sticky',
               top: 0,
-              zIndex: 10
+              zIndex: 10,
+              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
             }}>
               <h3 style={{ 
                 color: '#000000', 
@@ -3338,18 +3464,51 @@ export function PatientDetailPage() {
 
             <div style={{ marginBottom: '20px' }}>
               <label style={{ color: '#000000', display: 'block', marginBottom: '5px' }}>{t('patientDetail.targetDate')}</label>
-              <input
-                type="date"
-                value={newMilestone.targetDate}
-                onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '6px',
-                  fontSize: '14px'
-                }}
-              />
+              <div style={{ position: 'relative', width: '100%' }}>
+                <input
+                  type="date"
+                  className="date-picker-input edit-milestone-target-date"
+                  value={newMilestone.targetDate}
+                  onChange={(e) => setNewMilestone({...newMilestone, targetDate: e.target.value})}
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                    paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                    border: '1px solid #ced4da',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => {
+                    const dateInput = document.querySelector('.edit-milestone-target-date') as HTMLInputElement;
+                    if (dateInput) {
+                      dateInput.showPicker();
+                    }
+                  }}
+                />
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                    pointerEvents: 'auto',
+                    fontSize: '18px',
+                    cursor: 'pointer',
+                    zIndex: 1
+                  }}
+                  onClick={() => {
+                    const dateInput = document.querySelector('.edit-milestone-target-date') as HTMLInputElement;
+                    if (dateInput) {
+                      dateInput.showPicker();
+                    }
+                  }}
+                  title={t('patientDetail.targetDate')}
+                >
+                  📅
+                </span>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>

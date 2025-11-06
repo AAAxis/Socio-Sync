@@ -2203,14 +2203,6 @@ export default function MainDashboard() {
                         ) : null}
                       </div>
                     </div>
-                    <div className="patient-search-modal-footer">
-                      <button 
-                        onClick={() => setShowCreateEventModal(false)}
-                        className="cancel-btn"
-                      >
-                        {t('events.cancel')}
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
@@ -2258,25 +2250,93 @@ export default function MainDashboard() {
                       </div>
                       <div className="event-detail-field">
                         <label>{t('events.dateLabel')}:</label>
-                        <input 
-                          type="date"
-                          value={editedEventData?.date || (selectedEventForDetails.date?.toDate 
-                            ? selectedEventForDetails.date.toDate().toISOString().split('T')[0]
-                            : '')}
-                          onChange={(e) => setEditedEventData((prev: any) => ({ ...prev, date: e.target.value }))}
-                          className="event-edit-input"
-                        />
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <input 
+                            type="date"
+                            value={editedEventData?.date || (selectedEventForDetails.date?.toDate 
+                              ? selectedEventForDetails.date.toDate().toISOString().split('T')[0]
+                              : '')}
+                            onChange={(e) => setEditedEventData((prev: any) => ({ ...prev, date: e.target.value }))}
+                            className="event-edit-input"
+                            style={{
+                              paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                              paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              const dateInput = document.querySelector('.event-edit-input[type="date"]') as HTMLInputElement;
+                              if (dateInput) {
+                                dateInput.showPicker();
+                              }
+                            }}
+                          />
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                              pointerEvents: 'auto',
+                              fontSize: '18px',
+                              cursor: 'pointer',
+                              zIndex: 1
+                            }}
+                            onClick={(e) => {
+                              const input = (e.target as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                              if (input) {
+                                input.showPicker();
+                              }
+                            }}
+                            title={t('events.dateLabel')}
+                          >
+                            📅
+                          </span>
+                        </div>
                       </div>
                       <div className="event-detail-field">
                         <label>{t('events.timeLabel')}:</label>
-                        <input 
-                          type="time"
-                          value={editedEventData?.time || (selectedEventForDetails.date?.toDate 
-                            ? selectedEventForDetails.date.toDate().toTimeString().slice(0, 5)
-                            : '')}
-                          onChange={(e) => setEditedEventData((prev: any) => ({ ...prev, time: e.target.value }))}
-                          className="event-edit-input"
-                        />
+                        <div style={{ position: 'relative', width: '100%' }}>
+                          <input 
+                            type="time"
+                            value={editedEventData?.time || (selectedEventForDetails.date?.toDate 
+                              ? selectedEventForDetails.date.toDate().toTimeString().slice(0, 5)
+                              : '')}
+                            onChange={(e) => setEditedEventData((prev: any) => ({ ...prev, time: e.target.value }))}
+                            className="event-edit-input"
+                            style={{
+                              paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                              paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              const timeInput = document.querySelector('.event-edit-input[type="time"]') as HTMLInputElement;
+                              if (timeInput) {
+                                timeInput.showPicker();
+                              }
+                            }}
+                          />
+                          <span
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              transform: 'translateY(-50%)',
+                              ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                              pointerEvents: 'auto',
+                              fontSize: '18px',
+                              cursor: 'pointer',
+                              zIndex: 1
+                            }}
+                            onClick={(e) => {
+                              const input = (e.target as HTMLElement).parentElement?.querySelector('input[type="time"]') as HTMLInputElement;
+                              if (input) {
+                                input.showPicker();
+                              }
+                            }}
+                            title={t('events.timeLabel')}
+                          >
+                            🕐
+                          </span>
+                        </div>
                       </div>
                       <div className="event-detail-field">
                         <label>{t('events.createdByLabel')}:</label>

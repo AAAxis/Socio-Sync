@@ -9,7 +9,7 @@ import { User } from '../types';
 export function EditUserPage() {
   const navigate = useNavigate();
   const { userId } = useParams<{ userId: string }>();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { showConfirm, DialogComponent } = useCustomDialog();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,7 +133,38 @@ export function EditUserPage() {
     <div className="app">
       <div className="container">
         <div className="login-card">
-          <div className="login-header">
+          <div className="login-header" style={{ position: 'relative' }}>
+            <button
+              onClick={() => navigate('/dashboard?tab=users')}
+              style={{
+                position: 'absolute',
+                top: '0',
+                ...(i18n.language === 'he' ? { left: '0' } : { right: '0' }),
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('patientDetail.close')}
+            >
+              ×
+            </button>
             <img src="/logo.png" alt="Logo" style={{ height: '40px', width: 'auto', marginRight: '20px' }} />
             <p>{t('editUser.title')}</p>
           </div>
@@ -209,12 +240,6 @@ export function EditUserPage() {
                 {isUserLoading ? t('editUser.updating') : t('editUser.updateUser')}
               </button>
               
-              <button
-                onClick={() => navigate('/dashboard?tab=users')}
-                className="cancel-link-btn"
-              >
-                {t('editUser.cancel')}
-              </button>
             </div>
           </div>
         </div>

@@ -359,7 +359,48 @@ export default function Patients({
               boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)'
             }}
           >
-            <h2 style={{ marginBottom: '20px', color: '#000000' }}>{t('patientDetail.createNewPatient')}</h2>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'row',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '20px',
+              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+            }}>
+              <h2 style={{ margin: 0, color: '#000000', flex: 1, textAlign: 'center' }}>{t('patientDetail.createNewPatient')}</h2>
+              <button
+                onClick={() => {
+                  setShowCreateModal(false);
+                  setCreateError(null);
+                  setNewPatient({ firstName: '', lastName: '', notes: '' });
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#666',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8f9fa';
+                  e.currentTarget.style.color = '#000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#666';
+                }}
+                title={t('patientDetail.close')}
+              >
+                ×
+              </button>
+            </div>
             
             {createError && (
               <div style={{
@@ -438,25 +479,6 @@ export default function Patients({
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setCreateError(null);
-                  setNewPatient({ firstName: '', lastName: '', notes: '' });
-                }}
-                disabled={isCreating}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '6px',
-                  border: '1px solid #ced4da',
-                  backgroundColor: '#f8f9fa',
-                  color: '#000000',
-                  cursor: 'pointer',
-                  fontSize: '14px'
-                }}
-              >
-                {t('patientDetail.cancel')}
-              </button>
               <button
                 onClick={handleCreatePatient}
                 disabled={isCreating}

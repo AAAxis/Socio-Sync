@@ -108,19 +108,43 @@ export function CreatePatientPage() {
     <div className="app">
       <div className="create-patient-container">
         <div className="create-patient-form">
-          <div className="login-header">
+          <div className="login-header" style={{ position: 'relative' }}>
+            <button
+              onClick={() => navigate('/dashboard?tab=projects')}
+              style={{
+                position: 'absolute',
+                top: '0',
+                ...(i18n.language === 'he' ? { left: '0' } : { right: '0' }),
+                background: 'none',
+                border: 'none',
+                fontSize: '24px',
+                cursor: 'pointer',
+                color: '#666',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f8f9fa';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title="Close"
+            >
+              ×
+            </button>
             <h1>SocioSync</h1>
             <p>Create New Patient</p>
           </div>
 
           <div className="form-actions-top">
-            <button
-              onClick={() => navigate('/dashboard?tab=projects')}
-              className="cancel-patient-btn"
-            >
-              Cancel
-            </button>
-            
             <button
               onClick={handleCreatePatient}
               className="create-patient-btn"
@@ -165,9 +189,41 @@ export function CreatePatientPage() {
                 
                 <div className="form-group">
                   <label htmlFor="dateOfBirth">Date of Birth *</label>
-                  <div className="input-with-icon">
-                    <span 
-                      className="field-icon" 
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type="date"
+                      className="date-picker-input"
+                      id="dateOfBirth"
+                      value={patientFormData.dateOfBirth}
+                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                        paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                        border: '1px solid #ced4da',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const dateInput = document.getElementById('dateOfBirth') as HTMLInputElement;
+                        if (dateInput) {
+                          dateInput.showPicker();
+                        }
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                        pointerEvents: 'auto',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        zIndex: 1
+                      }}
                       onClick={() => {
                         const dateInput = document.getElementById('dateOfBirth') as HTMLInputElement;
                         if (dateInput) {
@@ -175,15 +231,9 @@ export function CreatePatientPage() {
                         }
                       }}
                       title="Date of Birth"
-                    >📅</span>
-                    <input
-                      type="date"
-                      className="date-picker-input"
-                      id="dateOfBirth"
-                      value={patientFormData.dateOfBirth}
-                      onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
-                      style={{ cursor: 'pointer' }}
-                    />
+                    >
+                      📅
+                    </span>
                   </div>
                 </div>
               </div>

@@ -13,7 +13,7 @@ interface PatientDetailEmbeddedProps {
 
 // Embedded Patient Detail Component
 export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmbeddedProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Helper function to translate stored values to display text
   const translateValue = (field: string, value: string) => {
@@ -312,11 +312,50 @@ export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmb
               <div className="form-row">
                 <div className="form-group">
                   <label>{t('patientDetail.dateOfBirth')}</label>
-                  <input
-                    type="date"
-                    value={editedPatientData.date_of_birth || ''}
-                    onChange={(e) => setEditedPatientData({...editedPatientData, date_of_birth: e.target.value})}
-                  />
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <input
+                      type="date"
+                      value={editedPatientData.date_of_birth || ''}
+                      onChange={(e) => setEditedPatientData({...editedPatientData, date_of_birth: e.target.value})}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        paddingRight: i18n.language === 'he' ? '12px' : '40px',
+                        paddingLeft: i18n.language === 'he' ? '40px' : '12px',
+                        border: '1px solid #ced4da',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const dateInput = document.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (dateInput) {
+                          dateInput.showPicker();
+                        }
+                      }}
+                    />
+                    <span
+                      style={{
+                        position: 'absolute',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        ...(i18n.language === 'he' ? { left: '12px' } : { right: '12px' }),
+                        pointerEvents: 'auto',
+                        fontSize: '18px',
+                        cursor: 'pointer',
+                        zIndex: 1
+                      }}
+                      onClick={(e) => {
+                        const input = (e.target as HTMLElement).parentElement?.querySelector('input[type="date"]') as HTMLInputElement;
+                        if (input) {
+                          input.showPicker();
+                        }
+                      }}
+                      title={t('patientDetail.dateOfBirth')}
+                    >
+                      📅
+                    </span>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label>{t('patientDetail.governmentId')}</label>
@@ -359,9 +398,6 @@ export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmb
               <div className="form-actions">
                 <button onClick={handleSaveEdit} className="btn btn-primary">
                   {t('patientDetail.saveChanges')}
-                </button>
-                <button onClick={handleCancelEdit} className="btn btn-secondary">
-                  {t('patientDetail.cancel')}
                 </button>
               </div>
             </div>

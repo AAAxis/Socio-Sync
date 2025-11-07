@@ -215,7 +215,7 @@ sshpass -p '9jeeVTv7p3jUErUgrsLj!' ssh root@91.98.153.172 "cd /root/medical-one 
 
 ### Test CORS
 ```bash
-curl -I -H "Origin: https://socio-sync-sepia.vercel.app" https://intake.theholylabs.com/api/patients/next-case-id
+curl -I -H "Origin: https://socio-sync-sepia.vercel.app" https://bucket.roamjet.net/api/patients/next-case-id
 ```
 
 ### Check Container Status

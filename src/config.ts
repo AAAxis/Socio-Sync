@@ -3,7 +3,7 @@
 export const API_CONFIG = {
   // Fileserver URL (for patient data and file uploads)
   // Using remote backend for both localhost and production
-  FILESERVER_URL: 'https://intake.theholylabs.com',
+  FILESERVER_URL: 'https://bucket.roamjet.net',
 };
 
 // Helper function to get full API URL

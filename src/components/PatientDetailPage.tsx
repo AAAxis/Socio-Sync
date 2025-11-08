@@ -2682,12 +2682,133 @@ export function PatientDetailPage() {
 
                   {activeDetailTab === 'documents' && (
                     <div className="tab-panel">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                         <h3 className="form-block-title" style={{ color: '#000000', margin: 0 }}>📄 {t('patientDetail.documents')}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <input
+                            id="patient-document-upload"
+                            type="file"
+                            multiple
+                            onChange={handleFileUpload}
+                            style={{ display: 'none' }}
+                          />
+                          <label
+                            htmlFor="patient-document-upload"
+                            style={{
+                              background: '#228be6',
+                              color: '#ffffff',
+                              padding: '10px 18px',
+                              borderRadius: '10px',
+                              cursor: isUploading ? 'not-allowed' : 'pointer',
+                              fontWeight: 600,
+                              boxShadow: '0 4px 12px rgba(34, 139, 230, 0.25)',
+                              opacity: isUploading ? 0.6 : 1,
+                              transition: 'background 0.2s ease',
+                              pointerEvents: isUploading ? 'none' : 'auto'
+                            }}
+                          >
+                            {isUploading ? t('patientDetail.uploading') : t('patientDetail.uploadDocuments')}
+                          </label>
+                        </div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                        {t('patientDetail.documentsComingSoon')}
+
+                      <div style={{ marginBottom: '18px', color: '#666', fontSize: '13px', textAlign: i18n.language === 'he' ? 'right' : 'left' }}>
+                        {t('patientDetail.clickToUpload')}
                       </div>
+
+                      {isUploading && (
+                        <div style={{ marginBottom: '16px', color: '#2f9e44', fontWeight: 600 }}>
+                          {t('patientDetail.uploading')}
+                        </div>
+                      )}
+
+                      {uploadedFiles.length > 0 ? (
+                        <div style={{ display: 'grid', gap: '12px' }}>
+                          {uploadedFiles.map((fileUrl, index) => {
+                            const fileName = fileUrl.split('/').pop() || fileUrl;
+                            return (
+                              <div
+                                key={`${fileUrl}-${index}`}
+                                style={{
+                                  background: '#ffffff',
+                                  border: '1px solid #e9ecef',
+                                  borderRadius: '12px',
+                                  padding: '14px 18px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  gap: '16px',
+                                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.04)',
+                                  flexWrap: 'wrap'
+                                }}
+                              >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flex: '1 1 auto' }}>
+                                  <span style={{ fontSize: '22px' }} role="img" aria-label="document">📎</span>
+                                  <span
+                                    style={{
+                                      color: '#1f2933',
+                                      fontWeight: 600,
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      whiteSpace: 'nowrap',
+                                      maxWidth: '320px'
+                                    }}
+                                    title={fileName}
+                                  >
+                                    {fileName}
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  <a
+                                    href={fileUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{ color: '#1971c2', fontWeight: 600, textDecoration: 'none' }}
+                                  >
+                                    {t('patientDetail.viewDocument')}
+                                  </a>
+                                  <button
+                                    onClick={() => handleDeleteFile(fileUrl, index)}
+                                    disabled={isUploading}
+                                    style={{
+                                      background: '#ffe3e3',
+                                      border: '1px solid #ffc9c9',
+                                      color: '#c92a2a',
+                                      padding: '6px 12px',
+                                      borderRadius: '8px',
+                                      cursor: isUploading ? 'not-allowed' : 'pointer',
+                                      fontWeight: 600
+                                    }}
+                                  >
+                                    {t('patientDetail.deleteDocument')}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div
+                          style={{
+                            textAlign: 'center',
+                            padding: '50px 20px',
+                            color: '#5c677d',
+                            border: '2px dashed #e0e7ff',
+                            borderRadius: '16px',
+                            background: '#f8f9ff'
+                          }}
+                        >
+                          <div style={{ fontSize: '48px', marginBottom: '12px' }} role="img" aria-label="folder">
+                            📁
+                          </div>
+                          <div style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px', color: '#1f2933' }}>
+                            {t('patientDetail.noDocuments')}
+                          </div>
+                          <div style={{ fontSize: '14px' }}>
+                            {t('patientDetail.clickToUpload')}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

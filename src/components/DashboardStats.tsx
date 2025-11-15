@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { User, Task, Notification } from '../types';
 import { useCustomDialog } from './CustomDialog';
 import { createTask } from '../firebase';
+import { PatientNameDisplay } from './PatientComponents';
 
 interface DashboardStatsProps {
   user: User;
@@ -1645,17 +1646,15 @@ export function DashboardStats({
                           }}>
                             {patient.caseId || patient.id}
                           </h4>
-                          {patient.name && (
-                            <p style={{
-                              color: '#666',
-                              fontSize: '14px',
-                              marginBottom: '8px',
-                              textAlign: i18n.language === 'he' ? 'right' : 'left',
-                              direction: i18n.language === 'he' ? 'rtl' : 'ltr'
-                            }}>
-                              {patient.name}
-                            </p>
-                          )}
+                          <p style={{
+                            color: '#666',
+                            fontSize: '14px',
+                            marginBottom: '8px',
+                            textAlign: i18n.language === 'he' ? 'right' : 'left',
+                            direction: i18n.language === 'he' ? 'rtl' : 'ltr'
+                          }}>
+                            <PatientNameDisplay caseId={patient.caseId || patient.id} />
+                          </p>
                           {patient.updatedAt && (
                             <p style={{
                               color: '#999',

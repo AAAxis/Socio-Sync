@@ -11,6 +11,7 @@ import html2canvas from 'html2canvas';
 import { RIGHTS_FIELDS } from './RightsIntakeForm';
 import { emotionalQuestions } from './EmotionalIntakeLogic';
 import { careerQuestions } from './CareerIntakeLogic';
+import { AIChatButton } from './AIChatButton';
 
 // Patient Detail Page Component
 export function PatientDetailPage() {
@@ -1533,6 +1534,24 @@ export function PatientDetailPage() {
     }
   };
 
+  const handleDeleteMeeting = async (meetingId: string) => {
+    try {
+      await deleteActivityLog(meetingId);
+      
+      // Close modal and reset form
+      setShowAddMeetingModal(false);
+      setNewMeeting({ description: '', date: getTodayDate(), notes: '' });
+      setEditingMeeting(null);
+      
+      // Reload activities to reflect the deletion
+      await loadPatientData();
+      console.log('Meeting deleted successfully');
+    } catch (err: any) {
+      console.error('Error deleting meeting:', err);
+      showAlert(t('patientDetail.deleteMeeting') + ': ' + (err.message || 'Failed to delete meeting'));
+    }
+  };
+
   const handleArchiveMeeting = async (activityId: string, archived: boolean) => {
     if (!caseId || !user) return;
     try {
@@ -2863,6 +2882,30 @@ export function PatientDetailPage() {
                 </div>
                 
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  {editingMeeting && (
+                    <button
+                      onClick={() => {
+                        if (editingMeeting) {
+                          showConfirm(
+                            t('patientDetail.confirmDeleteMeeting'),
+                            () => handleDeleteMeeting(editingMeeting.id),
+                            t('patientDetail.deleteMeeting')
+                          );
+                        }
+                      }}
+                      style={{
+                        background: '#dc3545',
+                        color: 'white',
+                        border: 'none',
+                        padding: '10px 20px',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '14px'
+                      }}
+                    >
+                      {t('patientDetail.deleteMeeting')}
+                    </button>
+                  )}
                   <button
                     onClick={handleAddMeeting}
                     style={{
@@ -3503,7 +3546,15 @@ export function PatientDetailPage() {
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button
-                onClick={() => editingMilestone && handleDeleteMilestone(editingMilestone.id)}
+                onClick={() => {
+                  if (editingMilestone) {
+                    showConfirm(
+                      t('patientDetail.confirmDeleteMilestone'),
+                      () => handleDeleteMilestone(editingMilestone.id),
+                      t('patientDetail.deleteMilestone')
+                    );
+                  }
+                }}
                 style={{
                   background: '#dc3545',
                   color: 'white',
@@ -3542,6 +3593,7 @@ export function PatientDetailPage() {
         </div>
       </div>
       <DialogComponent />
+      {caseId && <AIChatButton caseId={caseId} />}
     </>
   );
 }

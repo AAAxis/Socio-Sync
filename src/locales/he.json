@@ -301,6 +301,8 @@
     "addMeetingRecord": "פגישה חדשה",
     "addNewMeeting": "פגישה חדשה",
     "editMeeting": "עריכת פגישה",
+    "deleteMeeting": "מחיקת פגישה",
+    "confirmDeleteMeeting": "האם אתה בטוח שברצונך למחוק את הפגישה הזו? פעולה זו לא ניתנת לביטול.",
     "editMeetingRecord": "תיעוד הפגישה",
     "meetingDescription": "תיאור הפגישה",
     "meetingDate": "תאריך הפגישה",
@@ -655,6 +657,15 @@
     "ok": "אישור",
     "cancel": "ביטול",
     "close": "סגור"
+  },
+  "chat": {
+    "title": "עוזר AI",
+    "placeholder": "הקלד את השאלה שלך...",
+    "send": "שלח",
+    "close": "סגור",
+    "patientContext": "הקשר מטופל",
+    "openChat": "פתח עוזר AI",
+    "minimize": "מזער"
   },
   "actions": {
     "meeting": "פגישה",

@@ -306,6 +306,8 @@
     "addMeetingRecord": "Add Meeting",
     "addNewMeeting": "Add New Meeting",
     "editMeeting": "Edit Meeting",
+    "deleteMeeting": "Delete Meeting",
+    "confirmDeleteMeeting": "Are you sure you want to delete this meeting? This action cannot be undone.",
     "editMeetingRecord": "Edit Meeting",
     "meetingDescription": "Meeting Description",
     "meetingDate": "Meeting Date",
@@ -620,5 +622,14 @@
     "ok": "OK",
     "cancel": "Cancel",
     "close": "Close"
+  },
+  "chat": {
+    "title": "AI Assistant",
+    "placeholder": "Type your question...",
+    "send": "Send",
+    "close": "Close",
+    "patientContext": "Patient Context",
+    "openChat": "Open AI Assistant",
+    "minimize": "Minimize"
   }
 }

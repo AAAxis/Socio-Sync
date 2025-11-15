@@ -17,6 +17,7 @@ import { getApiUrl } from './config';
 import { formatDate } from './utils';
 import { useLanguageNavigate } from './hooks/useLanguageNavigate';
 import { useCustomDialog } from './components/CustomDialog';
+import { AIChatButton } from './components/AIChatButton';
 
 // Main Dashboard Component (Application Layout)
 export default function MainDashboard() {
@@ -2509,6 +2510,7 @@ export default function MainDashboard() {
         </div>
       </div>
       <DialogComponent />
+      <AIChatButton />
     </>
   );
 }

@@ -5,7 +5,7 @@ export interface User {
   name: string;
   email: string;
   picture: string;
-  role: 'super_admin' | 'admin' | 'blocked';
+  role: 'super_admin' | 'admin' | 'blocked' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor';
   createdAt?: string;
   lastLoginAt?: string;
   loginCount?: number;
@@ -22,7 +22,7 @@ export interface UserManagementUser {
   id: string;
   name: string;
   email: string;
-  role: 'super_admin' | 'admin' | 'blocked';
+  role: 'super_admin' | 'admin' | 'blocked' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor';
   createdAt: string;
   lastLoginAt: string;
   loginCount: number;
@@ -39,6 +39,7 @@ export interface Patient {
   createdAt: string;
   createdBy: string;
   status: 'new' | 'active' | 'inactive' | 'completed';
+  assignedAdmins?: string[]; // Users assigned to this patient (by user.id)
 }
 
 export interface ActivityNote {

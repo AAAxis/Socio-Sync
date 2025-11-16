@@ -78,7 +78,13 @@ export function CreateAccountPage() {
     );
   }
 
-  if (user.role !== 'super_admin') {
+  const canInvite =
+    user.role === 'super_admin' ||
+    user.role === 'department_manager' ||
+    user.role === 'program_manager' ||
+    user.role === 'team_manager';
+
+  if (!canInvite) {
     return (
       <div className="app">
         <div className="container">

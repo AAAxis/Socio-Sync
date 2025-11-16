@@ -587,7 +587,8 @@ export interface FirebaseUserData {
   userId: string; // Firebase UID
   email: string; // Email for basic identification
   name: string; // Display name
-  role: 'super_admin' | 'admin' | 'blocked';
+  picture?: string; // Profile picture URL
+  role: 'super_admin' | 'admin' | 'blocked' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor';
   createdAt: any; // Server timestamp
   lastLoginAt: any; // Server timestamp
   loginCount: number;
@@ -608,7 +609,7 @@ export interface FirebaseUserData {
 }
 
 // Track user login - only store admin data in Firebase, clients go to PostgreSQL only
-export const trackUserLogin = async (user: User, role: 'super_admin' | 'admin' = 'admin', name?: string) => {
+export const trackUserLogin = async (user: User, role: 'super_admin' | 'admin' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor' = 'admin', name?: string) => {
   try {
     console.log('trackUserLogin called with:', { userId: user.uid, role, name, displayName: user.displayName });
     // Store admin data in Firebase (all users are admins)
@@ -996,7 +997,7 @@ export const createUserWithRole = async (email: string, password: string, name: 
   }
 };
 
-export const updateUserRole = async (userId: string, newRole: 'super_admin' | 'admin', name?: string, email?: string, status?: 'active' | 'blocked' | 'restricted') => {
+export const updateUserRole = async (userId: string, newRole: 'super_admin' | 'admin' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor', name?: string, email?: string, status?: 'active' | 'blocked' | 'restricted') => {
   try {
     // Update Firebase data for all users (all are admins)
     const userRef = doc(db, 'users', userId);
@@ -1117,6 +1118,9 @@ export const createPatientCase = async (patientData: any, createdBy: string) => 
       caseId: caseId,
       createdAt: now,
       createdBy: createdBy,
+      assignedAdmins: Array.isArray(patientData.assignedAdmins) && patientData.assignedAdmins.length > 0
+        ? Array.from(new Set([createdBy, ...patientData.assignedAdmins]))
+        : [createdBy],
       status: patientData.status || 'new', // Default to 'new' for freshly created patients
       notes: patientData.notes || '' // Save notes to Firebase as non-PII
     };
@@ -1190,6 +1194,19 @@ export const getAllPatients = async (): Promise<any[]> => {
   } catch (error) {
     console.error('Error getting patients:', error);
     return [];
+  }
+};
+
+// Update patient assigned admins
+export const updatePatientAssignedAdmins = async (caseId: string, assignedUserIds: string[]) => {
+  try {
+    const patientRef = doc(db, 'patients', caseId);
+    const uniqueAssigned = Array.from(new Set(assignedUserIds));
+    await updateDoc(patientRef, { assignedAdmins: uniqueAssigned });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating assigned admins:', error);
+    return { success: false, error };
   }
 };
 

@@ -208,24 +208,29 @@ export function GooglePlacesSearch({ value, onChange, placeholder }: { value: st
 // Component to display user email from Firebase using user ID
 export function PatientCreatedByDisplay({ userId }: { userId: string }) {
   const [email, setEmail] = useState<string>('Loading...');
+  const [name, setName] = useState<string>('');
+  const [picture, setPicture] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
 
   useEffect(() => {
     // Prevent multiple calls for the same userId
     if (hasFetched) return;
     
-    const fetchUserEmail = async () => {
+    const fetchUserData = async () => {
       try {
         setHasFetched(true);
         
         // If userId is already an email, use it directly
         if (userId.includes('@')) {
           setEmail(userId);
+          setName(userId.split('@')[0]); // Use part before @ as name
+          setPicture(''); // No picture for email-only users
           return;
         }
         
-        // Fetch user email from Firebase
+        // Fetch user data from Firebase
         const userDocRef = doc(db, 'users', userId);
         const userDoc = await getDoc(userDocRef);
         
@@ -233,22 +238,32 @@ export function PatientCreatedByDisplay({ userId }: { userId: string }) {
           const userData = userDoc.data() as any;
           if (userData.email) {
             setEmail(userData.email);
+            setName(userData.name || userData.email.split('@')[0]);
+            setPicture(userData.picture || '');
           } else {
             setEmail('Unknown User');
+            setName('?');
+            setPicture('');
           }
         } else {
           setEmail('User Not Found');
+          setName('?');
+          setPicture('');
         }
       } catch (err) {
-        console.error('Error fetching user email:', err);
+        console.error('Error fetching user data:', err);
         setEmail('Error Loading');
+        setName('?');
+        setPicture('');
       }
     };
 
     if (userId) {
-      fetchUserEmail();
+      fetchUserData();
     } else {
       setEmail('Unknown');
+      setName('?');
+      setPicture('');
     }
   }, [userId, hasFetched]);
 
@@ -256,5 +271,235 @@ export function PatientCreatedByDisplay({ userId }: { userId: string }) {
     return <span style={{ color: '#ff6b6b' }}>Error</span>;
   }
 
-  return <span>{email}</span>;
+  // Show profile picture first, fallback to person icon
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'inline-block'
+      }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '24px',
+          height: '24px',
+          borderRadius: '50%',
+          backgroundColor: picture ? 'transparent' : '#6c757d',
+          color: 'white',
+          fontSize: '12px',
+          cursor: 'pointer',
+          overflow: 'hidden',
+          border: picture ? '1px solid #ddd' : 'none'
+        }}
+      >
+        {picture ? (
+          <img
+            src={picture}
+            alt="Profile"
+            onError={(e) => {
+              // Hide the image and show icon instead when image fails to load
+              e.currentTarget.style.display = 'none';
+              setPicture('');
+            }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: '12px' }}>👤</span>
+        )}
+      </div>
+      
+      {showTooltip && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '30px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#333',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            whiteSpace: 'nowrap',
+            zIndex: 1000,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          {email}
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '4px solid transparent',
+              borderRight: '4px solid transparent',
+              borderTop: '4px solid #333'
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Component to display assigned user avatar with email on hover
+export function AssignedUserAvatar({ userId }: { userId: string }) {
+  const [email, setEmail] = useState<string>('Loading...');
+  const [name, setName] = useState<string>('');
+  const [picture, setPicture] = useState<string>('');
+  const [error, setError] = useState<string | null>(null);
+  const [hasFetched, setHasFetched] = useState<boolean>(false);
+  const [showTooltip, setShowTooltip] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Prevent multiple calls for the same userId
+    if (hasFetched) return;
+    
+    const fetchUserData = async () => {
+      try {
+        setHasFetched(true);
+        
+        // If userId is already an email, use it directly
+        if (userId.includes('@')) {
+          setEmail(userId);
+          setName(userId.split('@')[0]); // Use part before @ as name
+          setPicture(''); // No picture for email-only users
+          return;
+        }
+        
+        // Fetch user data from Firebase
+        const userDocRef = doc(db, 'users', userId);
+        const userDoc = await getDoc(userDocRef);
+        
+        if (userDoc.exists()) {
+          const userData = userDoc.data() as any;
+          if (userData.email) {
+            setEmail(userData.email);
+            setName(userData.name || userData.email.split('@')[0]);
+            setPicture(userData.picture || '');
+          } else {
+            setEmail('Unknown User');
+            setName('?');
+            setPicture('');
+          }
+        } else {
+          setEmail('User Not Found');
+          setName('?');
+          setPicture('');
+        }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
+        setEmail('Error Loading');
+        setName('?');
+        setPicture('');
+      }
+    };
+
+    if (userId) {
+      fetchUserData();
+    } else {
+      setEmail('Unknown');
+      setName('?');
+      setPicture('');
+    }
+  }, [userId, hasFetched]);
+
+  if (error) {
+    return <span style={{ color: '#ff6b6b' }}>Error</span>;
+  }
+
+  // Show profile picture first, fallback to person icon
+  return (
+    <div
+      style={{
+        position: 'relative',
+        display: 'inline-block'
+      }}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
+      <div
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          backgroundColor: picture ? 'transparent' : '#6c757d',
+          color: 'white',
+          fontSize: '10px',
+          cursor: 'pointer',
+          margin: '1px',
+          overflow: 'hidden',
+          border: picture ? '1px solid #ddd' : 'none'
+        }}
+      >
+        {picture ? (
+          <img
+            src={picture}
+            alt="Profile"
+            onError={(e) => {
+              // Hide the image and show icon instead when image fails to load
+              e.currentTarget.style.display = 'none';
+              setPicture('');
+            }}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover'
+            }}
+          />
+        ) : (
+          <span style={{ fontSize: '10px' }}>👤</span>
+        )}
+      </div>
+      
+      {showTooltip && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: '25px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            backgroundColor: '#333',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '11px',
+            whiteSpace: 'nowrap',
+            zIndex: 1000,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+          }}
+        >
+          {email}
+          <div
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: 0,
+              height: 0,
+              borderLeft: '4px solid transparent',
+              borderRight: '4px solid transparent',
+              borderTop: '4px solid #333'
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
 }

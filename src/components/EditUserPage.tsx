@@ -3,6 +3,8 @@ import { useNavigate, useParams, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useCustomDialog } from './CustomDialog';
 import { getAllUsers, updateUserRole, deleteUser } from '../firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
+import { auth } from '../firebase';
 import { User } from '../types';
 
 // Edit User Page Component
@@ -17,9 +19,7 @@ export function EditUserPage() {
   const [userFormData, setUserFormData] = useState({
     name: '',
     email: '',
-    role: 'admin' as 'super_admin' | 'admin',
-    status: 'active' as 'active' | 'blocked',
-    password: ''
+    role: 'admin' as 'super_admin' | 'admin' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor'
   });
   const [isUserLoading, setIsUserLoading] = useState(false);
 
@@ -54,9 +54,7 @@ export function EditUserPage() {
         setUserFormData({
           name: userToEdit.name,
           email: userToEdit.email,
-          role: userToEdit.role === 'super_admin' ? 'super_admin' : 'admin',
-          status: userToEdit.blocked || userToEdit.restricted ? 'blocked' : 'active',
-          password: ''
+          role: (['super_admin','admin','department_manager','program_manager','team_manager','instructor'].includes(userToEdit.role) ? userToEdit.role : 'admin') as any
         });
       } else {
         setError(t('editUser.userNotFound'));
@@ -81,11 +79,31 @@ export function EditUserPage() {
     setError(null);
 
     try {
-      await updateUserRole(userId, userFormData.role, userFormData.name, userFormData.email, userFormData.status);
+      await updateUserRole(userId, userFormData.role, userFormData.name, userFormData.email);
       navigate('/dashboard?tab=users');
     } catch (err: any) {
       setError(err.message || t('editUser.failedToUpdateUser'));
       console.error('Error updating user:', err);
+    } finally {
+      setIsUserLoading(false);
+    }
+  };
+
+  const handleSendPasswordReset = async () => {
+    if (!userFormData.email) {
+      setError(t('editUser.emailRequired'));
+      return;
+    }
+
+    setIsUserLoading(true);
+    setError(null);
+
+    try {
+      await sendPasswordResetEmail(auth, userFormData.email);
+      setError(t('editUser.passwordResetSent'));
+    } catch (err: any) {
+      console.error('Error sending password reset:', err);
+      setError(t('editUser.passwordResetError'));
     } finally {
       setIsUserLoading(false);
     }
@@ -204,31 +222,14 @@ export function EditUserPage() {
               >
                 <option value="admin">{t('editUser.admin')}</option>
                 <option value="super_admin">{t('editUser.superAdmin')}</option>
+                <option value="department_manager">{t('users.roles.department_manager')}</option>
+                <option value="program_manager">{t('users.roles.program_manager')}</option>
+                <option value="team_manager">{t('users.roles.team_manager')}</option>
+                <option value="instructor">{t('users.roles.instructor')}</option>
               </select>
             </div>
             
-            <div className="form-group">
-              <label htmlFor="editStatus" style={{ color: '#000000' }}>{t('editUser.status')}</label>
-              <select
-                id="editStatus"
-                value={userFormData.status}
-                onChange={(e) => handleInputChange('status', e.target.value)}
-              >
-                <option value="active">{t('editUser.statusActive')}</option>
-                <option value="blocked">{t('editUser.statusBlocked')}</option>
-              </select>
-            </div>
             
-            <div className="form-group">
-              <label htmlFor="editPassword" style={{ color: '#000000' }}>{t('editUser.newPasswordLabel')}</label>
-              <input
-                type="password"
-                id="editPassword"
-                value={userFormData.password}
-                onChange={(e) => handleInputChange('password', e.target.value)}
-                placeholder={t('editUser.newPasswordPlaceholder')}
-              />
-            </div>
             
             <div className="form-actions" style={{ display: 'flex', gap: '10px', flexDirection: 'column' }}>
               <button
@@ -240,6 +241,14 @@ export function EditUserPage() {
                 {isUserLoading ? t('editUser.updating') : t('editUser.updateUser')}
               </button>
               
+              <button
+                onClick={handleSendPasswordReset}
+                className="signin-btn"
+                disabled={isUserLoading}
+                style={{ background: '#007acc', marginTop: '10px' }}
+              >
+                🔒 {t('editUser.sendPasswordReset')}
+              </button>
             </div>
           </div>
         </div>

@@ -255,7 +255,6 @@ export function DashboardStats({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>🔔</span>
               {t('dashboard.recentActivities')}
               {activityLogs.length > 0 && (
                 <span style={{
@@ -292,7 +291,6 @@ export function DashboardStats({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>📋</span>
               {t('dashboard.todayTasks')}
               {todayTasks.length > 0 && (
                 <span style={{
@@ -329,7 +327,6 @@ export function DashboardStats({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>🎯</span>
               {t('navigation.todayMilestones')}
               {todayMilestones.length > 0 && (
                 <span style={{
@@ -366,7 +363,6 @@ export function DashboardStats({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>📅</span>
               {t('dashboard.upcomingMeetings')}
               {dashboardStats.upcomingMeetings > 0 && (
                 <span style={{
@@ -403,7 +399,6 @@ export function DashboardStats({
                 transition: 'all 0.2s ease'
               }}
             >
-              <span>📁</span>
               {t('dashboard.inactiveCases')}
               {dashboardStats.inactiveCases > 0 && (
                 <span style={{
@@ -429,8 +424,7 @@ export function DashboardStats({
             {/* Notifications Tab - Using Recent Activities */}
             {activeTab === 'notifications' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>🔔</span>
+                <h3 style={{ marginBottom: '15px', color: '#333' }}>
                   {t('dashboard.recentActivities')}
                 </h3>
                 
@@ -636,8 +630,7 @@ export function DashboardStats({
             {activeTab === 'todayTasks' && (
               <div>
                 <div style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ color: '#333', display: 'flex', alignItems: 'center', margin: 0 }}>
-                    <span style={{ marginRight: '8px' }}>📋</span>
+                  <h3 style={{ color: '#333', margin: 0 }}>
                     {t('dashboard.todayTasks')}
                   </h3>
                   <button
@@ -1141,8 +1134,7 @@ export function DashboardStats({
             {/* Pending Tasks Tab */}
             {activeTab === 'pendingTasks' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>⏳</span>
+                <h3 style={{ marginBottom: '15px', color: '#333' }}>
                   {t('dashboard.pendingTasks')}
                 </h3>
                 {isTasksLoading ? (
@@ -1271,8 +1263,7 @@ export function DashboardStats({
             {/* Milestones Tab */}
             {activeTab === 'milestones' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>🎯</span>
+                <h3 style={{ marginBottom: '15px', color: '#333' }}>
                   {t('navigation.todayMilestones')}
                 </h3>
           {isTodayMilestonesLoading ? (
@@ -1430,8 +1421,7 @@ export function DashboardStats({
             {/* Upcoming Meetings Tab */}
             {activeTab === 'upcomingMeetings' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>📅</span>
+                <h3 style={{ marginBottom: '15px', color: '#333' }}>
                   {t('dashboard.upcomingMeetings')}
                 </h3>
                 {isEventsLoading ? (
@@ -1596,8 +1586,7 @@ export function DashboardStats({
             {/* Inactive Cases Tab */}
             {activeTab === 'inactiveCases' && (
               <div>
-                <h3 style={{ marginBottom: '15px', color: '#333', display: 'flex', alignItems: 'center' }}>
-                  <span style={{ marginRight: '8px' }}>📁</span>
+                <h3 style={{ marginBottom: '15px', color: '#333' }}>
                   {t('dashboard.inactiveCases')}
                 </h3>
                 {isStatsLoading ? (

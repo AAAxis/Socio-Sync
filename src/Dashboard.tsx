@@ -8,6 +8,8 @@ import Patients from './components/Patients';
 import Users from './components/Users';
 import Settings from './components/Settings';
 import Organizations from './components/Organizations';
+import Programs from './components/Programs';
+import Groups from './components/Groups';
 import { signOutUser, onAuthStateChange, trackUserLogin, getUserData, getAllUsers, createUserWithRole, updateUserRole, deleteUser, enable2FA, disable2FA, linkGoogleCalendar, linkGoogleAccount, unlinkGoogleAccount, canLinkGoogleAccount, canUnlinkGoogleAccount, getAllPatients, getAllActivityLogs, getEvents, createEvent, deleteEvent, searchPatients, getPatientsBatch, deletePatientCase, updateEventStatus, deleteActivityLog, syncEventToGoogleCalendar } from './firebase';
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -1232,6 +1234,39 @@ export default function MainDashboard() {
     });
   }, [user, refreshUsers, showConfirm, showAlert]);
 
+  const handleUserStatusChange = useCallback(
+    async (userId: string, status: 'active' | 'blocked') => {
+      try {
+        // Get current user data to preserve other fields
+        const currentUser = users.find(u => u.id === userId);
+        if (!currentUser) {
+          showAlert('User not found');
+          return;
+        }
+
+        // Update user status using the existing updateUserRole function
+        const result = await updateUserRole(
+          userId, 
+          currentUser.role as any, // Keep the same role
+          currentUser.name,
+          currentUser.email,
+          status
+        );
+
+        if (result.success) {
+          await refreshUsers();
+          showAlert(`User ${status === 'blocked' ? 'blocked' : 'activated'} successfully`);
+        } else {
+          showAlert('Failed to update user status');
+        }
+      } catch (error: any) {
+        console.error('Error updating user status:', error);
+        showAlert(error.message || 'Failed to update user status');
+      }
+    },
+    [users, refreshUsers, showAlert]
+  );
+
   const getPaginatedPatients = useCallback(() => {
     const startIndex = (patientCurrentPage - 1) * patientsPerPage;
     return filteredPatients.slice(startIndex, startIndex + patientsPerPage);
@@ -1694,9 +1729,14 @@ export default function MainDashboard() {
         // Apply current filters
         let filtered = patientsData;
         
-        // Apply role-based filtering: super admins see all, regular admins see only their own
-        if (user?.role !== 'super_admin') {
-          filtered = filtered.filter(p => p.createdBy === user?.id);
+        // Apply role-based visibility
+        const privilegedRoles = ['super_admin', 'department_manager', 'program_manager', 'team_manager'];
+        if (!privilegedRoles.includes(user.role)) {
+          filtered = filtered.filter(p => {
+            const createdByUser = p.createdBy === user.id;
+            const assignedToUser = Array.isArray(p.assignedAdmins) && p.assignedAdmins.includes(user.id);
+            return createdByUser || assignedToUser;
+          });
         }
         
         if (patientStatusFilter !== 'all') {
@@ -1738,7 +1778,7 @@ export default function MainDashboard() {
           id: userId,
           name: userDataFromDB.name,
           email: userDataFromDB.email,
-          picture: `https://via.placeholder.com/80x80/007acc/ffffff?text=${userDataFromDB.name.charAt(0).toUpperCase()}`,
+          picture: userDataFromDB.picture || `https://via.placeholder.com/80x80/007acc/ffffff?text=${userDataFromDB.name.charAt(0).toUpperCase()}`,
           role: userDataFromDB.role,
           createdAt: userDataFromDB.createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
           lastLoginAt: userDataFromDB.lastLoginAt?.toDate?.()?.toISOString() || new Date().toISOString(),
@@ -1861,7 +1901,6 @@ export default function MainDashboard() {
                       onClick={() => handleTabChange('dashboard')}
                       className={`nav-link ${activeTab === 'dashboard' ? 'active' : ''}`}
                     >
-                      <span className="nav-icon">📊</span>
                       {t('navigation.dashboard')}
                     </button>
                   </li>
@@ -1871,7 +1910,6 @@ export default function MainDashboard() {
                         onClick={() => handleTabChange('users')}
                         className={`nav-link ${activeTab === 'users' ? 'active' : ''}`}
                       >
-                        <span className="nav-icon">👥</span>
                         {t('navigation.userManagement')}
                       </button>
                     </li>
@@ -1882,8 +1920,27 @@ export default function MainDashboard() {
                         onClick={() => handleTabChange('organizations')}
                         className={`nav-link ${activeTab === 'organizations' ? 'active' : ''}`}
                       >
-                        <span className="nav-icon">🏢</span>
                         {t('navigation.organizations')}
+                      </button>
+                    </li>
+                  )}
+                  {(user?.role === 'department_manager' || user?.role === 'super_admin') && (
+                    <li>
+                      <button 
+                        onClick={() => handleTabChange('programs')}
+                        className={`nav-link ${activeTab === 'programs' ? 'active' : ''}`}
+                      >
+                        {t('navigation.programs')}
+                      </button>
+                    </li>
+                  )}
+                  {(user?.role === 'program_manager' || user?.role === 'super_admin') && (
+                    <li>
+                      <button 
+                        onClick={() => handleTabChange('groups')}
+                        className={`nav-link ${activeTab === 'groups' ? 'active' : ''}`}
+                      >
+                        {t('navigation.groups')}
                       </button>
                     </li>
                   )}
@@ -1892,7 +1949,6 @@ export default function MainDashboard() {
                       onClick={() => handleTabChange('projects')}
                       className={`nav-link ${activeTab === 'projects' ? 'active' : ''}`}
                     >
-                      <span className="nav-icon">📁</span>
                       {t('navigation.projects')}
                     </button>
                   </li>
@@ -1901,7 +1957,6 @@ export default function MainDashboard() {
                       onClick={() => handleTabChange('calendar')}
                       className={`nav-link ${activeTab === 'calendar' ? 'active' : ''}`}
                     >
-                      <span className="nav-icon">📅</span>
                       {t('navigation.calendar')}
                     </button>
                   </li>
@@ -1910,7 +1965,6 @@ export default function MainDashboard() {
                       onClick={() => handleTabChange('settings')}
                       className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
                     >
-                      <span className="nav-icon">⚙️</span>
                       {t('navigation.settings')}
                     </button>
                   </li>
@@ -1919,7 +1973,6 @@ export default function MainDashboard() {
                       onClick={() => handleSignOut()}
                       className="sign-out-nav-btn"
                     >
-                      <span className="nav-icon">🚪</span>
                       {t('navigation.signOut')}
                     </button>
                   </li>
@@ -1999,6 +2052,7 @@ export default function MainDashboard() {
                   handleLanguageChange={handleLanguageChange}
                   handleLinkGoogleCalendar={handleLinkGoogleCalendar}
                   handleUnlinkGoogleCalendar={handleUnlinkGoogleCalendar}
+                  refreshUserData={refreshUserData}
                 />
               )}
 
@@ -2014,6 +2068,7 @@ export default function MainDashboard() {
                   setShowUserDropdown={setShowUserDropdown}
                   handleToggle2FA={() => {}}
                   handleDeleteUser={handleDeleteUser}
+                  handleUserStatusChange={handleUserStatusChange}
                   userCurrentPage={userCurrentPage}
                   setUserCurrentPage={setUserCurrentPage}
                   usersPerPage={usersPerPage}
@@ -2023,6 +2078,14 @@ export default function MainDashboard() {
 
               {activeTab === 'organizations' && user?.role === 'super_admin' && (
                 <Organizations user={user} />
+              )}
+
+              {activeTab === 'programs' && (user?.role === 'department_manager' || user?.role === 'super_admin') && (
+                <Programs user={user} />
+              )}
+
+              {activeTab === 'groups' && (user?.role === 'program_manager' || user?.role === 'super_admin') && (
+                <Groups user={user} />
               )}
               {activeTab === 'projects' && (
                 <Patients

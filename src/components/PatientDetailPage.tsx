@@ -12,6 +12,7 @@ import { RIGHTS_FIELDS } from './RightsIntakeForm';
 import { emotionalQuestions } from './EmotionalIntakeLogic';
 import { careerQuestions } from './CareerIntakeLogic';
 import { AIChatButton } from './AIChatButton';
+import IntakeCompletionWidget from './IntakeCompletionWidget';
 
 // Patient Detail Page Component
 export function PatientDetailPage() {
@@ -1662,7 +1663,6 @@ export function PatientDetailPage() {
                       onClick={() => handleTabChange('dashboard')}
                       className="nav-link"
                     >
-                      <span className="nav-icon">📊</span>
                       {t('navigation.dashboard')}
                     </button>
                   </li>
@@ -1671,7 +1671,6 @@ export function PatientDetailPage() {
                       onClick={() => handleTabChange('users')}
                       className="nav-link"
                     >
-                      <span className="nav-icon">👥</span>
                       {t('navigation.users')}
                     </button>
                   </li>
@@ -1680,7 +1679,6 @@ export function PatientDetailPage() {
                       onClick={() => handleTabChange('projects')}
                       className="nav-link active"
                     >
-                      <span className="nav-icon">📁</span>
                       {t('navigation.projects')}
                     </button>
                   </li>
@@ -1689,7 +1687,6 @@ export function PatientDetailPage() {
                       onClick={() => handleTabChange('calendar')}
                       className="nav-link"
                     >
-                      <span className="nav-icon">📅</span>
                       {t('navigation.calendar')}
                     </button>
                   </li>
@@ -1698,7 +1695,6 @@ export function PatientDetailPage() {
                       onClick={() => handleTabChange('settings')}
                       className="nav-link"
                     >
-                      <span className="nav-icon">⚙️</span>
                       {t('navigation.settings')}
                     </button>
                   </li>
@@ -1707,7 +1703,6 @@ export function PatientDetailPage() {
                       onClick={() => showConfirm(t('navigation.confirmSignOut'), () => navigate('/'))}
                       className="nav-link sign-out-nav-btn"
                     >
-                      <span className="nav-icon">🚪</span>
                       {t('navigation.signOut')}
                     </button>
                   </li>
@@ -1774,7 +1769,7 @@ export function PatientDetailPage() {
                             e.currentTarget.style.backgroundColor = '#28a745';
                           }}
                         >
-                          📥 {i18n.language === 'he' ? 'הורד PDF' : 'Download PDF'}
+                          📥 PDF
                         </button>
                       </div>
             </div>
@@ -1782,6 +1777,16 @@ export function PatientDetailPage() {
 
           {patientPII ? (
             <>
+              {/* Intake Completion Widget */}
+              <div style={{ marginBottom: '20px' }}>
+                <IntakeCompletionWidget 
+                  patientData={patientPII}
+                  userRole={user?.role}
+                  showAllTypes={true}
+                  compact={false}
+                />
+              </div>
+
               {/* Tab Navigation */}
               <div className="patient-detail-tabs" style={{ width: '100%', height: 'calc(100vh - 200px)', display: 'flex', flexDirection: 'column' }}>
                 <div className="tab-navigation">
@@ -1792,7 +1797,7 @@ export function PatientDetailPage() {
                       setActiveDetailTab('progress');
                     }}
                   >
-                    🏥 {t('patientDetail.progress')}
+                    {t('patientDetail.progress')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'activity' ? 'active' : ''}`}
@@ -1801,7 +1806,7 @@ export function PatientDetailPage() {
                       setActiveDetailTab('activity');
                     }}
                   >
-                    📊 {t('patientDetail.meetings')}
+                    {t('patientDetail.meetings')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'notes' ? 'active' : ''}`}
@@ -1810,7 +1815,7 @@ export function PatientDetailPage() {
                       setActiveDetailTab('notes');
                     }}
                   >
-                    📝 {t('patientDetail.intakeForm')}
+                    {t('patientDetail.intakeForm')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'patient-info' ? 'active' : ''}`}
@@ -1819,7 +1824,7 @@ export function PatientDetailPage() {
                       setActiveDetailTab('patient-info');
                     }}
                   >
-                    👤 {t('patientDetail.information')}
+                    {t('patientDetail.information')}
                   </button>
                   <button
                     className={`tab-button ${activeDetailTab === 'documents' ? 'active' : ''}`}
@@ -1828,7 +1833,7 @@ export function PatientDetailPage() {
                       setActiveDetailTab('documents');
                     }}
                   >
-                    📄 {t('patientDetail.documents')}
+                    {t('patientDetail.documents')}
                   </button>
                 </div>
 
@@ -2858,7 +2863,7 @@ export function PatientDetailPage() {
                       }}
                       title={t('patientDetail.meetingDate')}
                     >
-                      📅
+                      
                     </span>
                   </div>
                 </div>

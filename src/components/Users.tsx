@@ -15,6 +15,7 @@ interface UsersProps {
   handleToggle2FA: (userId: string) => void;
   handleDeleteUser: (userId: string) => void;
   handleEditUser?: (userId: string) => void;
+  handleUserStatusChange: (userId: string, status: 'active' | 'blocked') => void;
   // Pagination props
   userCurrentPage: number;
   setUserCurrentPage: (page: number) => void;
@@ -34,6 +35,7 @@ export default function Users({
   handleToggle2FA,
   handleDeleteUser,
   handleEditUser,
+  handleUserStatusChange,
   // Pagination props
   userCurrentPage,
   setUserCurrentPage,
@@ -42,14 +44,27 @@ export default function Users({
 }: UsersProps) {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const [selectedRoleTab, setSelectedRoleTab] = React.useState<'all' | 'super_admin' | 'admin' | 'department_manager' | 'program_manager' | 'team_manager' | 'instructor'>('all');
 
   // Pagination logic
+  const roleFilteredUsers = selectedRoleTab === 'all' ? filteredUsers : filteredUsers.filter(u => u.role === selectedRoleTab);
   const getPaginatedUsers = () => {
     const startIndex = (userCurrentPage - 1) * usersPerPage;
-    return filteredUsers.slice(startIndex, startIndex + usersPerPage);
+    return roleFilteredUsers.slice(startIndex, startIndex + usersPerPage);
   };
 
-  const totalPages = Math.ceil(totalUsers / usersPerPage);
+  const totalPages = Math.ceil((roleFilteredUsers.length || 0) / usersPerPage);
+  const roleLabel = (role: string) => {
+    switch (role) {
+      case 'super_admin': return t('users.roles.super_admin');
+      case 'admin': return t('users.roles.admin');
+      case 'department_manager': return t('users.roles.department_manager');
+      case 'program_manager': return t('users.roles.program_manager');
+      case 'team_manager': return t('users.roles.team_manager');
+      case 'instructor': return t('users.roles.instructor');
+      default: return role;
+    }
+  };
   
   return (
     <div className="users-management" style={{ position: 'relative' }}>
@@ -74,6 +89,7 @@ export default function Users({
               <option value="blocked">{t('users.statusBlocked')}</option>
             </select>
           </div>
+          {(user.role === 'super_admin' || user.role === 'department_manager' || user.role === 'program_manager' || user.role === 'team_manager') && (
           <button
             onClick={() => navigate('/create')}
             style={{
@@ -101,16 +117,46 @@ export default function Users({
             <span style={{ fontSize: '18px' }}>+</span>
             {t('users.addUser')}
           </button>
+          )}
         </div>
       </div>
       
+      {user.role === 'super_admin' && (
+        <div style={{ margin: '10px 0', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {[
+            { key: 'all', label: t('users.allUsers') },
+            { key: 'super_admin', label: t('users.roles.super_admin') },
+            { key: 'admin', label: t('users.roles.admin') },
+            { key: 'department_manager', label: t('users.roles.department_manager') },
+            { key: 'program_manager', label: t('users.roles.program_manager') },
+            { key: 'team_manager', label: t('users.roles.team_manager') },
+            { key: 'instructor', label: t('users.roles.instructor') },
+          ].map(tab => (
+            <button
+              key={String(tab.key)}
+              onClick={() => { setUserCurrentPage(1); setSelectedRoleTab(tab.key as any); }}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '14px',
+                border: selectedRoleTab === tab.key ? '1px solid #007acc' : '1px solid #ddd',
+                background: selectedRoleTab === tab.key ? '#e6f2fb' : '#fff',
+                color: '#333',
+                cursor: 'pointer',
+                fontSize: '12px'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="users-table-container">
         <table className="users-table">
           <thead>
             <tr>
               <th>{t('users.name')}</th>
               <th>{t('users.email')}</th>
-              <th>{t('users.role')}</th>
               <th>{t('users.status')}</th>
               <th>{t('users.lastLogin')}</th>
               <th>{t('users.actions')}</th>
@@ -128,15 +174,16 @@ export default function Users({
                   </div>
                 </td>
                 <td className="user-email-cell">{userItem.email}</td>
-                <td className="user-role-cell">
-                  <span className={`role-badge role-${userItem.role}`}>
-                    {userItem.role === 'super_admin' ? t('users.roles.super_admin') : t('users.roles.admin')}
-                  </span>
-                </td>
-                <td className="user-status-cell">
-                  <span className={`status-badge ${userItem.blocked || userItem.restricted ? 'blocked' : 'active'}`}>
-                    {userItem.blocked || userItem.restricted ? t('users.statusBlocked') : t('users.statusActive')}
-                  </span>
+                <td className="user-status-cell" onClick={(e) => e.stopPropagation()}>
+                  <select
+                    value={userItem.blocked || userItem.restricted ? 'blocked' : 'active'}
+                    onChange={(e) => handleUserStatusChange(userItem.id, e.target.value as 'active' | 'blocked')}
+                    className={`user-status-dropdown status-${userItem.blocked || userItem.restricted ? 'blocked' : 'active'}`}
+                    disabled={userItem.id === user.id} // Prevent users from blocking themselves
+                  >
+                    <option value="active">{t('users.statusActive')}</option>
+                    <option value="blocked">{t('users.statusBlocked')}</option>
+                  </select>
                 </td>
                 <td className="user-login-cell">
                   {userItem.lastLoginAt 

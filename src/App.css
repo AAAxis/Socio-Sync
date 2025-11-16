@@ -2594,6 +2594,41 @@ a.sidebar-nav.active {
   border-color: #007acc;
 }
 
+.user-status-dropdown {
+  padding: 6px 10px;
+  border: 2px solid;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 140px;
+}
+
+.user-status-dropdown:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+}
+
+.user-status-dropdown.status-active {
+  background-color: #28a745;
+  color: white;
+  border-color: #28a745;
+}
+
+.user-status-dropdown.status-blocked,
+.user-status-dropdown.status-inactive,
+.user-status-dropdown.status-archived {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.user-status-dropdown.status-new {
+  background-color: #17a2b8;
+  color: white;
+  border-color: #17a2b8;
+}
 .patient-actions-cell {
   text-align: center;
   width: 80px;
@@ -4193,9 +4228,6 @@ a.sidebar-nav.active {
 }
 
 /* Patient Actions Menu Styles */
-.three-dots-btn:hover {
-  background: #3a3a3a !important;
-}
 
 .menu-item:hover {
   background: #3a3a3a !important;

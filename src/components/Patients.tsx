@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { User, Patient } from '../types';
-import { PatientNameDisplay, PatientNotesDisplay, PatientCreatedByDisplay } from './PatientComponents';
+import { PatientNameDisplay, PatientNotesDisplay, PatientCreatedByDisplay, AssignedUserAvatar } from './PatientComponents';
 import { formatDate } from '../utils';
 import { createPatientCase } from '../firebase';
 
@@ -55,6 +55,14 @@ export default function Patients({
 }: PatientsProps) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  // Assign modal state
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [assignForCaseId, setAssignForCaseId] = useState<string | null>(null);
+  const [assignSearchTerm, setAssignSearchTerm] = useState('');
+  const [assignResults, setAssignResults] = useState<any[]>([]);
+  const [assignSelectedIds, setAssignSelectedIds] = useState<string[]>([]);
+  const [isAssignSaving, setIsAssignSaving] = useState(false);
+  const [assignError, setAssignError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
@@ -148,6 +156,71 @@ export default function Patients({
       setIsCreating(false);
     }
   };
+
+  // Open assign modal with current selections
+  const openAssignModal = (patient: any) => {
+    setAssignForCaseId(patient.caseId);
+    setAssignSelectedIds(Array.isArray(patient.assignedAdmins) ? patient.assignedAdmins : (patient.createdBy ? [patient.createdBy] : []));
+    setAssignSearchTerm('');
+    setAssignResults([]);
+    setAssignError(null);
+    setIsAssignModalOpen(true);
+  };
+
+  // Debounced user search
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        if (!assignSearchTerm.trim()) {
+          setAssignResults([]);
+          return;
+        }
+        const { getDocs, collection } = await import('firebase/firestore');
+        const { db } = await import('../firebase');
+        const snap = await getDocs(collection(db, 'users'));
+        const term = assignSearchTerm.toLowerCase();
+        const results: any[] = [];
+        snap.forEach((docSnap: any) => {
+          const data = docSnap.data();
+          const name = (data.name || '').toLowerCase();
+          const email = (data.email || '').toLowerCase();
+          if (name.includes(term) || email.includes(term)) {
+            results.push({
+              id: data.userId || docSnap.id,
+              name: data.name,
+              email: data.email
+            });
+          }
+        });
+        setAssignResults(results);
+      } catch {
+        // ignore
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [assignSearchTerm]);
+
+  const toggleAssignSelection = (userId: string) => {
+    setAssignSelectedIds(prev => prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]);
+  };
+
+  const saveAssigned = async () => {
+    if (!assignForCaseId) return;
+    setIsAssignSaving(true);
+    setAssignError(null);
+    try {
+      const { updatePatientAssignedAdmins } = await import('../firebase');
+      const res = await updatePatientAssignedAdmins(assignForCaseId, assignSelectedIds);
+      if (!res.success) throw new Error('Failed to update assigned admins');
+      setIsAssignModalOpen(false);
+      setAssignForCaseId(null);
+      await refreshPatients();
+    } catch (e: any) {
+      setAssignError(e?.message || 'Failed to save assignment');
+    } finally {
+      setIsAssignSaving(false);
+    }
+  };
   
   return (
     <div className="patients-management" style={{ position: 'relative' }}>
@@ -203,8 +276,7 @@ export default function Patients({
               <th>{t('patients.caseId')}</th>
               <th>{t('patients.patientName')}</th>
               <th>{t('patients.notes')}</th>
-              <th>{t('patients.created')}</th>
-              <th>{t('patients.createdBy')}</th>
+              <th>{t('patients.assigned')}</th>
               <th>{t('patients.status')}</th>
               <th>{t('patients.actions')}</th>
             </tr>
@@ -231,15 +303,41 @@ export default function Patients({
                   <td className="patient-notes-cell">
                     <PatientNotesDisplay caseId={patient.caseId} />
                   </td>
-                  <td className="patient-created-cell">{formatDate(patient.createdAt)}</td>
-                  <td className="patient-created-by-cell">
-                    <PatientCreatedByDisplay userId={patient.createdBy || ''} />
+                  <td className="patient-assigned-cell">
+                    {Array.isArray(patient.assignedAdmins) && patient.assignedAdmins.length > 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                        {patient.assignedAdmins.slice(0, 4).map((uid: string) => (
+                          <AssignedUserAvatar key={uid} userId={uid} />
+                        ))}
+                        {patient.assignedAdmins.length > 4 && (
+                          <div style={{ 
+                            display: 'inline-flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center',
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: '#666',
+                            color: 'white',
+                            fontSize: '8px',
+                            fontWeight: 'bold',
+                            margin: '1px'
+                          }}>
+                            +{patient.assignedAdmins.length - 4}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <PatientCreatedByDisplay userId={patient.createdBy || ''} />
+                      </div>
+                    )}
                   </td>
                   <td className="patient-status-cell" onClick={(e) => e.stopPropagation()}>
                     <select
                       value={patient.status?.toLowerCase() || 'active'}
                       onChange={(e) => handlePatientStatusChange(patient.caseId, e.target.value)}
-                      className={`patient-status-dropdown status-${patient.status?.toLowerCase()}`}
+                      className={`user-status-dropdown status-${patient.status?.toLowerCase()}`}
                     >
                       <option value="new">{t('patients.statusNew')}</option>
                       <option value="active">{t('patients.statusActive')}</option>
@@ -283,17 +381,10 @@ export default function Patients({
                             justifyContent: 'center',
                             transition: 'all 0.2s ease'
                           }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#f5f5f5';
-                            e.currentTarget.style.borderColor = '#999';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'transparent';
-                            e.currentTarget.style.borderColor = '#ddd';
-                          }}
                         >
                           ⋯
                         </button>
+                        
                       </div>
                     </div>
                   </td>
@@ -328,6 +419,77 @@ export default function Patients({
           </div>
         )}
       </div>
+      {/* Assign Modal */}
+      {isAssignModalOpen && (
+        <div
+          className="modal-overlay"
+          onClick={() => setIsAssignModalOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 2100
+          }}
+        >
+          <div
+            className="modal-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              backgroundColor: '#ffffff',
+              padding: '16px',
+              borderRadius: '12px',
+              width: 'min(680px, 92vw)',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <h3 style={{ margin: 0, color: '#000' }}>{i18n.language === 'he' ? 'שיוך מטפלות לתיק' : 'Assign Users to Case'}</h3>
+              <button
+                onClick={() => setIsAssignModalOpen(false)}
+                style={{ background: 'transparent', border: 'none', fontSize: '20px', color: '#666', cursor: 'pointer' }}
+              >
+                ×
+              </button>
+            </div>
+            <input
+              type="text"
+              value={assignSearchTerm}
+              onChange={(e) => setAssignSearchTerm(e.target.value)}
+              placeholder={i18n.language === 'he' ? 'חיפוש לפי שם או אימייל...' : 'Search by name or email...'}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #ddd', marginBottom: '10px' }}
+            />
+            <div style={{ maxHeight: '300px', overflow: 'auto', border: '1px solid #eee', borderRadius: '8px' }}>
+              {assignResults.length === 0 ? (
+                <div style={{ padding: '12px', color: '#666' }}>
+                  {i18n.language === 'he' ? 'אין תוצאות' : 'No results'}
+                </div>
+              ) : (
+                assignResults.map((u) => (
+                  <label key={u.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderBottom: '1px solid #f1f3f5' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 600 }}>{u.name}</span>
+                      <span style={{ color: '#666', fontSize: '12px' }}>{u.email}</span>
+                    </div>
+                    <input type="checkbox" checked={assignSelectedIds.includes(u.id)} onChange={() => toggleAssignSelection(u.id)} />
+                  </label>
+                ))
+              )}
+            </div>
+            {assignError && <div style={{ color: '#d9534f', marginTop: '8px' }}>{assignError}</div>}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
+              <button onClick={() => setIsAssignModalOpen(false)} style={{ padding: '8px 12px', background: '#f1f3f5', border: '1px solid #e1e5ea', borderRadius: '8px', cursor: 'pointer' }}>
+                {i18n.language === 'he' ? 'ביטול' : 'Cancel'}
+              </button>
+              <button onClick={saveAssigned} disabled={isAssignSaving} style={{ padding: '8px 12px', background: '#007acc', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
+                {isAssignSaving ? (i18n.language === 'he' ? 'שומר...' : 'Saving...') : (i18n.language === 'he' ? 'שמור שיוכים' : 'Save')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Create Patient Modal */}
       {showCreateModal && (
@@ -508,11 +670,40 @@ export default function Patients({
             position: 'fixed',
             top: dropdownPosition.top,
             left: dropdownPosition.left,
-            zIndex: 999999
+            background: '#fff',
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            zIndex: 999999,
+            width: 200,
+            padding: 6
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              openAssignModal({ caseId: dropdownPosition.caseId });
+              setShowPatientMenu(null);
+              setDropdownPosition(null);
+            }}
+            className="dropdown-item assign-patient"
+            style={{ width: '100%', textAlign: 'left', padding: 8, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer' }}
+          >
+            {i18n.language === 'he' ? 'שיוך מטפלות' : 'Assign'}
+          </button>
+          <button 
+            onClick={(e) => {
+              e.stopPropagation();
+              navigate(`/patient/${dropdownPosition.caseId}`);
+              setShowPatientMenu(null);
+              setDropdownPosition(null);
+            }}
+            className="dropdown-item view-details"
+            style={{ width: '100%', textAlign: 'left', padding: 8, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer' }}
+          >
+            {t('patients.viewDetails')}
+          </button>
           <button 
             onClick={(e) => {
               e.stopPropagation();
@@ -521,8 +712,9 @@ export default function Patients({
               setDropdownPosition(null);
             }}
             className="dropdown-item delete-patient"
+            style={{ width: '100%', textAlign: 'left', padding: 8, borderRadius: 6, border: 'none', background: 'transparent', cursor: 'pointer', color: '#d9534f' }}
           >
-            🗑️ {t('patients.deletePatient')}
+            {t('patients.deletePatient')}
           </button>
         </div>
       )}

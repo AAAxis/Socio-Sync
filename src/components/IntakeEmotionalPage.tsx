@@ -48,7 +48,7 @@ export function IntakeEmotionalPage() {
       navigate(targetUrl + '#intake');
     } catch (error) {
       console.error('Error saving emotional intake:', error);
-      alert('שגיאה בשמירה. אנא נסה שוב.');
+      console.error('Save error');
     }
   };
 

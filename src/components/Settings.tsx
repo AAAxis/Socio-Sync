@@ -38,13 +38,13 @@ export default function Settings({
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file');
+      console.error('Invalid image file');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      console.error('File too large');
       return;
     }
 
@@ -75,13 +75,13 @@ export default function Settings({
           await refreshUserData(user.id);
             }
             
-            alert('Profile picture updated successfully!');
+            // Profile picture updated successfully
           } catch (firebaseError) {
             console.error('Firebase update failed:', firebaseError);
-            alert('Image uploaded but failed to update profile. Please refresh the page.');
+            console.error('Failed to update profile');
           }
         } else {
-          alert('Upload successful but missing image URL or user ID');
+          console.error('Missing image URL or user ID');
         }
 
         setUploadError(null);
@@ -90,7 +90,7 @@ export default function Settings({
       }
     } catch (error) {
       console.error('Error uploading profile picture:', error);
-      alert('Failed to upload image. Please try again.');
+      console.error('Failed to upload image');
     } finally {
       setIsUploading(false);
     }

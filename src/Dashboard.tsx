@@ -10,6 +10,7 @@ import Settings from './components/Settings';
 import Organizations from './components/Organizations';
 import Programs from './components/Programs';
 import Groups from './components/Groups';
+import Members from './components/Members';
 import { signOutUser, onAuthStateChange, trackUserLogin, getUserData, getAllUsers, createUserWithRole, updateUserRole, deleteUser, enable2FA, disable2FA, linkGoogleCalendar, linkGoogleAccount, unlinkGoogleAccount, canLinkGoogleAccount, canUnlinkGoogleAccount, getAllPatients, getAllActivityLogs, getEvents, createEvent, deleteEvent, searchPatients, getPatientsBatch, deletePatientCase, updateEventStatus, deleteActivityLog, syncEventToGoogleCalendar } from './firebase';
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -605,7 +606,7 @@ export default function MainDashboard() {
       console.log('Milestone status updated successfully');
     } catch (error) {
       console.error('Error updating milestone status:', error);
-      alert('Failed to update milestone status. Please try again.');
+      console.error('Failed to update milestone status');
     }
   }, [loadTodayMilestones]);
 
@@ -847,7 +848,7 @@ export default function MainDashboard() {
       console.log('Task status updated successfully');
     } catch (error) {
       console.error('Error updating task status:', error);
-      alert('Failed to update task status. Please try again.');
+      console.error('Failed to update task status');
     }
   }, [user, loadTasksAndNotifications]);
 
@@ -947,17 +948,17 @@ export default function MainDashboard() {
       const userData = await getUserData(user.id);
       const canLink = await canLinkGoogleAccount(auth.currentUser, userData);
       if (!canLink) {
-        alert('This Google account is already linked. You may already be linked or this account is linked to another user.');
+        console.error('Google account already linked');
         return;
       }
       
       await linkGoogleAccount(auth.currentUser);
       await refreshUserData(user.id);
-      alert('Google account linked successfully!');
+      // Google account linked successfully
     } catch (error: any) {
       console.error('Error linking Google account:', error);
       const errorMessage = error?.message || 'Failed to link Google account. Please try again.';
-      alert(errorMessage);
+      console.error('Error:', errorMessage);
     } finally {
       setIsLinkingGoogle(false);
     }
@@ -971,14 +972,14 @@ export default function MainDashboard() {
       const result = await linkGoogleCalendar(auth.currentUser) as { success: boolean; message?: string };
       if (result.success) {
         await refreshUserData(user.id);
-        alert('Google Calendar linked successfully!');
+        // Google Calendar linked successfully
       } else {
-        alert(result.message || 'Failed to link Google Calendar. Please try again.');
+        console.error('Failed to link Google Calendar:', result.message);
       }
     } catch (error: any) {
       console.error('Error linking Google Calendar:', error);
       const errorMessage = error?.message || 'Failed to link Google Calendar. Please try again.';
-      alert(errorMessage);
+      console.error('Error:', errorMessage);
     } finally {
       setIsLinkingCalendar(false);
     }
@@ -1111,7 +1112,7 @@ export default function MainDashboard() {
       
     } catch (error) {
       console.error('Error updating patient status:', error);
-      alert('Failed to update patient status. Please try again.');
+      console.error('Failed to update patient status');
     }
   }, []);
 
@@ -1944,6 +1945,16 @@ export default function MainDashboard() {
                       </button>
                     </li>
                   )}
+                  {(user?.role === 'department_manager' || user?.role === 'program_manager' || user?.role === 'team_manager') && (
+                    <li>
+                      <button 
+                        onClick={() => handleTabChange('members')}
+                        className={`nav-link ${activeTab === 'members' ? 'active' : ''}`}
+                      >
+                        {t('navigation.members')}
+                      </button>
+                    </li>
+                  )}
                   <li>
                     <button 
                       onClick={() => handleTabChange('projects')}
@@ -2076,7 +2087,7 @@ export default function MainDashboard() {
                 />
               )}
 
-              {activeTab === 'organizations' && user?.role === 'super_admin' && (
+              {activeTab === 'organizations' && (user?.role === 'department_manager' || user?.role === 'super_admin') && (
                 <Organizations user={user} />
               )}
 
@@ -2087,6 +2098,11 @@ export default function MainDashboard() {
               {activeTab === 'groups' && (user?.role === 'program_manager' || user?.role === 'super_admin') && (
                 <Groups user={user} />
               )}
+
+              {activeTab === 'members' && (user?.role === 'department_manager' || user?.role === 'program_manager' || user?.role === 'team_manager') && (
+                <Members user={user} />
+              )}
+
               {activeTab === 'projects' && (
                 <Patients
                   user={user}
@@ -2455,7 +2471,6 @@ export default function MainDashboard() {
                             const descriptionToUse = editedEventData?.description?.trim() || selectedEventForDetails.description || '';
                             
                             if (!titleToUse) {
-                              alert('Please enter an event title');
                               return;
                             }
 
@@ -2503,7 +2518,7 @@ export default function MainDashboard() {
                               } catch (dateError) {
                                 console.error('Date parsing error:', dateError);
                                 const errorMessage = dateError instanceof Error ? dateError.message : 'Please check the date and time format';
-                                alert(`Date/time error: ${errorMessage}`);
+                                console.error('Date/time error:', errorMessage);
                                 return;
                               }
                               
@@ -2569,7 +2584,7 @@ export default function MainDashboard() {
                             } catch (error) {
                               console.error('Error updating event:', error);
                               const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                              alert(`Event update failed: ${errorMessage}`);
+                              console.error('Event update failed:', errorMessage);
                             } finally {
                               setIsEventSaving(false);
                             }

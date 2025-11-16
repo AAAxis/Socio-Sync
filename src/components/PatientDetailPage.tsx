@@ -1020,7 +1020,7 @@ export function PatientDetailPage() {
       pdf.save(`${t('patientDetail.patient')}_${caseId}_${new Date().toISOString().split('T')[0]}.pdf`);
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert(t('patientDetail.pdfError') || 'שגיאה ביצירת PDF');
+      console.error('PDF creation error');
     } finally {
       document.body.removeChild(pdfContent);
       // Remove the style we added

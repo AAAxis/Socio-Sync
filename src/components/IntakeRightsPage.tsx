@@ -157,7 +157,7 @@ export function IntakeRightsPage() {
                 navigate(targetUrl + '#intake');
               } catch (error) {
                 console.error('Error saving rights intake:', error);
-                alert('שגיאה בשמירה. אנא נסה שוב.');
+                console.error('Save error');
               }
             }}
           />

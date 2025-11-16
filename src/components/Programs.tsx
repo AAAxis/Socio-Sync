@@ -12,8 +12,6 @@ interface Program {
   logoUrl?: string;
   managers: string[]; // Array of user IDs
   managerNames: string[]; // Array of user names for display
-  participants: string[]; // Array of participant IDs
-  participantNames: string[]; // Array of participant names for display
   startDate?: string;
   endDate?: string;
   status: 'active' | 'inactive' | 'completed' | 'planned';
@@ -26,7 +24,7 @@ interface ProgramsProps {
   user: User;
 }
 
-type WizardStep = 'basic' | 'managers' | 'participants' | 'details';
+type WizardStep = 'basic' | 'managers' | 'details';
 
 export default function Programs({ user }: ProgramsProps) {
   const { t } = useTranslation();
@@ -48,8 +46,6 @@ export default function Programs({ user }: ProgramsProps) {
     logoUrl: '',
     managers: [] as string[],
     managerNames: [] as string[],
-    participants: [] as string[],
-    participantNames: [] as string[],
     startDate: '',
     endDate: '',
     status: 'planned' as Program['status']
@@ -67,8 +63,6 @@ export default function Programs({ user }: ProgramsProps) {
     logoUrl: '',
     managers: [] as string[],
     managerNames: [] as string[],
-    participants: [] as string[],
-    participantNames: [] as string[],
     startDate: '',
     endDate: '',
     status: 'active' as Program['status']
@@ -128,7 +122,7 @@ export default function Programs({ user }: ProgramsProps) {
   }, [userSearchTerm]);
 
   // Add manager to program
-  const addManager = (user: UserManagementUser) => {
+  const handleAddManager = (user: UserManagementUser) => {
     if (!formData.managers.includes(user.id)) {
       setFormData(prev => ({
         ...prev,
@@ -140,42 +134,17 @@ export default function Programs({ user }: ProgramsProps) {
     setSearchResults([]);
   };
 
-  // Remove manager from program
-  const removeManager = (userId: string) => {
-    const userIndex = formData.managers.indexOf(userId);
-    if (userIndex > -1) {
+  const handleRemoveManager = (userId: string) => {
+    const index = formData.managers.indexOf(userId);
+    if (index > -1) {
       setFormData(prev => ({
         ...prev,
         managers: prev.managers.filter(id => id !== userId),
-        managerNames: prev.managerNames.filter((_, index) => index !== userIndex)
+        managerNames: prev.managerNames.filter((_, i) => i !== index)
       }));
     }
   };
 
-  // Add participant to program
-  const addParticipant = (user: UserManagementUser) => {
-    if (!formData.participants.includes(user.id)) {
-      setFormData(prev => ({
-        ...prev,
-        participants: [...prev.participants, user.id],
-        participantNames: [...prev.participantNames, user.name]
-      }));
-    }
-    setUserSearchTerm('');
-    setSearchResults([]);
-  };
-
-  // Remove participant from program
-  const removeParticipant = (userId: string) => {
-    const userIndex = formData.participants.indexOf(userId);
-    if (userIndex > -1) {
-      setFormData(prev => ({
-        ...prev,
-        participants: prev.participants.filter(id => id !== userId),
-        participantNames: prev.participantNames.filter((_, index) => index !== userIndex)
-      }));
-    }
-  };
 
   // Logo upload handler
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,13 +153,13 @@ export default function Programs({ user }: ProgramsProps) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(t('programs.invalidFileType'));
+      console.error('Invalid file type');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert(t('programs.fileTooLarge'));
+      console.error('File too large');
       return;
     }
 
@@ -212,7 +181,7 @@ export default function Programs({ user }: ProgramsProps) {
       }
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert(t('programs.uploadError'));
+      console.error('Upload error');
     } finally {
       setIsUploading(false);
     }
@@ -221,24 +190,19 @@ export default function Programs({ user }: ProgramsProps) {
   // Create program
   const handleCreateProgram = async () => {
     if (!formData.name.trim()) {
-      alert(t('programs.nameRequired'));
+      return;
       return;
     }
 
     setIsCreating(true);
     try {
       await addDoc(collection(db, 'programs'), {
-        name: formData.name,
-        description: formData.description,
+        name: formData.name.trim(),
+        description: formData.description.trim(),
         logoUrl: formData.logoUrl,
         managers: formData.managers,
         managerNames: formData.managerNames,
-        participants: formData.participants,
-        participantNames: formData.participantNames,
-        startDate: formData.startDate,
-        endDate: formData.endDate,
-        status: formData.status,
-        createdBy: user.id,
+        createdBy: user.name,
         createdByEmail: user.email,
         createdAt: serverTimestamp()
       });
@@ -250,18 +214,16 @@ export default function Programs({ user }: ProgramsProps) {
         logoUrl: '',
         managers: [],
         managerNames: [],
-        participants: [],
-        participantNames: [],
         startDate: '',
         endDate: '',
         status: 'planned'
       });
       setShowWizard(false);
       setCurrentStep('basic');
-      alert(t('programs.createSuccess'));
+      // Program created successfully
     } catch (error) {
       console.error('Error creating program:', error);
-      alert(t('programs.createError'));
+      console.error('Create error');
     } finally {
       setIsCreating(false);
     }
@@ -276,22 +238,14 @@ export default function Programs({ user }: ProgramsProps) {
       const programRef = doc(db, 'programs', selectedProgram.id);
       await updateDoc(programRef, {
         name: editData.name,
-        description: editData.description,
-        logoUrl: editData.logoUrl,
-        managers: editData.managers,
-        managerNames: editData.managerNames,
-        participants: editData.participants,
-        participantNames: editData.participantNames,
-        startDate: editData.startDate,
-        endDate: editData.endDate,
-        status: editData.status
+        description: editData.description
       });
 
       setShowDetailsModal(false);
-      alert(t('programs.updateSuccess'));
+      // Program updated successfully
     } catch (error) {
       console.error('Error updating program:', error);
-      alert(t('programs.updateError'));
+      console.error('Update error');
     } finally {
       setIsUpdating(false);
     }
@@ -299,15 +253,15 @@ export default function Programs({ user }: ProgramsProps) {
 
   // Delete program
   const handleDeleteProgram = async (programId: string) => {
-    if (!window.confirm(t('programs.deleteConfirm'))) return;
+    // Delete program
 
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'programs', programId));
-      alert(t('programs.deleteSuccess'));
+      // Program deleted successfully
     } catch (error) {
       console.error('Error deleting program:', error);
-      alert(t('programs.deleteError'));
+      console.error('Delete error');
     } finally {
       setIsDeleting(false);
     }
@@ -322,8 +276,6 @@ export default function Programs({ user }: ProgramsProps) {
       logoUrl: program.logoUrl || '',
       managers: program.managers || [],
       managerNames: program.managerNames || [],
-      participants: program.participants || [],
-      participantNames: program.participantNames || [],
       startDate: program.startDate || '',
       endDate: program.endDate || '',
       status: program.status
@@ -331,25 +283,7 @@ export default function Programs({ user }: ProgramsProps) {
     setShowDetailsModal(true);
   };
 
-  const getStatusColor = (status: Program['status']) => {
-    switch (status) {
-      case 'active': return '#28a745';
-      case 'completed': return '#6c757d';
-      case 'inactive': return '#dc3545';
-      case 'planned': return '#ffc107';
-      default: return '#6c757d';
-    }
-  };
 
-  const getStatusText = (status: Program['status']) => {
-    switch (status) {
-      case 'active': return t('programs.status.active');
-      case 'completed': return t('programs.status.completed');
-      case 'inactive': return t('programs.status.inactive');
-      case 'planned': return t('programs.status.planned');
-      default: return status;
-    }
-  };
 
   if (isLoading) {
     return (
@@ -404,111 +338,102 @@ export default function Programs({ user }: ProgramsProps) {
         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
         gap: '20px'
       }}>
-        {programs.map(program => (
+        {programs.map((program) => (
           <div
             key={program.id}
-            style={{
-              border: '1px solid #e0e0e0',
-              borderRadius: '12px',
-              padding: '20px',
-              backgroundColor: '#fff',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              cursor: 'pointer',
-              transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-            }}
             onClick={() => handleOpenDetails(program)}
+            style={{
+              border: '1px solid #e9ecef',
+              borderRadius: '8px',
+              padding: '20px',
+              backgroundColor: 'white',
+              cursor: 'pointer',
+              transition: 'box-shadow 0.2s ease'
+            }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.15)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+              e.currentTarget.style.boxShadow = 'none';
             }}
           >
-            {/* Program Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '16px' }}>
               {program.logoUrl ? (
                 <img
                   src={program.logoUrl}
-                  alt={program.name}
+                  alt={`${program.name} logo`}
                   style={{
                     width: '50px',
                     height: '50px',
-                    borderRadius: '8px',
-                    objectFit: 'cover'
+                    objectFit: 'cover',
+                    borderRadius: '6px',
+                    marginRight: '12px',
+                    border: '1px solid #e9ecef'
                   }}
                 />
               ) : (
-                <div style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '8px',
-                  backgroundColor: '#f0f0f0',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '20px'
-                }}>
+                <div
+                  style={{
+                    width: '50px',
+                    height: '50px',
+                    backgroundColor: '#f8f9fa',
+                    border: '1px solid #e9ecef',
+                    borderRadius: '6px',
+                    marginRight: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: '#6c757d'
+                  }}
+                >
                   📋
                 </div>
               )}
               <div style={{ flex: 1 }}>
-                <h3 style={{ margin: 0, fontSize: '18px', fontWeight: 600, color: '#333' }}>
+                <h3 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: '#333',
+                  fontSize: '18px',
+                  fontWeight: '600'
+                }}>
                   {program.name}
                 </h3>
-                <div style={{
-                  display: 'inline-block',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  color: 'white',
-                  backgroundColor: getStatusColor(program.status),
-                  marginTop: '4px'
-                }}>
-                  {getStatusText(program.status)}
+                {program.description && (
+                  <p style={{
+                    margin: '0 0 12px 0',
+                    color: '#666',
+                    fontSize: '14px',
+                    lineHeight: '1.4'
+                  }}>
+                    {program.description}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+              {program.managerNames && program.managerNames.length > 0 && (
+                <div>
+                  <strong>{t('programs.managers')}:</strong>
+                  <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    {program.managerNames.map((name, index) => (
+                      <span
+                        key={index}
+                        style={{
+                          backgroundColor: '#e3f2fd',
+                          padding: '2px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px'
+                        }}
+                      >
+                        {name}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
-
-            {/* Program Description */}
-            {program.description && (
-              <p style={{
-                margin: '0 0 16px 0',
-                color: '#666',
-                fontSize: '14px',
-                lineHeight: '1.4',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden'
-              }}>
-                {program.description}
-              </p>
-            )}
-
-            {/* Program Stats */}
-            <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#666' }}>
-              <div>
-                <strong>{program.managers?.length || 0}</strong> {t('programs.managers')}
-              </div>
-              <div>
-                <strong>{program.participants?.length || 0}</strong> {t('programs.participants')}
-              </div>
-            </div>
-
-            {/* Dates */}
-            {(program.startDate || program.endDate) && (
-              <div style={{ marginTop: '12px', fontSize: '12px', color: '#888' }}>
-                {program.startDate && (
-                  <div>{t('programs.startDate')}: {new Date(program.startDate).toLocaleDateString()}</div>
-                )}
-                {program.endDate && (
-                  <div>{t('programs.endDate')}: {new Date(program.endDate).toLocaleDateString()}</div>
-                )}
-              </div>
-            )}
           </div>
         ))}
       </div>
@@ -558,13 +483,13 @@ export default function Programs({ user }: ProgramsProps) {
 
             {/* Step Indicator */}
             <div style={{ display: 'flex', marginBottom: '30px', gap: '10px' }}>
-              {(['basic', 'managers', 'participants', 'details'] as WizardStep[]).map((step, index) => (
+              {(['basic', 'managers', 'details'] as WizardStep[]).map((step, index) => (
                 <div
                   key={step}
                   style={{
                     flex: 1,
                     height: '4px',
-                    backgroundColor: index <= (['basic', 'managers', 'participants', 'details'] as WizardStep[]).indexOf(currentStep) ? '#007acc' : '#e0e0e0',
+                    backgroundColor: index <= (['basic', 'managers', 'details'] as WizardStep[]).indexOf(currentStep) ? '#007acc' : '#e0e0e0',
                     borderRadius: '2px'
                   }}
                 />
@@ -612,27 +537,6 @@ export default function Programs({ user }: ProgramsProps) {
                     placeholder={t('programs.enterDescription')}
                   />
                 </div>
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.status')}
-                  </label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData(prev => ({ ...prev, status: e.target.value as Program['status'] }))}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      fontSize: '16px'
-                    }}
-                  >
-                    <option value="planned">{t('programs.status.planned')}</option>
-                    <option value="active">{t('programs.status.active')}</option>
-                    <option value="inactive">{t('programs.status.inactive')}</option>
-                    <option value="completed">{t('programs.status.completed')}</option>
-                  </select>
-                </div>
               </div>
             )}
 
@@ -670,7 +574,7 @@ export default function Programs({ user }: ProgramsProps) {
                       {searchResults.map(user => (
                         <div
                           key={user.id}
-                          onClick={() => addManager(user)}
+                          onClick={() => handleAddManager(user)}
                           style={{
                             padding: '12px',
                             cursor: 'pointer',
@@ -721,7 +625,7 @@ export default function Programs({ user }: ProgramsProps) {
                         >
                           {name}
                           <button
-                            onClick={() => removeManager(formData.managers[index])}
+                            onClick={() => handleRemoveManager(formData.managers[index])}
                             style={{
                               background: 'none',
                               border: 'none',
@@ -741,110 +645,6 @@ export default function Programs({ user }: ProgramsProps) {
               </div>
             )}
 
-            {currentStep === 'participants' && (
-              <div>
-                <h4>{t('programs.wizard.participants')}</h4>
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.searchParticipants')}
-                  </label>
-                  <input
-                    type="text"
-                    value={userSearchTerm}
-                    onChange={(e) => setUserSearchTerm(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      fontSize: '16px'
-                    }}
-                    placeholder={t('programs.searchUsersPlaceholder')}
-                  />
-                  
-                  {/* Search Results */}
-                  {searchResults.length > 0 && (
-                    <div style={{
-                      border: '1px solid #ddd',
-                      borderTop: 'none',
-                      borderRadius: '0 0 6px 6px',
-                      maxHeight: '200px',
-                      overflow: 'auto',
-                      backgroundColor: 'white'
-                    }}>
-                      {searchResults.map(user => (
-                        <div
-                          key={user.id}
-                          onClick={() => addParticipant(user)}
-                          style={{
-                            padding: '12px',
-                            cursor: 'pointer',
-                            borderBottom: '1px solid #f0f0f0',
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.backgroundColor = '#f8f9fa';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.backgroundColor = 'white';
-                          }}
-                        >
-                          <div>
-                            <div style={{ fontWeight: '500' }}>{user.name}</div>
-                            <div style={{ fontSize: '14px', color: '#666' }}>{user.email}</div>
-                          </div>
-                          {formData.participants.includes(user.id) && (
-                            <span style={{ color: '#28a745', fontSize: '14px' }}>✓ {t('programs.added')}</span>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Selected Participants */}
-                {formData.participantNames.length > 0 && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      {t('programs.selectedParticipants')} ({formData.participantNames.length})
-                    </label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {formData.participantNames.map((name, index) => (
-                        <div
-                          key={formData.participants[index]}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            padding: '6px 12px',
-                            backgroundColor: '#e8f5e8',
-                            borderRadius: '20px',
-                            fontSize: '14px'
-                          }}
-                        >
-                          {name}
-                          <button
-                            onClick={() => removeParticipant(formData.participants[index])}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: '#666',
-                              fontSize: '16px',
-                              padding: 0
-                            }}
-                          >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {currentStep === 'details' && (
               <div>
@@ -888,43 +688,6 @@ export default function Programs({ user }: ProgramsProps) {
                   )}
                 </div>
 
-                {/* Dates */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      {t('programs.startDate')}
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.startDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '6px',
-                        fontSize: '16px'
-                      }}
-                    />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                      {t('programs.endDate')}
-                    </label>
-                    <input
-                      type="date"
-                      value={formData.endDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, endDate: e.target.value }))}
-                      style={{
-                        width: '100%',
-                        padding: '12px',
-                        border: '1px solid #ddd',
-                        borderRadius: '6px',
-                        fontSize: '16px'
-                      }}
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
@@ -934,7 +697,7 @@ export default function Programs({ user }: ProgramsProps) {
                 {currentStep !== 'basic' && (
                   <button
                     onClick={() => {
-                      const steps: WizardStep[] = ['basic', 'managers', 'participants', 'details'];
+                      const steps: WizardStep[] = ['basic', 'managers', 'details'];
                       const currentIndex = steps.indexOf(currentStep);
                       if (currentIndex > 0) {
                         setCurrentStep(steps[currentIndex - 1]);
@@ -965,8 +728,6 @@ export default function Programs({ user }: ProgramsProps) {
                       logoUrl: '',
                       managers: [],
                       managerNames: [],
-                      participants: [],
-                      participantNames: [],
                       startDate: '',
                       endDate: '',
                       status: 'planned'
@@ -1004,7 +765,7 @@ export default function Programs({ user }: ProgramsProps) {
                 ) : (
                   <button
                     onClick={() => {
-                      const steps: WizardStep[] = ['basic', 'managers', 'participants', 'details'];
+                      const steps: WizardStep[] = ['basic', 'managers', 'details'];
                       const currentIndex = steps.indexOf(currentStep);
                       if (currentIndex < steps.length - 1) {
                         setCurrentStep(steps[currentIndex + 1]);
@@ -1076,156 +837,83 @@ export default function Programs({ user }: ProgramsProps) {
               </button>
             </div>
 
-            {/* Edit Form */}
-            <div style={{ display: 'grid', gap: '20px' }}>
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  {t('programs.name')} *
-                </label>
-                <input
-                  type="text"
-                  value={editData.name}
-                  onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '16px'
-                  }}
-                />
-              </div>
+            {/* Program Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                {t('programs.name')} *
+              </label>
+              <input
+                type="text"
+                value={editData.name}
+                onChange={(e) => setEditData(prev => ({ ...prev, name: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+            </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  {t('programs.description')}
-                </label>
-                <textarea
-                  value={editData.description}
-                  onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '16px',
-                    minHeight: '100px',
-                    resize: 'vertical'
-                  }}
-                />
-              </div>
+            {/* Description */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                {t('programs.description')}
+              </label>
+              <textarea
+                value={editData.description}
+                onChange={(e) => setEditData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder={t('programs.enterDescription')}
+                rows={3}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
 
-              <div>
-                <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                  {t('programs.status')}
-                </label>
-                <select
-                  value={editData.status}
-                  onChange={(e) => setEditData(prev => ({ ...prev, status: e.target.value as Program['status'] }))}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    fontSize: '16px'
-                  }}
-                >
-                  <option value="planned">{t('programs.status.planned')}</option>
-                  <option value="active">{t('programs.status.active')}</option>
-                  <option value="inactive">{t('programs.status.inactive')}</option>
-                  <option value="completed">{t('programs.status.completed')}</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.startDate')}
-                  </label>
-                  <input
-                    type="date"
-                    value={editData.startDate}
-                    onChange={(e) => setEditData(prev => ({ ...prev, startDate: e.target.value }))}
+            {/* Logo */}
+            <div style={{ marginBottom: '20px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
+                {t('programs.logo')}
+              </label>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleLogoUpload}
+                disabled={isUploading}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  fontSize: '14px'
+                }}
+              />
+              {isUploading && (
+                <div style={{ marginTop: '8px', color: '#666', fontSize: '14px' }}>
+                  {t('programs.wizard.uploading')}...
+                </div>
+              )}
+              {editData.logoUrl && (
+                <div style={{ marginTop: '12px' }}>
+                  <img
+                    src={editData.logoUrl}
+                    alt="Program logo"
                     style={{
-                      width: '100%',
-                      padding: '12px',
+                      maxWidth: '200px',
+                      maxHeight: '100px',
                       border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      fontSize: '16px'
+                      borderRadius: '6px'
                     }}
                   />
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.endDate')}
-                  </label>
-                  <input
-                    type="date"
-                    value={editData.endDate}
-                    onChange={(e) => setEditData(prev => ({ ...prev, endDate: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #ddd',
-                      borderRadius: '6px',
-                      fontSize: '16px'
-                    }}
-                  />
-                </div>
-              </div>
-
-              {/* Managers and Participants Display */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.managers')} ({editData.managerNames.length})
-                  </label>
-                  <div style={{
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    minHeight: '100px',
-                    backgroundColor: '#f8f9fa'
-                  }}>
-                    {editData.managerNames.length > 0 ? (
-                      editData.managerNames.map((name, index) => (
-                        <div key={index} style={{ padding: '4px 0', fontSize: '14px' }}>
-                          👤 {name}
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ color: '#666', fontSize: '14px' }}>
-                        {t('programs.noManagers')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                    {t('programs.participants')} ({editData.participantNames.length})
-                  </label>
-                  <div style={{
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    padding: '12px',
-                    minHeight: '100px',
-                    backgroundColor: '#f8f9fa'
-                  }}>
-                    {editData.participantNames.length > 0 ? (
-                      editData.participantNames.map((name, index) => (
-                        <div key={index} style={{ padding: '4px 0', fontSize: '14px' }}>
-                          👥 {name}
-                        </div>
-                      ))
-                    ) : (
-                      <div style={{ color: '#666', fontSize: '14px' }}>
-                        {t('programs.noParticipants')}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Action Buttons */}

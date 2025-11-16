@@ -124,6 +124,7 @@
     "organizations": "ארגונים",
     "programs": "תכניות",
     "groups": "קבוצות",
+    "members": "חברים",
     "settings": "הגדרות",
     "projects": "מטופלים",
     "todayMilestones": "אבני דרך היום",
@@ -759,12 +760,6 @@
     "name": "שם התכנית",
     "description": "תיאור",
     "logo": "לוגו",
-    "status": {
-      "active": "פעילה",
-      "inactive": "לא פעילה",
-      "completed": "הושלמה",
-      "planned": "מתוכננת"
-    },
     "startDate": "תאריך התחלה",
     "endDate": "תאריך סיום",
     "managers": "מנהלות",
@@ -818,8 +813,6 @@
     "name": "שם הקבוצה",
     "description": "תיאור",
     "logo": "לוגו",
-    "category": "קטגוריה",
-    "maxMembers": "מספר חברים מקסימלי",
     "meetingSchedule": "לוח זמנים לפגישות",
     "location": "מיקום",
     "status": {
@@ -827,12 +820,6 @@
       "inactive": "לא פעילה",
       "completed": "הושלמה",
       "full": "מלאה"
-    },
-    "category": {
-      "therapy": "טיפול",
-      "support": "תמיכה",
-      "training": "הכשרה",
-      "social": "חברתי"
     },
     "managers": "מנהלות",
     "members": "חברות",
@@ -876,5 +863,31 @@
       "next": "הבא",
       "cancel": "ביטול"
     }
+  },
+  "members": {
+    "title": "ניהול חברים",
+    "subtitle": "ניהול חברים בקבוצות, תכניות וארגונים שלך",
+    "loading": "טוען חברים",
+    "noAccess": "אין גישה",
+    "noAccessDescription": "אין לך הרשאות ניהול לקבוצות, תכניות או ארגונים.",
+    "groups": "קבוצות",
+    "programs": "תכניות",
+    "organizations": "ארגונים",
+    "selectGroup": "בחר קבוצה",
+    "selectProgram": "בחר תכנית",
+    "selectOrganization": "בחר ארגון",
+    "membersList": "רשימת חברים",
+    "noMembers": "לא נמצאו חברים",
+    "role": "תפקיד",
+    "lastLogin": "התחברות אחרונה",
+    "never": "אף פעם",
+    "addMember": "הוסף חבר",
+    "removeMember": "הסר חבר",
+    "searchUsers": "חפש משתמשים",
+    "searchPlaceholder": "חפש לפי שם או אימייל...",
+    "searching": "מחפש",
+    "searchResults": "תוצאות חיפוש",
+    "add": "הוסף",
+    "noResults": "לא נמצאו משתמשים"
   }
 }

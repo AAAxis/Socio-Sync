@@ -213,13 +213,13 @@ export default function Organizations({ user }: OrganizationsProps) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(t('organizations.invalidFileType'));
+      console.error('Invalid file type');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert(t('organizations.fileTooLarge'));
+      console.error('File too large');
       return;
     }
 
@@ -241,7 +241,7 @@ export default function Organizations({ user }: OrganizationsProps) {
       }
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert(t('organizations.uploadError'));
+      console.error('Upload error');
     } finally {
       setIsUploading(false);
     }
@@ -296,13 +296,13 @@ export default function Organizations({ user }: OrganizationsProps) {
 
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert(t('organizations.invalidFileType'));
+      console.error('Invalid file type');
       return;
     }
 
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert(t('organizations.fileTooLarge'));
+      console.error('File too large');
       return;
     }
 
@@ -324,7 +324,7 @@ export default function Organizations({ user }: OrganizationsProps) {
       }
     } catch (error) {
       console.error('Error uploading logo:', error);
-      alert(t('organizations.uploadError'));
+      console.error('Upload error');
     } finally {
       setIsUploading(false);
     }
@@ -348,7 +348,7 @@ export default function Organizations({ user }: OrganizationsProps) {
       handleCloseDetails();
     } catch (error) {
       console.error('Error updating organization:', error);
-      alert(t('organizations.updateError'));
+      console.error('Update error');
     } finally {
       setIsUpdating(false);
     }
@@ -357,7 +357,7 @@ export default function Organizations({ user }: OrganizationsProps) {
   const handleDeleteOrganization = async () => {
     if (!selectedOrg) return;
 
-    if (!window.confirm(t('organizations.confirmDelete'))) return;
+    // Delete organization
 
     setIsDeleting(true);
     try {
@@ -367,7 +367,7 @@ export default function Organizations({ user }: OrganizationsProps) {
       handleCloseDetails();
     } catch (error) {
       console.error('Error deleting organization:', error);
-      alert(t('organizations.deleteError'));
+      console.error('Delete error');
     } finally {
       setIsDeleting(false);
     }
@@ -401,7 +401,7 @@ export default function Organizations({ user }: OrganizationsProps) {
       setCurrentStep('basic');
     } catch (error) {
       console.error('Error creating organization:', error);
-      alert(t('organizations.createError'));
+      console.error('Create error');
     } finally {
       setIsCreating(false);
     }

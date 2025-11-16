@@ -124,6 +124,7 @@
     "organizations": "Organizations",
     "programs": "Programs",
     "groups": "Groups",
+    "members": "Members",
     "settings": "Settings",
     "projects": "Patients",
     "todayMilestones": "Today's Milestones",
@@ -833,5 +834,31 @@
       "next": "Next",
       "cancel": "Cancel"
     }
+  },
+  "members": {
+    "title": "Members Management",
+    "subtitle": "Manage members across your groups, programs, and organizations",
+    "loading": "Loading members",
+    "noAccess": "No Access",
+    "noAccessDescription": "You don't have management access to any groups, programs, or organizations.",
+    "groups": "Groups",
+    "programs": "Programs", 
+    "organizations": "Organizations",
+    "selectGroup": "Select Group",
+    "selectProgram": "Select Program",
+    "selectOrganization": "Select Organization",
+    "membersList": "Members List",
+    "noMembers": "No members found",
+    "role": "Role",
+    "lastLogin": "Last Login",
+    "never": "Never",
+    "addMember": "Add Member",
+    "removeMember": "Remove Member",
+    "searchUsers": "Search Users",
+    "searchPlaceholder": "Search by name or email...",
+    "searching": "Searching",
+    "searchResults": "Search Results",
+    "add": "Add",
+    "noResults": "No users found"
   }
 }

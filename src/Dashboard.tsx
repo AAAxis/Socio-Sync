@@ -7,6 +7,7 @@ import { DashboardStats } from './components/DashboardStats';
 import Patients from './components/Patients';
 import Users from './components/Users';
 import Settings from './components/Settings';
+import Organizations from './components/Organizations';
 import { signOutUser, onAuthStateChange, trackUserLogin, getUserData, getAllUsers, createUserWithRole, updateUserRole, deleteUser, enable2FA, disable2FA, linkGoogleCalendar, linkGoogleAccount, unlinkGoogleAccount, canLinkGoogleAccount, canUnlinkGoogleAccount, getAllPatients, getAllActivityLogs, getEvents, createEvent, deleteEvent, searchPatients, getPatientsBatch, deletePatientCase, updateEventStatus, deleteActivityLog, syncEventToGoogleCalendar } from './firebase';
 import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
@@ -1875,6 +1876,17 @@ export default function MainDashboard() {
                       </button>
                     </li>
                   )}
+                  {user?.role === 'super_admin' && (
+                    <li>
+                      <button 
+                        onClick={() => handleTabChange('organizations')}
+                        className={`nav-link ${activeTab === 'organizations' ? 'active' : ''}`}
+                      >
+                        <span className="nav-icon">🏢</span>
+                        {t('navigation.organizations')}
+                      </button>
+                    </li>
+                  )}
                   <li>
                     <button 
                       onClick={() => handleTabChange('projects')}
@@ -2009,6 +2021,9 @@ export default function MainDashboard() {
                 />
               )}
 
+              {activeTab === 'organizations' && user?.role === 'super_admin' && (
+                <Organizations user={user} />
+              )}
               {activeTab === 'projects' && (
                 <Patients
                   user={user}

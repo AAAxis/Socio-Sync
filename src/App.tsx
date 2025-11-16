@@ -17,6 +17,8 @@ import { IntakeRightsPage } from './components/IntakeRightsPage';
 import { IntakeEmotionalPage } from './components/IntakeEmotionalPage';
 import { IntakeProfesionalPage } from './components/IntakeProfesionalPage';
 import { EmailVerificationPage } from './components/EmailVerificationPage';
+import { PrivacyPolicyPage } from './components/PrivacyPolicyPage';
+import { TermsPage } from './components/TermsPage';
 
 // Language wrapper component to handle language from URL
 function LanguageWrapper({ children }: { children: React.ReactNode }) {
@@ -69,6 +71,8 @@ function AppRoutes() {
       <Route path="/:lang/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
       <Route path="/:lang/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/:lang/create-event" element={<CreateEventPage />} />
+      <Route path="/:lang/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/:lang/terms" element={<TermsPage />} />
       
       {/* Fallback routes without language prefix - will be redirected */}
       <Route path="/" element={<LoginPage />} />
@@ -83,6 +87,8 @@ function AppRoutes() {
       <Route path="/intake-emotional/:caseId" element={<IntakeEmotionalPage />} />
       <Route path="/intake-profesional/:caseId" element={<IntakeProfesionalPage />} />
       <Route path="/create-event" element={<CreateEventPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
       
       {/* Catch all */}
       <Route path="*" element={<Navigate to="/en" replace />} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { User } from '../types';
+import { Link } from 'react-router-dom';
 
 interface SettingsProps {
   user: User;
@@ -20,6 +21,7 @@ export default function Settings({
   handleUnlinkGoogleCalendar
 }: SettingsProps) {
   const { t } = useTranslation();
+  const langPrefix = i18n?.language ? `/${i18n.language}` : '';
   
   return (
     <div className="settings-page">
@@ -101,6 +103,38 @@ export default function Settings({
                 </div>
               )}
             </div>
+          </div>
+        </div>
+        
+        <div className="settings-section">
+          <h3>{t('settings.legal')}</h3>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <Link
+              to={`${langPrefix}/privacy`}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                textDecoration: 'none',
+                color: '#007acc',
+                background: '#fff'
+              }}
+            >
+              {t('settings.privacyPolicy')}
+            </Link>
+            <Link
+              to={`${langPrefix}/terms`}
+              style={{
+                padding: '10px 16px',
+                borderRadius: '6px',
+                border: '1px solid #ddd',
+                textDecoration: 'none',
+                color: '#007acc',
+                background: '#fff'
+              }}
+            >
+              {t('settings.termsOfService')}
+            </Link>
           </div>
         </div>
         

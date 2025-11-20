@@ -29,7 +29,7 @@ interface GroupsProps {
 type WizardStep = 'basic' | 'managers' | 'details';
 
 export default function Groups({ user }: GroupsProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -100,10 +100,12 @@ export default function Groups({ user }: GroupsProps) {
     try {
       const usersRef = collection(db, 'users');
       const snapshot = await getDocs(usersRef);
-      const users = snapshot.docs.map(doc => ({
+      const users = snapshot.docs
+        .map(doc => ({
         id: doc.id,
         ...doc.data()
-      })) as UserManagementUser[];
+        }))
+        .filter((user: any) => !user.deleted) as UserManagementUser[];
 
       const filtered = users.filter(user => 
         user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -156,22 +158,14 @@ export default function Groups({ user }: GroupsProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      console.error('Invalid file type');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      console.error('File too large');
-      return;
-    }
-
     setIsUploading(true);
     try {
+      // Validate and resize image to max 1000x1000 JPG
+      const { validateAndResizeIcon } = await import('../utils');
+      const resizedFile = await validateAndResizeIcon(file);
+
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append('file', resizedFile);
 
       const response = await fetch(getApiUrl('/upload'), {
         method: 'POST',
@@ -180,15 +174,21 @@ export default function Groups({ user }: GroupsProps) {
 
       if (response.ok) {
         const result = await response.json();
-        setFormData(prev => ({ ...prev, logoUrl: result.file_url }));
+        // Add cache-busting parameter to force image reload
+        const imageUrl = result.file_url + (result.file_url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        setFormData(prev => ({ ...prev, logoUrl: imageUrl }));
       } else {
         throw new Error('Upload failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading logo:', error);
-      console.error('Upload error');
+      alert(error.message || 'Failed to upload icon. Please ensure the image is JPG format and try again.');
     } finally {
       setIsUploading(false);
+      // Reset file input to allow selecting the same file again
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -236,6 +236,45 @@ export default function Groups({ user }: GroupsProps) {
     }
   };
 
+  // Logo upload handler for edit modal
+  const handleDetailsLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      // Validate and resize image to max 1000x1000 JPG
+      const { validateAndResizeIcon } = await import('../utils');
+      const resizedFile = await validateAndResizeIcon(file);
+
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', resizedFile);
+
+      const response = await fetch(getApiUrl('/upload'), {
+        method: 'POST',
+        body: formDataUpload,
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        // Add cache-busting parameter to force image reload
+        const imageUrl = result.file_url + (result.file_url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        setEditData(prev => ({ ...prev, logoUrl: imageUrl }));
+      } else {
+        throw new Error('Upload failed');
+      }
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      alert(error.message || 'Failed to upload icon. Please ensure the image is JPG format and try again.');
+    } finally {
+      setIsUploading(false);
+      // Reset file input to allow selecting the same file again
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
   // Update group
   const handleUpdateGroup = async () => {
     if (!selectedGroup || !editData.name.trim()) return;
@@ -245,7 +284,8 @@ export default function Groups({ user }: GroupsProps) {
       const groupRef = doc(db, 'groups', selectedGroup.id);
       await updateDoc(groupRef, {
         name: editData.name,
-        description: editData.description
+        description: editData.description,
+        logoUrl: editData.logoUrl
       });
 
       setShowDetailsModal(false);
@@ -265,7 +305,9 @@ export default function Groups({ user }: GroupsProps) {
     setIsDeleting(true);
     try {
       await deleteDoc(doc(db, 'groups', groupId));
-      // Group deleted successfully
+      // Group deleted successfully - close modal and reset selected group
+      setShowDetailsModal(false);
+      setSelectedGroup(null);
     } catch (error) {
       console.error('Error deleting group:', error);
       console.error('Delete error');
@@ -346,73 +388,91 @@ export default function Groups({ user }: GroupsProps) {
         gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
         gap: '20px'
       }}>
-        {groups.map((group) => (
+        {groups.map((group) => {
+          const isRTL = i18n.language === 'he';
+          return (
           <div
             key={group.id}
             onClick={() => handleOpenDetails(group)}
             style={{
-              border: '1px solid #e9ecef',
-              borderRadius: '8px',
-              padding: '20px',
-              backgroundColor: 'white',
+                backgroundColor: '#f0fdf4',
+                border: '1px solid #dcfce7',
+                borderRadius: '12px',
+                padding: '24px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                transition: 'all 0.3s ease',
               cursor: 'pointer',
-              transition: 'box-shadow 0.2s ease'
+                position: 'relative',
+                overflow: 'hidden'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
+                e.currentTarget.style.backgroundColor = '#ecfdf5';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                e.currentTarget.style.transform = 'translateY(0)';
+                e.currentTarget.style.backgroundColor = '#f0fdf4';
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'flex-start', 
+                marginBottom: '16px',
+                flexDirection: isRTL ? 'row-reverse' : 'row'
+              }}>
               {group.logoUrl ? (
                 <img
                   src={group.logoUrl}
                   alt={`${group.name} logo`}
                   style={{
-                    width: '50px',
-                    height: '50px',
+                      width: '60px',
+                      height: '60px',
                     objectFit: 'cover',
-                    borderRadius: '6px',
-                    marginRight: '12px',
-                    border: '1px solid #e9ecef'
+                      borderRadius: '8px',
+                      [isRTL ? 'marginLeft' : 'marginRight']: '16px',
+                      border: '2px solid #dcfce7',
+                      backgroundColor: 'white',
+                      padding: '4px'
                   }}
                 />
               ) : (
                 <div
                   style={{
-                    width: '50px',
-                    height: '50px',
-                    backgroundColor: '#f8f9fa',
-                    border: '1px solid #e9ecef',
-                    borderRadius: '6px',
-                    marginRight: '12px',
+                      width: '60px',
+                      height: '60px',
+                      backgroundColor: '#dcfce7',
+                      border: '2px solid #bbf7d0',
+                      borderRadius: '8px',
+                      [isRTL ? 'marginLeft' : 'marginRight']: '16px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '24px',
-                    color: '#6c757d'
+                      fontSize: '28px',
+                      color: '#16a34a',
+                      flexShrink: 0
                   }}
                 >
                   👥
                 </div>
               )}
-              <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
                 <h3 style={{ 
-                  margin: '0 0 8px 0', 
-                  color: '#333',
-                  fontSize: '18px',
-                  fontWeight: '600'
+                    margin: '0 0 10px 0', 
+                    color: '#1e293b',
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    lineHeight: '1.3'
                 }}>
                   {group.name}
                 </h3>
                 {group.description && (
                   <p style={{
-                    margin: '0 0 12px 0',
-                    color: '#666',
+                      margin: '0 0 14px 0',
+                      color: '#64748b',
                     fontSize: '14px',
-                    lineHeight: '1.4'
+                      lineHeight: '1.5'
                   }}>
                     {group.description}
                   </p>
@@ -420,19 +480,36 @@ export default function Groups({ user }: GroupsProps) {
               </div>
             </div>
             
-            <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#64748b', 
+                lineHeight: '1.6',
+                paddingTop: '12px',
+                borderTop: '1px solid #dcfce7'
+              }}>
               {group.managerNames && group.managerNames.length > 0 && (
                 <div>
-                  <strong>{t('groups.managers')}:</strong>
-                  <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                    <strong style={{ color: '#475569', display: 'block', marginBottom: '8px' }}>
+                      {t('groups.managers')}:
+                    </strong>
+                    <div style={{ 
+                      marginTop: '4px', 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: '6px',
+                      flexDirection: isRTL ? 'row-reverse' : 'row'
+                    }}>
                     {group.managerNames.map((name, index) => (
                       <span
                         key={index}
                         style={{
-                          backgroundColor: '#e3f2fd',
-                          padding: '2px 8px',
-                          borderRadius: '12px',
-                          fontSize: '12px'
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                            padding: '4px 12px',
+                            borderRadius: '16px',
+                            fontSize: '12px',
+                            fontWeight: '500',
+                            border: '1px solid #bbf7d0'
                         }}
                       >
                         {name}
@@ -443,7 +520,8 @@ export default function Groups({ user }: GroupsProps) {
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {groups.length === 0 && (
@@ -483,8 +561,58 @@ export default function Groups({ user }: GroupsProps) {
             width: '90%',
             maxWidth: '600px',
             maxHeight: '90vh',
-            overflow: 'auto'
+            overflow: 'auto',
+            position: 'relative'
           }}>
+            {/* Close X Button */}
+            <button
+              onClick={() => {
+                setShowWizard(false);
+                setCurrentStep('basic');
+                setFormData({
+                  name: '',
+                  description: '',
+                  logoUrl: '',
+                  managers: [],
+                  managerNames: [],
+                  maxMembers: 10,
+                  category: 'therapy',
+                  status: 'active',
+                  meetingSchedule: '',
+                  location: ''
+                });
+              }}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                ...(i18n.language === 'he' ? { left: '15px' } : { right: '15px' }),
+                background: 'none',
+                border: 'none',
+                fontSize: '28px',
+                color: '#666',
+                cursor: 'pointer',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                padding: 0,
+                lineHeight: 1
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f0f0';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('groups.close') || 'Close'}
+            >
+              ×
+            </button>
             <h3 style={{ margin: '0 0 20px 0', fontSize: '24px' }}>
               {t('groups.createNew')}
             </h3>
@@ -665,7 +793,7 @@ export default function Groups({ user }: GroupsProps) {
                   </label>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,.jpg,.jpeg"
                     onChange={handleLogoUpload}
                     disabled={isUploading}
                     style={{
@@ -682,6 +810,7 @@ export default function Groups({ user }: GroupsProps) {
                   )}
                   {formData.logoUrl && (
                     <img
+                      key={formData.logoUrl}
                       src={formData.logoUrl}
                       alt="Group logo"
                       style={{
@@ -692,6 +821,7 @@ export default function Groups({ user }: GroupsProps) {
                         borderRadius: '8px',
                         border: '1px solid #ddd'
                       }}
+                      onLoad={() => setIsUploading(false)}
                     />
                   )}
                 </div>
@@ -700,8 +830,8 @@ export default function Groups({ user }: GroupsProps) {
             )}
 
             {/* Navigation Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-              <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 {currentStep !== 'basic' && (
                   <button
                     onClick={() => {
@@ -723,38 +853,6 @@ export default function Groups({ user }: GroupsProps) {
                     {t('groups.wizard.back')}
                   </button>
                 )}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button
-                  onClick={() => {
-                    setShowWizard(false);
-                    setCurrentStep('basic');
-                    setFormData({
-                      name: '',
-                      description: '',
-                      logoUrl: '',
-                      managers: [],
-                      managerNames: [],
-                      maxMembers: 10,
-                      category: 'therapy',
-                      status: 'active',
-                      meetingSchedule: '',
-                      location: ''
-                    });
-                  }}
-                  style={{
-                    padding: '12px 24px',
-                    border: '1px solid #ddd',
-                    borderRadius: '6px',
-                    backgroundColor: 'white',
-                    cursor: 'pointer',
-                    fontSize: '16px'
-                  }}
-                >
-                  {t('groups.wizard.cancel')}
-                </button>
-                
                 {currentStep === 'details' ? (
                   <button
                     onClick={handleCreateGroup}
@@ -825,25 +923,40 @@ export default function Groups({ user }: GroupsProps) {
             maxHeight: '90vh',
             overflow: 'auto'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', position: 'relative' }}>
               <h3 style={{ margin: 0, fontSize: '24px' }}>
                 {selectedGroup.name}
               </h3>
               <button
-                onClick={() => handleDeleteGroup(selectedGroup.id)}
-                disabled={isDeleting}
+                onClick={() => setShowDetailsModal(false)}
                 style={{
-                  background: '#dc3545',
-                  color: 'white',
+                  background: 'none',
                   border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '6px',
-                  cursor: isDeleting ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
-                  opacity: isDeleting ? 0.6 : 1
+                  fontSize: '28px',
+                  color: '#666',
+                  cursor: 'pointer',
+                  width: '30px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '50%',
+                  transition: 'all 0.2s ease',
+                  padding: 0,
+                  lineHeight: 1,
+                  ...(i18n.language === 'he' ? { order: -1 } : {})
                 }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f0f0f0';
+                  e.currentTarget.style.color = '#000';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = '#666';
+                }}
+                title={t('groups.close') || 'Close'}
               >
-                {isDeleting ? t('groups.deleting') : t('groups.delete')}
+                ×
               </button>
             </div>
 
@@ -869,7 +982,7 @@ export default function Groups({ user }: GroupsProps) {
             {/* Description */}
             <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '8px', fontWeight: '500' }}>
-                {t('groups.description')}
+                {t('groups.description')}:
               </label>
               <textarea
                 value={editData.description}
@@ -894,8 +1007,8 @@ export default function Groups({ user }: GroupsProps) {
               </label>
               <input
                 type="file"
-                accept="image/*"
-                onChange={handleLogoUpload}
+                accept="image/jpeg,image/jpg,.jpg,.jpeg"
+                onChange={handleDetailsLogoUpload}
                 disabled={isUploading}
                 style={{
                   width: '100%',
@@ -913,6 +1026,7 @@ export default function Groups({ user }: GroupsProps) {
               {editData.logoUrl && (
                 <div style={{ marginTop: '12px' }}>
                   <img
+                    key={editData.logoUrl}
                     src={editData.logoUrl}
                     alt="Group logo"
                     style={{
@@ -921,6 +1035,7 @@ export default function Groups({ user }: GroupsProps) {
                       border: '1px solid #ddd',
                       borderRadius: '6px'
                     }}
+                    onLoad={() => setIsUploading(false)}
                   />
                 </div>
               )}
@@ -929,17 +1044,20 @@ export default function Groups({ user }: GroupsProps) {
             {/* Action Buttons */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px' }}>
               <button
-                onClick={() => setShowDetailsModal(false)}
+                onClick={() => handleDeleteGroup(selectedGroup.id)}
+                disabled={isDeleting}
                 style={{
                   padding: '12px 24px',
-                  border: '1px solid #ddd',
+                  border: 'none',
                   borderRadius: '6px',
-                  backgroundColor: 'white',
-                  cursor: 'pointer',
-                  fontSize: '16px'
+                  background: '#dc3545',
+                  color: 'white',
+                  cursor: isDeleting ? 'not-allowed' : 'pointer',
+                  fontSize: '16px',
+                  opacity: isDeleting ? 0.6 : 1
                 }}
               >
-                {t('groups.cancel')}
+                {isDeleting ? t('groups.deleting') : t('groups.delete')}
               </button>
               <button
                 onClick={handleUpdateGroup}

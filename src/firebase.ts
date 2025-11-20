@@ -604,6 +604,9 @@ export interface FirebaseUserData {
   authDisabled?: boolean; // Flag to indicate if authentication is disabled
   blocked?: boolean; // Flag to indicate if user is blocked
   restricted?: boolean; // Flag to indicate if user is restricted
+  // Soft delete fields
+  deleted?: boolean; // Flag to indicate if user is deleted (soft delete)
+  deletedAt?: any; // Timestamp when user was deleted
   blockedAt?: any; // Server timestamp when user was blocked
   blockedReason?: string; // Reason why user was blocked
 }
@@ -957,7 +960,11 @@ export const getAllUsers = async (): Promise<FirebaseUserData[]> => {
     const users: FirebaseUserData[] = [];
     
     usersSnap.forEach((doc) => {
-      users.push(doc.data() as FirebaseUserData);
+      const userData = doc.data() as FirebaseUserData;
+      // Filter out deleted users (soft delete)
+      if (!userData.deleted) {
+        users.push(userData);
+      }
     });
     
     return users;
@@ -1038,7 +1045,11 @@ export const updateUserRole = async (userId: string, newRole: 'super_admin' | 'a
 export const deleteUser = async (userId: string) => {
   try {
     const userRef = doc(db, 'users', userId);
-    await deleteDoc(userRef);
+    // Soft delete: mark user as deleted instead of removing the document
+    await updateDoc(userRef, {
+      deleted: true,
+      deletedAt: serverTimestamp()
+    });
     return { success: true };
   } catch (error) {
     console.error('Error deleting user:', error);

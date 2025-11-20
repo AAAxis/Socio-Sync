@@ -58,12 +58,14 @@ export default function Members({ user }: MembersProps) {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        // Load users
+        // Load users (exclude deleted users)
         const usersSnapshot = await getDocs(collection(db, 'users'));
-        const usersData = usersSnapshot.docs.map(doc => ({
+        const usersData = usersSnapshot.docs
+          .map(doc => ({
           id: doc.id,
           ...doc.data()
-        })) as UserManagementUser[];
+          }))
+          .filter((user: any) => !user.deleted) as UserManagementUser[];
         setAllUsers(usersData);
 
         // Load groups where user is manager

@@ -460,7 +460,40 @@ export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmb
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
         <div className="modal-overlay">
-          <div className="modal-content">
+          <div className="modal-content" style={{ position: 'relative' }}>
+            <button
+              onClick={() => setShowDeleteConfirm(false)}
+              style={{
+                position: 'absolute',
+                top: '15px',
+                ...(i18n.language === 'he' ? { left: '15px' } : { right: '15px' }),
+                background: 'none',
+                border: 'none',
+                fontSize: '28px',
+                color: '#666',
+                cursor: 'pointer',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                padding: 0,
+                lineHeight: 1
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f0f0f0';
+                e.currentTarget.style.color = '#000';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#666';
+              }}
+              title={t('patientDetail.close') || 'Close'}
+            >
+              ×
+            </button>
             <h3>{t('patientDetail.deletePatient')}</h3>
             <p>{t('patients.confirmDelete')}</p>
             <div className="modal-actions">
@@ -470,12 +503,6 @@ export function PatientDetailEmbedded({ caseId, user, onBack }: PatientDetailEmb
                 className="btn btn-danger"
               >
                 {isDeleting ? t('patientDetail.deleting') : t('patientDetail.deletePatient')}
-              </button>
-              <button 
-                onClick={() => setShowDeleteConfirm(false)}
-                className="btn btn-secondary"
-              >
-                {t('patientDetail.cancel')}
               </button>
             </div>
           </div>

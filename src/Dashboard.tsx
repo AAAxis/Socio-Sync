@@ -2070,7 +2070,7 @@ export default function MainDashboard() {
               {activeTab === 'users' && user?.role === 'super_admin' && (
                 <Users
                   user={user}
-                  filteredUsers={getPaginatedUsers()}
+                  filteredUsers={filteredUsers}
                   userSearchTerm={userSearchTerm}
                   handleUserSearchChange={handleUserSearchChange}
                   userStatusFilter={userStatusFilter}
@@ -2106,7 +2106,7 @@ export default function MainDashboard() {
               {activeTab === 'projects' && (
                 <Patients
                   user={user}
-                  filteredPatients={getPaginatedPatients()}
+                  filteredPatients={filteredPatients}
                   isPatientLoading={isPatientLoading}
                   patientManagementSearchTerm={patientManagementSearchTerm}
                   handlePatientManagementSearch={handlePatientManagementSearch}

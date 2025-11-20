@@ -182,6 +182,8 @@ export default function Patients({
         const results: any[] = [];
         snap.forEach((docSnap: any) => {
           const data = docSnap.data();
+          // Exclude deleted users
+          if (!data.deleted) {
           const name = (data.name || '').toLowerCase();
           const email = (data.email || '').toLowerCase();
           if (name.includes(term) || email.includes(term)) {
@@ -190,6 +192,7 @@ export default function Patients({
               name: data.name,
               email: data.email
             });
+            }
           }
         });
         setAssignResults(results);
@@ -480,9 +483,6 @@ export default function Patients({
             </div>
             {assignError && <div style={{ color: '#d9534f', marginTop: '8px' }}>{assignError}</div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '12px' }}>
-              <button onClick={() => setIsAssignModalOpen(false)} style={{ padding: '8px 12px', background: '#f1f3f5', border: '1px solid #e1e5ea', borderRadius: '8px', cursor: 'pointer' }}>
-                {i18n.language === 'he' ? 'ביטול' : 'Cancel'}
-              </button>
               <button onClick={saveAssigned} disabled={isAssignSaving} style={{ padding: '8px 12px', background: '#007acc', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}>
                 {isAssignSaving ? (i18n.language === 'he' ? 'שומר...' : 'Saving...') : (i18n.language === 'he' ? 'שמור שיוכים' : 'Save')}
               </button>

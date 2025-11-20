@@ -63,6 +63,9 @@ export function CustomDialog({
             className="custom-dialog-close"
             onClick={onClose}
             aria-label={t('dialog.close')}
+            style={{
+              ...(isRTL ? { left: '15px', right: 'auto' } : { right: '15px', left: 'auto' })
+            }}
           >
             ×
           </button>
@@ -74,20 +77,12 @@ export function CustomDialog({
         
         <div className="custom-dialog-footer">
           {type === 'confirm' ? (
-            <>
-              <button 
-                className="custom-dialog-button custom-dialog-button-cancel"
-                onClick={handleCancel}
-              >
-                {cancelText || t('dialog.cancel')}
-              </button>
               <button 
                 className="custom-dialog-button custom-dialog-button-confirm"
                 onClick={handleConfirm}
               >
                 {confirmText || t('dialog.confirm')}
               </button>
-            </>
           ) : (
             <button 
               className="custom-dialog-button custom-dialog-button-ok"

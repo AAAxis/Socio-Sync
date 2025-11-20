@@ -16,6 +16,8 @@ export interface User {
   authDisabled?: boolean; // Flag to indicate if authentication is disabled
   blocked?: boolean; // Flag to indicate if user is blocked
   blockedReason?: string; // Reason why user was blocked
+  deleted?: boolean; // Flag to indicate if user is deleted (soft delete)
+  deletedAt?: any; // Timestamp when user was deleted
 }
 
 export interface UserManagementUser {
@@ -31,6 +33,8 @@ export interface UserManagementUser {
   blocked?: boolean;
   restricted?: boolean;
   blockedReason?: string;
+  deleted?: boolean; // Flag to indicate if user is deleted (soft delete)
+  deletedAt?: any; // Timestamp when user was deleted
 }
 
 export interface Patient {

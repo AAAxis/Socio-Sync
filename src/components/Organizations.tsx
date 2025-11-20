@@ -24,7 +24,7 @@ interface OrganizationsProps {
 type WizardStep = 'basic' | 'administrators' | 'details';
 
 export default function Organizations({ user }: OrganizationsProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -94,7 +94,8 @@ export default function Organizations({ user }: OrganizationsProps) {
       
       snapshot.forEach((doc) => {
         const userData = doc.data();
-        if (userData.role === 'admin' || userData.role === 'super_admin') {
+        // Exclude deleted users
+        if (!userData.deleted && (userData.role === 'admin' || userData.role === 'super_admin')) {
           const user: UserManagementUser = {
             id: doc.id,
             name: userData.name || '',
@@ -211,22 +212,14 @@ export default function Organizations({ user }: OrganizationsProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      console.error('Invalid file type');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      console.error('File too large');
-      return;
-    }
-
     setIsUploading(true);
     try {
+      // Validate and resize image to max 1000x1000 JPG
+      const { validateAndResizeIcon } = await import('../utils');
+      const resizedFile = await validateAndResizeIcon(file);
+
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append('file', resizedFile);
 
       const response = await fetch(getApiUrl('/upload'), {
         method: 'POST',
@@ -235,15 +228,21 @@ export default function Organizations({ user }: OrganizationsProps) {
 
       if (response.ok) {
         const result = await response.json();
-        setFormData(prev => ({ ...prev, logoUrl: result.file_url }));
+        // Add cache-busting parameter to force image reload
+        const imageUrl = result.file_url + (result.file_url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        setFormData(prev => ({ ...prev, logoUrl: imageUrl }));
       } else {
         throw new Error('Upload failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading logo:', error);
-      console.error('Upload error');
+      alert(error.message || 'Failed to upload icon. Please ensure the image is JPG format and try again.');
     } finally {
       setIsUploading(false);
+      // Reset file input to allow selecting the same file again
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -294,22 +293,14 @@ export default function Organizations({ user }: OrganizationsProps) {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
-      console.error('Invalid file type');
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      console.error('File too large');
-      return;
-    }
-
     setIsUploading(true);
     try {
+      // Validate and resize image to max 1000x1000 JPG
+      const { validateAndResizeIcon } = await import('../utils');
+      const resizedFile = await validateAndResizeIcon(file);
+
       const formDataUpload = new FormData();
-      formDataUpload.append('file', file);
+      formDataUpload.append('file', resizedFile);
 
       const response = await fetch(getApiUrl('/upload'), {
         method: 'POST',
@@ -318,15 +309,21 @@ export default function Organizations({ user }: OrganizationsProps) {
 
       if (response.ok) {
         const result = await response.json();
-        setEditData(prev => ({ ...prev, logoUrl: result.file_url }));
+        // Add cache-busting parameter to force image reload
+        const imageUrl = result.file_url + (result.file_url.includes('?') ? '&' : '?') + 't=' + Date.now();
+        setEditData(prev => ({ ...prev, logoUrl: imageUrl }));
       } else {
         throw new Error('Upload failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error uploading logo:', error);
-      console.error('Upload error');
+      alert(error.message || 'Failed to upload icon. Please ensure the image is JPG format and try again.');
     } finally {
       setIsUploading(false);
+      // Reset file input to allow selecting the same file again
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -591,7 +588,7 @@ export default function Organizations({ user }: OrganizationsProps) {
               </label>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,.jpg,.jpeg"
                 onChange={handleLogoUpload}
                 disabled={isUploading}
                 style={{
@@ -610,6 +607,7 @@ export default function Organizations({ user }: OrganizationsProps) {
               {formData.logoUrl && (
                 <div style={{ marginTop: '12px' }}>
                   <img
+                    key={formData.logoUrl}
                     src={formData.logoUrl}
                     alt="Organization logo"
                     style={{
@@ -618,6 +616,7 @@ export default function Organizations({ user }: OrganizationsProps) {
                       border: '1px solid #ddd',
                       borderRadius: '6px'
                     }}
+                    onLoad={() => setIsUploading(false)}
                   />
                 </div>
               )}
@@ -716,24 +715,38 @@ export default function Organizations({ user }: OrganizationsProps) {
               style={{
                 position: 'absolute',
                 top: '15px',
-                left: '15px',
+                ...(i18n.language === 'he' ? { left: '15px' } : { right: '15px' }),
                 background: 'none',
                 border: 'none',
-                fontSize: '24px',
+                fontSize: '28px',
                 color: '#666',
                 cursor: 'pointer',
-                padding: '5px',
-                lineHeight: '1'
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                padding: 0,
+                lineHeight: 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#333';
+                e.currentTarget.style.backgroundColor = '#f0f0f0';
+                e.currentTarget.style.color = '#000';
               }}
               onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = '#666';
               }}
+              title={t('organizations.close') || 'Close'}
             >
               ×
             </button>
+            <h3 style={{ margin: '0 0 20px 0', fontSize: '24px' }}>
+              {t('organizations.createNew')}
+            </h3>
+
             {/* Progress Indicator */}
             <div style={{ marginBottom: '30px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
@@ -762,8 +775,8 @@ export default function Organizations({ user }: OrganizationsProps) {
             {renderWizardStep()}
 
             {/* Navigation Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '30px' }}>
-              <div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '30px' }}>
+              <div style={{ display: 'flex', gap: '12px' }}>
                 {currentStep !== 'basic' && (
                   <button
                     onClick={prevStep}
@@ -780,9 +793,6 @@ export default function Organizations({ user }: OrganizationsProps) {
                     {t('organizations.wizard.back')}
                   </button>
                 )}
-              </div>
-              
-              <div style={{ display: 'flex', gap: '12px' }}>
                 {currentStep === 'details' ? (
                   <button
                     onClick={handleCreateOrganization}
@@ -854,21 +864,31 @@ export default function Organizations({ user }: OrganizationsProps) {
               style={{
                 position: 'absolute',
                 top: '15px',
-                left: '15px',
+                ...(i18n.language === 'he' ? { left: '15px' } : { right: '15px' }),
                 background: 'none',
                 border: 'none',
-                fontSize: '24px',
+                fontSize: '28px',
                 color: '#666',
                 cursor: 'pointer',
-                padding: '5px',
-                lineHeight: '1'
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                padding: 0,
+                lineHeight: 1
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#333';
+                e.currentTarget.style.backgroundColor = '#f0f0f0';
+                e.currentTarget.style.color = '#000';
               }}
               onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
                 e.currentTarget.style.color = '#666';
               }}
+              title={t('organizations.close') || 'Close'}
             >
               ×
             </button>
@@ -924,7 +944,7 @@ export default function Organizations({ user }: OrganizationsProps) {
               </label>
               <input
                 type="file"
-                accept="image/*"
+                accept="image/jpeg,image/jpg,.jpg,.jpeg"
                 onChange={handleDetailsLogoUpload}
                 disabled={isUploading}
                 style={{
@@ -943,6 +963,7 @@ export default function Organizations({ user }: OrganizationsProps) {
               {editData.logoUrl && (
                 <div style={{ marginTop: '12px' }}>
                   <img
+                    key={editData.logoUrl}
                     src={editData.logoUrl}
                     alt="Organization logo"
                     style={{
@@ -951,6 +972,7 @@ export default function Organizations({ user }: OrganizationsProps) {
                       border: '1px solid #ddd',
                       borderRadius: '6px'
                     }}
+                    onLoad={() => setIsUploading(false)}
                   />
                 </div>
               )}
@@ -1063,35 +1085,34 @@ export default function Organizations({ user }: OrganizationsProps) {
             </div>
 
             {/* Action Buttons */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px' }}>
               <button
                 onClick={handleDeleteOrganization}
                 disabled={isDeleting}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#dc3545',
-                  color: 'white',
+                  padding: '12px 24px',
                   border: 'none',
                   borderRadius: '6px',
+                  background: '#dc3545',
+                  color: 'white',
                   cursor: isDeleting ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   opacity: isDeleting ? 0.6 : 1
                 }}
               >
                 {isDeleting ? t('organizations.details.deleting') : t('organizations.details.delete')}
               </button>
-              
               <button
                 onClick={handleUpdateOrganization}
                 disabled={isUpdating || !editData.name.trim()}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#28a745',
-                  color: 'white',
+                  padding: '12px 24px',
                   border: 'none',
                   borderRadius: '6px',
+                  backgroundColor: '#007acc',
+                  color: 'white',
                   cursor: (isUpdating || !editData.name.trim()) ? 'not-allowed' : 'pointer',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   opacity: (isUpdating || !editData.name.trim()) ? 0.6 : 1
                 }}
               >
@@ -1117,74 +1138,91 @@ export default function Organizations({ user }: OrganizationsProps) {
           gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
           gap: '20px'
         }}>
-          {organizations.map((org) => (
+          {organizations.map((org) => {
+            const isRTL = i18n.language === 'he';
+            return (
             <div
               key={org.id}
               onClick={() => handleOpenDetails(org)}
               style={{
-                backgroundColor: 'white',
-                border: '1px solid #e9ecef',
-                borderRadius: '8px',
-                padding: '20px',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-                transition: 'box-shadow 0.2s ease',
-                cursor: 'pointer'
+                  backgroundColor: '#f8f9ff',
+                  border: '1px solid #e0e7ff',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  position: 'relative',
+                  overflow: 'hidden'
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                  e.currentTarget.style.boxShadow = '0 4px 16px rgba(0,0,0,0.12)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.backgroundColor = '#f0f2ff';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.backgroundColor = '#f8f9ff';
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', marginBottom: '16px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'flex-start', 
+                  marginBottom: '16px',
+                  flexDirection: isRTL ? 'row-reverse' : 'row'
+                }}>
                 {org.logoUrl ? (
                   <img
                     src={org.logoUrl}
                     alt={`${org.name} logo`}
                     style={{
-                      width: '50px',
-                      height: '50px',
+                        width: '60px',
+                        height: '60px',
                       objectFit: 'cover',
-                      borderRadius: '6px',
-                      marginRight: '12px',
-                      border: '1px solid #e9ecef'
+                        borderRadius: '8px',
+                        [isRTL ? 'marginLeft' : 'marginRight']: '16px',
+                        border: '2px solid #e0e7ff',
+                        backgroundColor: 'white',
+                        padding: '4px'
                     }}
                   />
                 ) : (
                   <div
                     style={{
-                      width: '50px',
-                      height: '50px',
-                      backgroundColor: '#f8f9fa',
-                      border: '1px solid #e9ecef',
-                      borderRadius: '6px',
-                      marginRight: '12px',
+                        width: '60px',
+                        height: '60px',
+                        backgroundColor: '#e0e7ff',
+                        border: '2px solid #d0d9ff',
+                        borderRadius: '8px',
+                        [isRTL ? 'marginLeft' : 'marginRight']: '16px',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '24px',
-                      color: '#6c757d'
+                        fontSize: '28px',
+                        color: '#6366f1',
+                        flexShrink: 0
                     }}
                   >
                     🏢
                   </div>
                 )}
-                <div style={{ flex: 1 }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
                   <h3 style={{ 
-                    margin: '0 0 8px 0', 
-                    color: '#333',
-                    fontSize: '18px',
-                    fontWeight: '600'
+                      margin: '0 0 10px 0', 
+                      color: '#1e293b',
+                      fontSize: '20px',
+                      fontWeight: '600',
+                      lineHeight: '1.3'
                   }}>
                     {org.name}
                   </h3>
                   {org.description && (
                     <p style={{
-                      margin: '0 0 12px 0',
-                      color: '#666',
+                        margin: '0 0 14px 0',
+                        color: '#64748b',
                       fontSize: '14px',
-                      lineHeight: '1.4'
+                        lineHeight: '1.5'
                     }}>
                       {org.description}
                     </p>
@@ -1192,19 +1230,36 @@ export default function Organizations({ user }: OrganizationsProps) {
                 </div>
               </div>
               
-              <div style={{ fontSize: '14px', color: '#666', lineHeight: '1.5' }}>
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#64748b', 
+                  lineHeight: '1.6',
+                  paddingTop: '12px',
+                  borderTop: '1px solid #e0e7ff'
+                }}>
                 {org.administratorNames && org.administratorNames.length > 0 && (
                   <div>
-                    <strong>{t('organizations.administrators')}:</strong>
-                    <div style={{ marginTop: '4px', display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      <strong style={{ color: '#475569', display: 'block', marginBottom: '8px' }}>
+                        {t('organizations.administrators')}:
+                      </strong>
+                      <div style={{ 
+                        marginTop: '4px', 
+                        display: 'flex', 
+                        flexWrap: 'wrap', 
+                        gap: '6px',
+                        flexDirection: isRTL ? 'row-reverse' : 'row'
+                      }}>
                       {org.administratorNames.map((name, index) => (
                         <span
                           key={index}
                           style={{
-                            backgroundColor: '#e3f2fd',
-                            padding: '2px 8px',
-                            borderRadius: '12px',
-                            fontSize: '12px'
+                              backgroundColor: '#e0e7ff',
+                              color: '#4338ca',
+                              padding: '4px 12px',
+                              borderRadius: '16px',
+                              fontSize: '12px',
+                              fontWeight: '500',
+                              border: '1px solid #c7d2fe'
                           }}
                         >
                           {name}
@@ -1215,7 +1270,8 @@ export default function Organizations({ user }: OrganizationsProps) {
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
